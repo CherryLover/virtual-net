@@ -2,7 +2,7 @@
 
 > 总纲对应章节：[ROADMAP.md](../../ROADMAP.md) 的「CP0 项目骨架」
 > 前置：无
-> 状态：进行中（2026-09-04 开工）
+> 状态：已完成（2026-09-04，commit 77c177f，仓库 https://github.com/CherryLover/virtual-net）
 
 ## 目标
 
@@ -264,6 +264,18 @@ typescript 版本通过 catalog 统一，两个包都写 `"typescript": "catalog
    - `ls` 根目录 → 只有 `ROADMAP.md`、`README.md`、`CLAUDE.md`、`docs/`、`packages/`、`apps/` 和第 1 节列出的配置文件，没有多余顶层目录
    - `ls packages apps` → 各只有 `engine`、`web`
    - `packages/engine/src` 与 `apps/web/src` 的子目录与第 1 节逐一对得上
+
+## 实施记录（2026-09-04）
+
+27 条用例全部通过，独立复验：`pnpm lint / typecheck / test / build` 全绿，页面三栏加工具栏正常，刷新后控制台无报错。与文档的偏差：
+
+- `pnpm-workspace.yaml` 加了 `engineStrict: true`。pnpm 11 不再认 `.npmrc` 的 `engine-strict`，只有写在这里 `engines.node` 才会真的拦截安装。`.npmrc` 按文档保留
+- `pnpm-workspace.yaml` 加了 `minimumReleaseAgeExclude` 名单。pnpm 11 默认拒绝发布不足 24 小时的包，biome 2.5.12、vitest 5.0.0、@types/react-dom 19.2.7 当天都在窗口内。这段是临时的，下次动依赖时删掉
+- `@types/react-dom` 是 19.2.7（npm 最新），其余版本与文档一致；TypeScript 7 全链路无兼容问题
+- `canvas/`、`panels/`、`toolbar/` 没保留占位 `index.ts`，S4 后已有真实组件
+- 两个 CSS 文件的引入放在 `main.tsx` 最前面而不是 `Canvas.tsx`，否则 React Flow 首次测量容器为 0 高会报警告
+- `biome.json` 按 Biome 2.5 的写法（`linter.rules.preset`、`files.includes` 排除项不带 `/**`），规则内容不变
+- Vite 首次启动时会因为发现新依赖自动重载一次，重载前控制台可能闪几条 React 报错，属一次性现象
 
 ## 对其他检查点的约定
 

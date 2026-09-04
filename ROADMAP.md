@@ -35,7 +35,7 @@
 
 ## 总览
 
-- [ ] **CP0 项目骨架** — 仓库、引擎与网页两个包、测试跑通、空画布能打开 · [细化文档](docs/checkpoints/CP0-project-skeleton.md)
+- [x] **CP0 项目骨架** — 仓库、引擎与网页两个包、测试跑通、空画布能打开 · [细化文档](docs/checkpoints/CP0-project-skeleton.md)
 - [ ] **CP1 局域网基础** — 电脑 ↔ 路由器 ↔ 外网能通，配错能报出来 · [细化文档](docs/checkpoints/CP1-lan-basics.md)
 - [ ] **CP2 交换机与多设备** — 交换机、VLAN、光猫、无线 AP、多台电脑 · [细化文档](docs/checkpoints/CP2-switching-and-devices.md)
 - [ ] **CP3 路径追踪与动画** — 逐跳显示数据包怎么走、在哪停、为什么 · [细化文档](docs/checkpoints/CP3-trace-and-animation.md)
@@ -284,3 +284,4 @@ virtual-net/
 
 - 2026-09-04 建档。确定第一期范围、八个检查点、技术选型
 - 2026-09-04 CP0–CP3 细化文档完成（`docs/checkpoints/`），每步带验收标准；建立测试表 `docs/TEST-PLAN.md`，用例编号回填到各步骤。写作中定下的跨检查点修正：CP0 布局加顶部工具栏；术语表光猫端口改为 `wan` + `lan1`、AP 客户端口 `wlan1…N`；CP1 的 ProbeResult 加 `traceroute` / `hops` / `fixAt.portId`；新增验收方式【网页测试】
+- 2026-09-04 CP0 完成并打勾：27 条用例全过，首次提交 77c177f，私有仓库 https://github.com/CherryLover/virtual-net 。偏差记在 CP0 文档「实施记录」

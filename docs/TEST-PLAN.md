@@ -34,57 +34,57 @@
 ### CP0-S1 仓库与 workspace 初始化
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-001 | 命令 | — | `node -v`；`pnpm -v` | `node -v` 输出 `v22.x`；`pnpm -v` 与 `packageManager` 一致 | [CP0-S1](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-002 | 命令 | — | `pnpm install` | 成功，生成 `pnpm-lock.yaml` | [CP0-S1](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-003 | 命令 | — | 切到 Node 20（如 `nvm use 20`）再 `pnpm install`；然后切回 Node 22 再 `pnpm install` | Node 20 下报错提示不满足 `engines.node`；切回 22 后正常 | [CP0-S1](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-004 | 命令 | — | `git status` | 不出现 `node_modules/` | [CP0-S1](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-001 | 命令 | — | `node -v`；`pnpm -v` | `node -v` 输出 `v22.x`；`pnpm -v` 与 `packageManager` 一致 | [CP0-S1](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-002 | 命令 | — | `pnpm install` | 成功，生成 `pnpm-lock.yaml` | [CP0-S1](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-003 | 命令 | — | 切到 Node 20（如 `nvm use 20`）再 `pnpm install`；然后切回 Node 22 再 `pnpm install` | Node 20 下报错提示不满足 `engines.node`；切回 22 后正常 | [CP0-S1](checkpoints/CP0-project-skeleton.md) | ✅ 通过（拦截由 pnpm 自身 Node 版本要求 + workspace 的 engineStrict 共同实现，见 CP0 实施记录） |
+| T-CP0-004 | 命令 | — | `git status` | 不出现 `node_modules/` | [CP0-S1](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ### CP0-S2 引擎包与占位测试
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-005 | 引擎测试 | — | `pnpm --filter @virtual-net/engine test` | 输出 `Test Files 1 passed`、`Tests 1 passed`，退出码 0 | [CP0-S2](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-006 | 命令 | — | `pnpm --filter @virtual-net/engine typecheck` | 无输出，退出码 0 | [CP0-S2](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-007 | 命令 | — | 临时在 `src/index.ts` 加一行 `document.title = 'x'` 再 typecheck；删掉后再 typecheck | 报 `Cannot find name 'document'`；删掉后通过 | [CP0-S2](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-008 | 命令 | — | `ls packages/engine/src` | 看到 `model engine lint serialization index.ts index.test.ts` | [CP0-S2](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-005 | 引擎测试 | — | `pnpm --filter @virtual-net/engine test` | 输出 `Test Files 1 passed`、`Tests 1 passed`，退出码 0 | [CP0-S2](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-006 | 命令 | — | `pnpm --filter @virtual-net/engine typecheck` | 无输出，退出码 0 | [CP0-S2](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-007 | 命令 | — | 临时在 `src/index.ts` 加一行 `document.title = 'x'` 再 typecheck；删掉后再 typecheck | 报 `Cannot find name 'document'`；删掉后通过 | [CP0-S2](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-008 | 命令 | — | `ls packages/engine/src` | 看到 `model engine lint serialization index.ts index.test.ts` | [CP0-S2](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ### CP0-S3 网页包脚手架与引擎引用
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-009 | 命令 | — | `pnpm --filter @virtual-net/web dev` | 终端打印 `Local: http://localhost:5173/` | [CP0-S3](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-010 | 页面操作 | `pnpm --filter @virtual-net/web dev` 已启动 | 浏览器打开终端打印的地址 | 空白页，标签标题 `virtual-net`，控制台无报错 | [CP0-S3](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-011 | 命令 | — | `pnpm --filter @virtual-net/web typecheck` | 退出码 0 | [CP0-S3](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-012 | 命令 | — | 把 import 改成 `@virtual-net/engine/src/index` 再 typecheck；改回后再 typecheck | 报模块找不到；改回后通过 | [CP0-S3](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-009 | 命令 | — | `pnpm --filter @virtual-net/web dev` | 终端打印 `Local: http://localhost:5173/` | [CP0-S3](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-010 | 页面操作 | `pnpm --filter @virtual-net/web dev` 已启动 | 浏览器打开终端打印的地址 | 空白页，标签标题 `virtual-net`，控制台无报错 | [CP0-S3](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-011 | 命令 | — | `pnpm --filter @virtual-net/web typecheck` | 退出码 0 | [CP0-S3](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-012 | 命令 | — | 把 import 改成 `@virtual-net/engine/src/index` 再 typecheck；改回后再 typecheck | 报模块找不到；改回后通过 | [CP0-S3](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ### CP0-S4 三栏布局与空画布
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-013 | 页面操作 | — | `pnpm dev` 打开页面 | 顶部一条工具栏显示 `virtual-net`，下方左中右三栏，左栏顶部显示「设备」，右栏底部显示 `引擎 0.0.0`，中间是点阵背景和左下角缩放按钮，画布上没有任何节点 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-014 | 页面操作 | 页面已打开 | ①在画布上滚轮 ②按住拖动 ③点缩放按钮 | ①点阵缩放 ②点阵平移 ③有响应 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-015 | 页面操作 | 页面已打开 | 把浏览器窗口拉宽拉窄 | 工具栏横跨全宽，左右两栏宽度不变，中间随窗口伸缩；页面没有整体滚动条 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-016 | 页面操作 | 页面已打开 | 刷新页面 | 控制台无报错和 React 警告 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-013 | 页面操作 | — | `pnpm dev` 打开页面 | 顶部一条工具栏显示 `virtual-net`，下方左中右三栏，左栏顶部显示「设备」，右栏底部显示 `引擎 0.0.0`，中间是点阵背景和左下角缩放按钮，画布上没有任何节点 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-014 | 页面操作 | 页面已打开 | ①在画布上滚轮 ②按住拖动 ③点缩放按钮 | ①点阵缩放 ②点阵平移 ③有响应 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-015 | 页面操作 | 页面已打开 | 把浏览器窗口拉宽拉窄 | 工具栏横跨全宽，左右两栏宽度不变，中间随窗口伸缩；页面没有整体滚动条 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-016 | 页面操作 | 页面已打开 | 刷新页面 | 控制台无报错和 React 警告 | [CP0-S4](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ### CP0-S5 代码检查与格式化
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-017 | 命令 | — | `pnpm exec biome check .` | 输出 `Checked N files`，无 error / warning，退出码 0 | [CP0-S5](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-018 | 命令 | — | 把任一 `.ts` 文件改成 4 空格缩进再 check；然后跑 `biome format --write .` 再 check | 改缩进后非零退出，提示 format 差异；`biome format --write .` 后恢复通过 | [CP0-S5](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-019 | 命令 | — | 在 `apps/web/src/main.tsx` 加一行未使用的 import 再 check | 报 `noUnusedImports` | [CP0-S5](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-020 | 命令 | — | ①在 `packages/engine/src/index.ts` 加 `import 'react'` 再 check ②在 web 里同样 import 再 check | ①报 `noRestrictedImports` ②不报 | [CP0-S5](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-017 | 命令 | — | `pnpm exec biome check .` | 输出 `Checked N files`，无 error / warning，退出码 0 | [CP0-S5](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-018 | 命令 | — | 把任一 `.ts` 文件改成 4 空格缩进再 check；然后跑 `biome format --write .` 再 check | 改缩进后非零退出，提示 format 差异；`biome format --write .` 后恢复通过 | [CP0-S5](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-019 | 命令 | — | 在 `apps/web/src/main.tsx` 加一行未使用的 import 再 check | 报 `noUnusedImports` | [CP0-S5](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-020 | 命令 | — | ①在 `packages/engine/src/index.ts` 加 `import 'react'` 再 check ②在 web 里同样 import 再 check | ①报 `noRestrictedImports` ②不报 | [CP0-S5](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ### CP0-S6 根脚本、README 与整体验收
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-021 | 命令 | — | 根目录依次 `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` | 全部退出码 0；`apps/web/dist/index.html` 存在 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-022 | 命令 | — | `pnpm dev` | 打印本地地址，页面同 CP0-S4 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-023 | 命令 | — | 把仓库克隆到临时目录，只看 README 操作：依次 `pnpm install`、`pnpm dev`、`pnpm test` | 三步都成功，不需要看其他文档 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-024 | 命令 | — | `git status` | 工作区干净 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-021 | 命令 | — | 根目录依次 `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` | 全部退出码 0；`apps/web/dist/index.html` 存在 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-022 | 命令 | — | `pnpm dev` | 打印本地地址，页面同 CP0-S4 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-023 | 命令 | — | 把仓库克隆到临时目录，只看 README 操作：依次 `pnpm install`、`pnpm dev`、`pnpm test` | 三步都成功，不需要看其他文档 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-024 | 命令 | — | `git status` | 工作区干净 | [CP0-S6](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ### 阶段完成标准
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP0-025 | 页面操作 | 全新克隆的目录 | 按 CP0『阶段完成标准』场景 1 操作：`nvm use`（读 `.nvmrc`）、`pnpm install`、`pnpm dev`，在浏览器打开终端打印的地址；滚轮缩放、拖动平移、改窗口宽度 | 看到顶部工具栏 `virtual-net`、左栏「设备」、中间点阵画布与缩放按钮、右栏空且底部 `引擎 0.0.0`；画布无节点；控制台无报错；滚轮缩放、拖动平移有效；改窗口宽度中间栏伸缩、无页面滚动条 | [CP0 阶段完成标准](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-026 | 命令 | — | 按 CP0『阶段完成标准』场景 2 操作：根目录 `pnpm test`；顺带 `pnpm lint`、`pnpm typecheck` | `pnpm test` 输出 `1 passed`，退出码 0；`pnpm lint`、`pnpm typecheck` 也退出码 0 | [CP0 阶段完成标准](checkpoints/CP0-project-skeleton.md) | |
-| T-CP0-027 | 命令 | — | 按 CP0『阶段完成标准』场景 3 操作：`ls` 根目录；`ls packages apps`；对照 CP0 关键设计第 1 节检查 `packages/engine/src` 与 `apps/web/src` 的子目录 | 根目录只有 `ROADMAP.md`、`README.md`、`CLAUDE.md`、`docs/`、`packages/`、`apps/` 和第 1 节列出的配置文件，没有多余顶层目录；`packages`、`apps` 下各只有 `engine`、`web`；两个 `src` 的子目录与第 1 节逐一对得上 | [CP0 阶段完成标准](checkpoints/CP0-project-skeleton.md) | |
+| T-CP0-025 | 页面操作 | 全新克隆的目录 | 按 CP0『阶段完成标准』场景 1 操作：`nvm use`（读 `.nvmrc`）、`pnpm install`、`pnpm dev`，在浏览器打开终端打印的地址；滚轮缩放、拖动平移、改窗口宽度 | 看到顶部工具栏 `virtual-net`、左栏「设备」、中间点阵画布与缩放按钮、右栏空且底部 `引擎 0.0.0`；画布无节点；控制台无报错；滚轮缩放、拖动平移有效；改窗口宽度中间栏伸缩、无页面滚动条 | [CP0 阶段完成标准](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-026 | 命令 | — | 按 CP0『阶段完成标准』场景 2 操作：根目录 `pnpm test`；顺带 `pnpm lint`、`pnpm typecheck` | `pnpm test` 输出 `1 passed`，退出码 0；`pnpm lint`、`pnpm typecheck` 也退出码 0 | [CP0 阶段完成标准](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
+| T-CP0-027 | 命令 | — | 按 CP0『阶段完成标准』场景 3 操作：`ls` 根目录；`ls packages apps`；对照 CP0 关键设计第 1 节检查 `packages/engine/src` 与 `apps/web/src` 的子目录 | 根目录只有 `ROADMAP.md`、`README.md`、`CLAUDE.md`、`docs/`、`packages/`、`apps/` 和第 1 节列出的配置文件，没有多余顶层目录；`packages`、`apps` 下各只有 `engine`、`web`；两个 `src` 的子目录与第 1 节逐一对得上 | [CP0 阶段完成标准](checkpoints/CP0-project-skeleton.md) | ✅ 通过 |
 
 ---
 
