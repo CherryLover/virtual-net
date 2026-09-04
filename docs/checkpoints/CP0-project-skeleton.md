@@ -294,7 +294,7 @@ typescript 版本通过 catalog 统一，两个包都写 `"typescript": "catalog
 
 1. **TypeScript 7 还是 6**（✅ 已定 2026-09-04：用 7）。7.0 刚发布（Go 原生实现）。建议直接用 7：这里 `tsc` 只做类型检查，转译由 Vite / Vitest 负责，风险小；若任一工具链报不兼容，catalog 改成 `^6` 一处生效
 2. **远端仓库**（✅ 已定 2026-09-04：S6 首次提交后建私有库 CherryLover/virtual-net 并推送）。是否 CP0 完成时就建 GitHub 仓库并推送、公开还是私有。建议私有起步，S6 首次提交后推送
-3. **样式方案**（✅ 已定 2026-09-04：CP0 不引入任何库，CP1 开工前定）。CP1 配置面板表单量大，纯 CSS 可能吃力。建议 CP0 不引入任何库，CP1 文档里在「继续手写 CSS / Tailwind / Radix 类组件库」中定
+3. **样式方案**（✅ 已定 2026-09-04：全程手写 CSS，`app.css` 放 CSS 变量与全局样式，每个组件一个同名 `.css`；不引 Tailwind 和组件库）。CP1 配置面板表单量大，纯 CSS 可能吃力。建议 CP0 不引入任何库，CP1 文档里在「继续手写 CSS / Tailwind / Radix 类组件库」中定
 4. **网页侧自动测试**（✅ 已定 2026-09-04：CP0 不加，CP3 引入）。目前只有引擎有 vitest。建议 CP0 不加；CP1 若面板逻辑复杂再加 `@testing-library/react`
 5. **部署**。总纲选型有 Cloudflare Pages，CP0 只保证 `pnpm build` 产出 `apps/web/dist`。建议 CP1 完成后单独接，不算进任何检查点的完成标准
 6. **git hooks**。是否用 lefthook 之类在提交前自动跑 lint。建议 CP0 不加，靠「提交门槛」约定；两个人以上协作时再加
