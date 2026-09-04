@@ -27,6 +27,10 @@
 }
 
 .device-node-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: var(--fs-base);
   font-weight: 600;
 }

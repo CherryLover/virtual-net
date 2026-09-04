@@ -21,7 +21,7 @@
 | 检查点 | 文档 | 用例数 | 编号范围 |
 | --- | --- | --- | --- |
 | CP0 | [CP0-project-skeleton.md](checkpoints/CP0-project-skeleton.md) | 27 | T-CP0-001 – T-CP0-027 |
-| CP1 | [CP1-lan-basics.md](checkpoints/CP1-lan-basics.md) | 62 | T-CP1-001 – T-CP1-062 |
+| CP1 | [CP1-lan-basics.md](checkpoints/CP1-lan-basics.md) | 68 | T-CP1-001 – T-CP1-068 |
 | CP2 | [CP2-switching-and-devices.md](checkpoints/CP2-switching-and-devices.md) | 66 | T-CP2-001 – T-CP2-066 |
 | CP3 | [CP3-trace-and-animation.md](checkpoints/CP3-trace-and-animation.md) | 58 | T-CP3-001 – T-CP3-058 |
 
@@ -201,6 +201,16 @@
 | T-CP1-060 | 页面操作 | 接场景 2（T-CP1-059） | 按 CP1『阶段完成标准』场景 3 的 3 步操作：电脑1 网关改回 `192.168.1.1`，保持手动 `192.168.1.10`；点路由器1，关闭 NAT；「验证」ping `8.8.8.8`，点「定位」；打开 NAT 再验证 | 关 NAT 后静态检查出现「路由器1 · NAT 已关闭…」；ping「不通」，断在 互联网，原因「回程失败：源地址 192.168.1.10 是私网地址，互联网无法把应答送回。路由器1 的 NAT 已关闭」，逐跳三行，最后一行红；「定位」→ 路由器1 选中，NAT 开关高亮；打开 NAT 再验证 → 通 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 | T-CP1-061 | 页面操作 | 接场景 3（T-CP1-060，NAT 已打开） | 按 CP1『阶段完成标准』场景 4 的 4 步操作：「导出」；「新建」并确认，刷新页面；「导入」选刚才的文件；「验证」ping `8.8.8.8` | 导出得到 `家庭最小网络.json`；新建后空画布，刷新仍为空；导入后三设备两连线，位置、电脑1 手动配置、路由器配置全部一致；ping 通，逐跳与场景 3 第 3 步一致 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 | T-CP1-062 | 命令 | — | 按 CP1『阶段完成标准』场景 5 操作：`pnpm test` | 通过；`scenarios/cp1.test.ts` 中场景 1–4 各一条 `it`，断言 `verdict`、`stoppedAt`、`reasonCode`、`fixAt` 与场景文字一致；场景 4 断言 `parseTopology(JSON.stringify(t))` 深等于 `t` 且两次 `ping` 结果深等于 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+
+### 试用调整（2026-09-04）
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP1-063 | 页面操作 | fixture 图 | 点电脑1 | 表单顶部出现「验证」块：`ping 网关` `ping 外网` `打开网站` 三个按钮，目标输入框 + `ping` | [CP1 6.1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-064 | 页面操作 | 选中电脑1 | 点 `ping 外网` | 块下方显示「电脑1 → 8.8.8.8 通」、路径、逐跳五行；电脑1 保持选中 | [CP1 6.1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-065 | 页面操作 | 电脑1 网关 `10.0.0.1` | 点 `ping 网关` | 「不通」，原因含「网关 10.0.0.1 不在本机网段」，点「定位」网关字段高亮 | [CP1 6.1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-066 | 页面操作 | 选中路由器1 | 验证块只有 `ping 网关` `ping 外网` 与输入框；点 `ping 外网` | 通，源为 WAN 地址 | [CP1 6.1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-067 | 页面操作 | 选中电脑1 | `打开网站` 选 `www.google.com` | 「成功」，显示 DNS 解析结果 | [CP1 6.1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-068 | 页面操作 | 任意图 | 看节点与设备栏 | 电脑、路由器、互联网各有图标在名称左侧，设备栏卡片同样带图标 | [CP1 6.1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ---
 

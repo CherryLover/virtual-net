@@ -286,3 +286,4 @@ virtual-net/
 - 2026-09-04 CP0–CP3 细化文档完成（`docs/checkpoints/`），每步带验收标准；建立测试表 `docs/TEST-PLAN.md`，用例编号回填到各步骤。写作中定下的跨检查点修正：CP0 布局加顶部工具栏；术语表光猫端口改为 `wan` + `lan1`、AP 客户端口 `wlan1…N`；CP1 的 ProbeResult 加 `traceroute` / `hops` / `fixAt.portId`；新增验收方式【网页测试】
 - 2026-09-04 CP0 完成并打勾：27 条用例全过，首次提交 77c177f，私有仓库 https://github.com/CherryLover/virtual-net 。偏差记在 CP0 文档「实施记录」
 - 2026-09-04 CP1 完成并打勾：62 条用例全过（引擎 51 条自动测试 + 页面场景），偏差记在 CP1 文档「实施记录」
+- 2026-09-04 CP1 试用调整：选中设备可直接一键 ping 网关 / 外网 / 打开网站；设备加线条图标。用例 T-CP1-063–068 全过

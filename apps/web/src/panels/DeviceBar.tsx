@@ -1,4 +1,5 @@
 import type { DeviceType } from "../engine";
+import { DeviceIcon } from "../icons";
 import "./device-bar.css";
 
 const ITEMS: { type: DeviceType; label: string }[] = [
@@ -24,7 +25,8 @@ export function DeviceBar() {
               event.dataTransfer.effectAllowed = "copy";
             }}
           >
-            {item.label}
+            <DeviceIcon type={item.type} className="device-icon" />
+            <span>{item.label}</span>
           </button>
         ))}
       </div>

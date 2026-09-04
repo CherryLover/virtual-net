@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DeviceIcon } from "../../icons";
 
 interface Props {
   kind: "pc" | "router" | "internet";
@@ -16,7 +17,10 @@ export function NodeShell({ kind, name, address, errorCount, children }: Props) 
           {errorCount}
         </span>
       ) : null}
-      <div className="device-node-name">{name}</div>
+      <div className="device-node-name">
+        <DeviceIcon type={kind} className="device-icon" />
+        <span>{name}</span>
+      </div>
       {address !== undefined ? <div className="device-node-address">{address}</div> : null}
       {children}
     </div>

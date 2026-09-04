@@ -250,3 +250,47 @@
 .hop-stop .hop-note {
   color: var(--danger);
 }
+
+.panel-title-device {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.device-probe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.device-probe-title {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.device-probe-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.device-probe-actions .btn {
+  flex: none;
+}
+
+.device-probe-actions .btn:disabled {
+  color: var(--text-dim);
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.device-probe-select,
+.device-probe-input {
+  flex: 1;
+  min-width: 0;
+}

@@ -150,7 +150,14 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
         next = withLinkId(next, link.a.portId, null);
         next = withLinkId(next, link.b.portId, null);
       }
-      commit(next, { selection: { kind: "none" }, highlightField: null });
+      // 结果里提到被删设备就作废，免得逐跳列表留下没有名字的设备
+      const probe = get().lastProbe;
+      const stale = probe?.decisions.some((d) => d.deviceId === id) || probe?.path.includes(id);
+      commit(next, {
+        selection: { kind: "none" },
+        highlightField: null,
+        ...(stale ? { lastProbe: null } : {}),
+      });
     },
 
     connect: (a, b) => {

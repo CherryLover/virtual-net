@@ -6,12 +6,15 @@
 }
 
 .device-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
   font-size: var(--fs-base);
-  text-align: center;
+  text-align: left;
   cursor: grab;
   user-select: none;
 }

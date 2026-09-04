@@ -132,3 +132,8 @@ body {
   flex: 1;
   overflow: auto;
 }
+
+.device-icon {
+  flex: none;
+  color: var(--text-dim);
+}
