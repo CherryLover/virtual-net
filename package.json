@@ -1,0 +1,22 @@
+{
+  "name": "virtual-net",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @virtual-net/web dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "build": "pnpm typecheck && pnpm --filter @virtual-net/web build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12"
+  }
+}

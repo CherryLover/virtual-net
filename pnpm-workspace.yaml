@@ -1,0 +1,25 @@
+packages:
+  - packages/*
+  - apps/*
+
+catalog:
+  typescript: ^7.0.2
+
+# pnpm 11 只认这里的 engineStrict，.npmrc 里的 engine-strict 不生效
+engineStrict: true
+
+# pnpm 11 默认拒绝发布不足 24 小时的包，下面是安装时放行的版本
+minimumReleaseAgeExclude:
+  - '@biomejs/biome@2.5.12'
+  - '@biomejs/cli-darwin-arm64@2.5.12'
+  - '@biomejs/cli-darwin-x64@2.5.12'
+  - '@biomejs/cli-linux-arm64-musl@2.5.12'
+  - '@biomejs/cli-linux-arm64@2.5.12'
+  - '@biomejs/cli-linux-x64-musl@2.5.12'
+  - '@biomejs/cli-linux-x64@2.5.12'
+  - '@biomejs/cli-win32-arm64@2.5.12'
+  - '@biomejs/cli-win32-x64@2.5.12'
+  - '@types/react-dom@19.2.7'
+  - '@vitest/mocker@5.0.0'
+  - '@vitest/spy@5.0.0'
+  - vitest@5.0.0
