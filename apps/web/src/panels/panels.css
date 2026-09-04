@@ -1,0 +1,252 @@
+.panel-section {
+  padding: 12px;
+}
+
+.panel-title {
+  margin: 0 0 8px;
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.panel-title + .panel-title,
+.issue-list + .panel-title,
+.panel-empty + .panel-title,
+.probe + .panel-title {
+  margin-top: 20px;
+}
+
+.panel-empty {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  margin: -4px;
+  border-radius: var(--radius);
+}
+
+.field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-highlight {
+  background: #fef3c7;
+  box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.field-label {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.field-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: var(--fs-base);
+  color: inherit;
+  background: #fff;
+}
+
+.field-input:disabled {
+  background: #f3f4f6;
+  color: var(--text-dim);
+}
+
+.field-input-error {
+  border-color: var(--danger);
+}
+
+.field-error {
+  font-size: var(--fs-sm);
+  color: var(--danger);
+}
+
+.field-readonly {
+  font-size: var(--fs-base);
+}
+
+.field-radios {
+  display: flex;
+  gap: 12px;
+  font-size: var(--fs-base);
+}
+
+.field-radios label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.lease-line {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.target-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.target-table th,
+.target-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.target-table th {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.issue-list,
+.hop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.issue,
+.hop {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.issue:hover,
+.hop:hover {
+  background: #f3f4f6;
+}
+
+.issue-icon {
+  flex: none;
+  font-weight: 700;
+}
+
+.issue-error .issue-icon {
+  color: var(--danger);
+}
+
+.issue-warning .issue-icon {
+  color: var(--warning);
+}
+
+.issue-device,
+.hop-device {
+  flex: none;
+  font-weight: 600;
+}
+
+.issue-message,
+.hop-note {
+  color: var(--text-dim);
+}
+
+.probe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.probe-summary {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.probe-ok {
+  color: var(--ok);
+}
+
+.probe-fail {
+  color: var(--danger);
+}
+
+.probe-reason {
+  font-size: var(--fs-sm);
+  color: var(--danger);
+  line-height: 1.5;
+}
+
+.probe-dns,
+.probe-path {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.probe-locate {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.hop-group + .hop-group {
+  margin-top: 8px;
+}
+
+.hop-group-title {
+  margin-bottom: 4px;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.hop-seq {
+  flex: none;
+  color: var(--text-dim);
+}
+
+.hop-action {
+  flex: none;
+}
+
+.hop-stop {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.hop-stop .hop-note {
+  color: var(--danger);
+}

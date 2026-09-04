@@ -1,1 +1,2 @@
-// 拓扑 JSON 的结构、校验、版本迁移（CP1 填）
+// 拓扑 JSON 的结构、校验、版本迁移
+export * from "./parse";

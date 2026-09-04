@@ -1,0 +1,21 @@
+.device-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.device-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: var(--fs-base);
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.device-card:active {
+  cursor: grabbing;
+}

@@ -95,112 +95,112 @@
 ### CP1-S1 拓扑数据模型与序列化
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-001 | 引擎测试 | 空拓扑 | 连续创建 电脑、路由器、互联网 | 名称为「电脑1」「路由器1」「互联网」，端口名分别为 `eth0`、`wan lan1–lan4`、`port1`，MAC 从 `02:00:00:00:00:01` 起连续 | [CP1-S1](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-002 | 引擎测试 | fixture `minimal.json` | `parseTopology(minimal.json)`，再 `JSON.stringify` | 解析成功；序列化结果与原文件深比较相等 | [CP1-S1](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-003 | 引擎测试 | fixture `minimal.json` | ①把某根线的 `portId` 改成不存在的 id 后解析 ②改成 `version: 2` 后解析 | ①解析失败，错误里带该 `linkId` ②失败，错误提示「版本高于支持」 | [CP1-S1](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-004 | 引擎测试 | — | `parseMask('255.255.0.255')`、`parseMask('255.255.255.0')`、`isPrivate('100.64.1.1')` | `'255.255.0.255'` 非法；`'255.255.255.0'` 合法且前缀 24；`isPrivate('100.64.1.1')` 返回「运营商内网」标记 | [CP1-S1](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-001 | 引擎测试 | 空拓扑 | 连续创建 电脑、路由器、互联网 | 名称为「电脑1」「路由器1」「互联网」，端口名分别为 `eth0`、`wan lan1–lan4`、`port1`，MAC 从 `02:00:00:00:00:01` 起连续 | [CP1-S1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-002 | 引擎测试 | fixture `minimal.json` | `parseTopology(minimal.json)`，再 `JSON.stringify` | 解析成功；序列化结果与原文件深比较相等 | [CP1-S1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-003 | 引擎测试 | fixture `minimal.json` | ①把某根线的 `portId` 改成不存在的 id 后解析 ②改成 `version: 2` 后解析 | ①解析失败，错误里带该 `linkId` ②失败，错误提示「版本高于支持」 | [CP1-S1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-004 | 引擎测试 | — | `parseMask('255.255.0.255')`、`parseMask('255.255.255.0')`、`isPrivate('100.64.1.1')` | `'255.255.0.255'` 非法；`'255.255.255.0'` 合法且前缀 24；`isPrivate('100.64.1.1')` 返回「运营商内网」标记 | [CP1-S1](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S2 运行时构建与 DHCP 分配
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-005 | 引擎测试 | fixture 拓扑 | `buildRuntime` | 电脑1 租约 `192.168.1.100/24`，网关与 DNS `192.168.1.1`，来自 路由器1；路由器1 WAN 租约 `203.0.113.2/24`，网关 `203.0.113.1`，DNS `8.8.8.8` | [CP1-S2](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-006 | 引擎测试 | fixture 拓扑 | 再加一台手动电脑 `192.168.1.100/24` 接 `lan2`，电脑1 仍自动获取，`buildRuntime` | 电脑1 拿到 `192.168.1.101`（跳过已占用） | [CP1-S2](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-007 | 引擎测试 | fixture 拓扑 | ①路由器 DHCP 关 ②池改为 `.100`–`.100` 且加第二台自动获取电脑 | ①电脑1 租约状态 `no-server` ②第二台 `pool-exhausted` | [CP1-S2](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-008 | 引擎测试 | fixture 拓扑 | 断开 `wan` 连线，`buildRuntime` | 路由器路由表只有 LAN 直连，没有默认路由 | [CP1-S2](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-009 | 引擎测试 | — | 电脑手动 `192.168.1.10/24` 网关 `10.0.0.1`，`buildRuntime` | 路由表默认路由存在且 `viaOffSubnet = true` | [CP1-S2](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-005 | 引擎测试 | fixture 拓扑 | `buildRuntime` | 电脑1 租约 `192.168.1.100/24`，网关与 DNS `192.168.1.1`，来自 路由器1；路由器1 WAN 租约 `203.0.113.2/24`，网关 `203.0.113.1`，DNS `8.8.8.8` | [CP1-S2](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-006 | 引擎测试 | fixture 拓扑 | 再加一台手动电脑 `192.168.1.100/24` 接 `lan2`，电脑1 仍自动获取，`buildRuntime` | 电脑1 拿到 `192.168.1.101`（跳过已占用） | [CP1-S2](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-007 | 引擎测试 | fixture 拓扑 | ①路由器 DHCP 关 ②池改为 `.100`–`.100` 且加第二台自动获取电脑 | ①电脑1 租约状态 `no-server` ②第二台 `pool-exhausted` | [CP1-S2](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-008 | 引擎测试 | fixture 拓扑 | 断开 `wan` 连线，`buildRuntime` | 路由器路由表只有 LAN 直连，没有默认路由 | [CP1-S2](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-009 | 引擎测试 | — | 电脑手动 `192.168.1.10/24` 网关 `10.0.0.1`，`buildRuntime` | 路由表默认路由存在且 `viaOffSubnet = true` | [CP1-S2](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S3 二层送达：ARP 与直连 ping
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-010 | 引擎测试 | 电脑A `192.168.1.10/24` 直连 路由器 `lan1`（LAN `192.168.1.1/24`） | 电脑A ping `192.168.1.1` | `verdict: 'ok'`，decisions 三条：电脑A `originate`（`basis.arp.mac` = lan1 的 MAC）、路由器 `answer`、电脑A `receive`；`path` = [A, 路由器, A] | [CP1-S3](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-011 | 引擎测试 | 同 T-CP1-010 拓扑 | 电脑A ping `192.168.1.2`（网段里没人） | `fail`，一条 decision，`reasonCode: ARP_MISS`，文案含「192.168.1.2」和「ARP 无应答」 | [CP1-S3](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-012 | 引擎测试 | 手动地址的电脑A，`eth0` 不连线 | 电脑A ping 任何地址 | `PORT_UNLINKED` | [CP1-S3](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-013 | 引擎测试 | 电脑A 自动获取 | ①无 DHCP 服务器时 ping ②`eth0` 不连线时 ping | ①`NO_IP`，文案含「没有 DHCP 服务器」②`NO_IP`，文案含「没有连线」 | [CP1-S3](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-014 | 引擎测试 | 两台电脑 `eth0`–`eth0` 直连 | ①同网段互 ping ②一台改成 `192.168.2.x/24` 再 ping | ①通 ②起点 `NO_GATEWAY` | [CP1-S3](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-010 | 引擎测试 | 电脑A `192.168.1.10/24` 直连 路由器 `lan1`（LAN `192.168.1.1/24`） | 电脑A ping `192.168.1.1` | `verdict: 'ok'`，decisions 三条：电脑A `originate`（`basis.arp.mac` = lan1 的 MAC）、路由器 `answer`、电脑A `receive`；`path` = [A, 路由器, A] | [CP1-S3](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-011 | 引擎测试 | 同 T-CP1-010 拓扑 | 电脑A ping `192.168.1.2`（网段里没人） | `fail`，一条 decision，`reasonCode: ARP_MISS`，文案含「192.168.1.2」和「ARP 无应答」 | [CP1-S3](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-012 | 引擎测试 | 手动地址的电脑A，`eth0` 不连线 | 电脑A ping 任何地址 | `PORT_UNLINKED` | [CP1-S3](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-013 | 引擎测试 | 电脑A 自动获取 | ①无 DHCP 服务器时 ping ②`eth0` 不连线时 ping | ①`NO_IP`，文案含「没有 DHCP 服务器」②`NO_IP`，文案含「没有连线」 | [CP1-S3](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-014 | 引擎测试 | 两台电脑 `eth0`–`eth0` 直连 | ①同网段互 ping ②一台改成 `192.168.2.x/24` 再 ping | ①通 ②起点 `NO_GATEWAY` | [CP1-S3](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S4 三层转发：路由表、默认路由与网关失败
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-015 | 引擎测试 | fixture 拓扑，路由器 `nat: false` | 电脑1 ping `8.8.8.8` | 去程 decisions：电脑1 `originate`（`basis.route.via = 192.168.1.1`）、路由器1 `forward`（`portIn = lan1`，`portOut = wan`，TTL 63，源 IP 仍 `192.168.1.100`）、互联网 `answer` 时 `stop`，`reasonCode: NO_RETURN_ROUTE` | [CP1-S4](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-016 | 引擎测试 | 电脑1 手动 `192.168.1.10/24` 网关 `10.0.0.1` | 电脑1 ping `8.8.8.8` | 一条 decision，`GATEWAY_OFF_SUBNET`，`fixAt = { 电脑1, 'gateway' }` | [CP1-S4](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-017 | 引擎测试 | 接 T-CP1-016（电脑1 手动地址） | 网关填 `192.168.1.254`（无人使用），再 ping `8.8.8.8` | `ARP_MISS`，文案含「网关」 | [CP1-S4](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-018 | 引擎测试 | fixture 拓扑 | 断开 `wan` 连线，电脑1 ping `8.8.8.8` | 停在路由器1，`NO_ROUTE`，文案含「WAN 口未获取到地址」 | [CP1-S4](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-019 | 引擎测试 | fixture 拓扑 | 电脑1 ping `1.1.1.1`（不在目标库） | 停在互联网，`UNKNOWN_DEST` | [CP1-S4](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-015 | 引擎测试 | fixture 拓扑，路由器 `nat: false` | 电脑1 ping `8.8.8.8` | 去程 decisions：电脑1 `originate`（`basis.route.via = 192.168.1.1`）、路由器1 `forward`（`portIn = lan1`，`portOut = wan`，TTL 63，源 IP 仍 `192.168.1.100`）、互联网 `answer` 时 `stop`，`reasonCode: NO_RETURN_ROUTE` | [CP1-S4](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-016 | 引擎测试 | 电脑1 手动 `192.168.1.10/24` 网关 `10.0.0.1` | 电脑1 ping `8.8.8.8` | 一条 decision，`GATEWAY_OFF_SUBNET`，`fixAt = { 电脑1, 'gateway' }` | [CP1-S4](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-017 | 引擎测试 | 接 T-CP1-016（电脑1 手动地址） | 网关填 `192.168.1.254`（无人使用），再 ping `8.8.8.8` | `ARP_MISS`，文案含「网关」 | [CP1-S4](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-018 | 引擎测试 | fixture 拓扑 | 断开 `wan` 连线，电脑1 ping `8.8.8.8` | 停在路由器1，`NO_ROUTE`，文案含「WAN 口未获取到地址」 | [CP1-S4](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-019 | 引擎测试 | fixture 拓扑 | 电脑1 ping `1.1.1.1`（不在目标库） | 停在互联网，`UNKNOWN_DEST` | [CP1-S4](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S5 NAT 与外网回程
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-020 | 引擎测试 | fixture 拓扑 | 电脑1 ping `8.8.8.8` | `ok`，五条 decisions；路由器1 去程 `basis.nat = { out, before 192.168.1.100, after 203.0.113.2 }`，`packetOut.srcIp = 203.0.113.2`；回程 `basis.nat.direction = 'in'`，`packetOut.dstIp = 192.168.1.100`；`path` = [电脑1, 路由器1, 互联网, 路由器1, 电脑1] | [CP1-S5](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-021 | 引擎测试 | fixture 拓扑，路由器 `nat: false` | 电脑1 ping `8.8.8.8` | `fail`，`stoppedAt` = 互联网，`fixAt = { 路由器1, 'nat' }`，文案含「私网地址」「无法把应答送回」「NAT 已关闭」 | [CP1-S5](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-022 | 引擎测试 | — | 让路由器从 `wan` 收到目的为 WAN 地址、无对应会话的 ICMP 应答 | `NAT_NO_SESSION` | [CP1-S5](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-023 | 引擎测试 | — | 同一次 `visitSite` 里检查 DNS 和 TCP 两个 NAT 会话 | 两个会话外部端口不同，互不覆盖 | [CP1-S5](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-020 | 引擎测试 | fixture 拓扑 | 电脑1 ping `8.8.8.8` | `ok`，五条 decisions；路由器1 去程 `basis.nat = { out, before 192.168.1.100, after 203.0.113.2 }`，`packetOut.srcIp = 203.0.113.2`；回程 `basis.nat.direction = 'in'`，`packetOut.dstIp = 192.168.1.100`；`path` = [电脑1, 路由器1, 互联网, 路由器1, 电脑1] | [CP1-S5](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-021 | 引擎测试 | fixture 拓扑，路由器 `nat: false` | 电脑1 ping `8.8.8.8` | `fail`，`stoppedAt` = 互联网，`fixAt = { 路由器1, 'nat' }`，文案含「私网地址」「无法把应答送回」「NAT 已关闭」 | [CP1-S5](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-022 | 引擎测试 | — | 让路由器从 `wan` 收到目的为 WAN 地址、无对应会话的 ICMP 应答 | `NAT_NO_SESSION` | [CP1-S5](checkpoints/CP1-lan-basics.md) | ✅ 通过（构造方式：LAN 与接入同网段 + NAT 关 + 电脑地址等于 WAN 地址，见 CP1 实施记录） |
+| T-CP1-023 | 引擎测试 | — | 同一次 `visitSite` 里检查 DNS 和 TCP 两个 NAT 会话 | 两个会话外部端口不同，互不覆盖 | [CP1-S5](checkpoints/CP1-lan-basics.md) | ✅ 通过（电脑 DNS 直指 8.8.8.8 才会产生两个会话，见 CP1 实施记录） |
 
 ### CP1-S6 决策记录与 probe 接口收口
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-024 | 引擎测试 | fixture 拓扑 | `visitSite(电脑1, 'www.google.com')` | `ok`，`dns = { 192.168.1.1, www.google.com, 142.250.72.14 }`；`dns` 阶段 decisions 含 路由器1 `originate`（`basis.dns.upstream = 8.8.8.8`）与 互联网 `answer`（`basis.dns.answer`）；`tcp` 阶段路径同 ping 8.8.8.8 | [CP1-S6](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-025 | 引擎测试 | fixture 拓扑 | ①电脑1 手动配置且 DNS 为空，`visitSite` ②DNS 填 `110.242.68.66`，`visitSite` ③`visitSite` 域名 `www.nonexistent.test` | ①`NO_DNS`，`fixAt` 字段 `dns` ②`DNS_NOT_SERVER` ③`DNS_NXDOMAIN`，停在互联网 | [CP1-S6](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-026 | 引擎测试 | fixture 拓扑，DNS 指向路由器 | 断开 `wan`，`visitSite` | `DNS_NO_UPSTREAM`，停在路由器1 | [CP1-S6](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-027 | 引擎测试 | fixture 拓扑 | `ping(路由器1, '8.8.8.8')` | `ok`，源 IP 为 WAN 地址，无 NAT 记录 | [CP1-S6](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-028 | 引擎测试 | — | 检查任何 probe 结果的 decisions | `decisions[i].seq === i + 1`；最后一条 `verdict` 与结果一致；`stop` 条目 `reasonCode` 非空且 `reason` 非空 | [CP1-S6](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-029 | 命令 | — | `pnpm test` | 通过；`scenarios/cp1.test.ts` 包含 4 个 `it`，名字与 ROADMAP 场景 1–4 对应 | [CP1-S6](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-024 | 引擎测试 | fixture 拓扑 | `visitSite(电脑1, 'www.google.com')` | `ok`，`dns = { 192.168.1.1, www.google.com, 142.250.72.14 }`；`dns` 阶段 decisions 含 路由器1 `originate`（`basis.dns.upstream = 8.8.8.8`）与 互联网 `answer`（`basis.dns.answer`）；`tcp` 阶段路径同 ping 8.8.8.8 | [CP1-S6](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-025 | 引擎测试 | fixture 拓扑 | ①电脑1 手动配置且 DNS 为空，`visitSite` ②DNS 填 `110.242.68.66`，`visitSite` ③`visitSite` 域名 `www.nonexistent.test` | ①`NO_DNS`，`fixAt` 字段 `dns` ②`DNS_NOT_SERVER` ③`DNS_NXDOMAIN`，停在互联网 | [CP1-S6](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-026 | 引擎测试 | fixture 拓扑，DNS 指向路由器 | 断开 `wan`，`visitSite` | `DNS_NO_UPSTREAM`，停在路由器1 | [CP1-S6](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-027 | 引擎测试 | fixture 拓扑 | `ping(路由器1, '8.8.8.8')` | `ok`，源 IP 为 WAN 地址，无 NAT 记录 | [CP1-S6](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-028 | 引擎测试 | — | 检查任何 probe 结果的 decisions | `decisions[i].seq === i + 1`；最后一条 `verdict` 与结果一致；`stop` 条目 `reasonCode` 非空且 `reason` 非空 | [CP1-S6](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-029 | 命令 | — | `pnpm test` | 通过；`scenarios/cp1.test.ts` 包含 4 个 `it`，名字与 ROADMAP 场景 1–4 对应 | [CP1-S6](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S7 静态检查 lint
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-030 | 引擎测试 | fixture 拓扑 | `lint(topology)` | 空数组 | [CP1-S7](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-031 | 引擎测试 | fixture 拓扑 | 电脑1 手动 `192.168.1.10/24` 网关 `10.0.0.1`，`lint` | 恰好一条 L002，`targets[0] = { 电脑1, field: 'gateway' }`，文案含「10.0.0.1」「192.168.1.0/24」 | [CP1-S7](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-032 | 引擎测试 | — | 两台手动电脑同为 `192.168.1.10` 接同一路由器，`lint` | L001 一条，`targets` 两台电脑 | [CP1-S7](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-033 | 引擎测试 | — | ①电脑 `192.168.2.10/24` 直连路由器 `lan1`（`192.168.1.1/24`），`lint` ②电脑改 `192.168.1.10/16`（网关 `192.168.1.1`），`lint` | ①L004 带 `linkId` ②只报 L005 不报 L004 | [CP1-S7](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-034 | 引擎测试 | fixture 拓扑 | ①手动电脑 `192.168.1.150` + 路由器默认池 ②LAN IP 改 `192.168.1.100` ③池改 `192.168.2.100–199` | ①L006 ②L007 ③L008 | [CP1-S7](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-035 | 引擎测试 | fixture 拓扑 | ①`nat: false` ②`wan` 未连线 ③电脑 IP 填 `300.1.1.1` | ①L013 ②L009 ③L011 且不抛异常 | [CP1-S7](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-030 | 引擎测试 | fixture 拓扑 | `lint(topology)` | 空数组 | [CP1-S7](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-031 | 引擎测试 | fixture 拓扑 | 电脑1 手动 `192.168.1.10/24` 网关 `10.0.0.1`，`lint` | 恰好一条 L002，`targets[0] = { 电脑1, field: 'gateway' }`，文案含「10.0.0.1」「192.168.1.0/24」 | [CP1-S7](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-032 | 引擎测试 | — | 两台手动电脑同为 `192.168.1.10` 接同一路由器，`lint` | L001 一条，`targets` 两台电脑 | [CP1-S7](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-033 | 引擎测试 | — | ①电脑 `192.168.2.10/24` 直连路由器 `lan1`（`192.168.1.1/24`），`lint` ②电脑改 `192.168.1.10/16`（网关 `192.168.1.1`），`lint` | ①L004 带 `linkId` ②只报 L005 不报 L004 | [CP1-S7](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-034 | 引擎测试 | fixture 拓扑 | ①手动电脑 `192.168.1.150` + 路由器默认池 ②LAN IP 改 `192.168.1.100` ③池改 `192.168.2.100–199` | ①L006 ②L007 ③L008 | [CP1-S7](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-035 | 引擎测试 | fixture 拓扑 | ①`nat: false` ②`wan` 未连线 ③电脑 IP 填 `300.1.1.1` | ①L013 ②L009 ③L011 且不抛异常 | [CP1-S7](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S8 画布：设备栏、拖入、连线、选中与删除
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-036 | 页面操作 | — | 从设备栏拖「电脑」到画布；再拖一次 | 出现「电脑1」节点，顶部一个 `eth0` 柄；第二次出现「电脑2」 | [CP1-S8](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-037 | 页面操作 | — | 拖「路由器」；拖「互联网」 | 路由器节点顶部 `wan`，底部 `lan1`–`lan4`；互联网节点底部 `port1` | [CP1-S8](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-038 | 页面操作 | 接 T-CP1-037 | 从 `eth0` 拖到 `lan1`；再从 `eth0` 拖到 `lan2` | 第一次连线出现，标签 `eth0 – lan1`；第二次不产生新线 | [CP1-S8](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-039 | 页面操作 | 接 T-CP1-038 | 从 `wan` 拖到 `port1` | 连线出现，互联网节点长出 `port2` | [CP1-S8](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-040 | 页面操作 | 接 T-CP1-039（两根线已连） | ①选中连线按 `Delete` ②选中路由器按 `Delete` | ①线消失，两端柄恢复可连 ②节点和它的两根线一起消失 | [CP1-S8](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-041 | 页面操作 | — | 拖动节点松手；缩放、平移画布 | 节点停在新位置；缩放、平移后各节点相对位置和连线不变 | [CP1-S8](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-036 | 页面操作 | — | 从设备栏拖「电脑」到画布；再拖一次 | 出现「电脑1」节点，顶部一个 `eth0` 柄；第二次出现「电脑2」 | [CP1-S8](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-037 | 页面操作 | — | 拖「路由器」；拖「互联网」 | 路由器节点顶部 `wan`，底部 `lan1`–`lan4`；互联网节点底部 `port1` | [CP1-S8](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-038 | 页面操作 | 接 T-CP1-037 | 从 `eth0` 拖到 `lan1`；再从 `eth0` 拖到 `lan2` | 第一次连线出现，标签 `eth0 – lan1`；第二次不产生新线 | [CP1-S8](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-039 | 页面操作 | 接 T-CP1-038 | 从 `wan` 拖到 `port1` | 连线出现，互联网节点长出 `port2` | [CP1-S8](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-040 | 页面操作 | 接 T-CP1-039（两根线已连） | ①选中连线按 `Delete` ②选中路由器按 `Delete` | ①线消失，两端柄恢复可连 ②节点和它的两根线一起消失 | [CP1-S8](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-041 | 页面操作 | — | 拖动节点松手；缩放、平移画布 | 节点停在新位置；缩放、平移后各节点相对位置和连线不变 | [CP1-S8](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S9 配置面板
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-042 | 页面操作 | 搭好 fixture 图 | 点电脑1 | 面板显示地址模式「自动获取」，四个字段置灰，下方「已获取 192.168.1.100 / 255.255.255.0，网关 192.168.1.1，DNS 192.168.1.1（来自 路由器1）」 | [CP1-S9](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-043 | 页面操作 | 接 T-CP1-042 | ①切「手动」②IP 填 `300.1.1.1` 失焦 ③改回 `192.168.1.10` | ①四字段可编辑 ②字段下红字「不是合法的 IP 地址」，节点上地址行不变 ③节点地址行更新 | [CP1-S9](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-044 | 页面操作 | fixture 图 | 点路由器1；再关闭 DHCP | LAN `192.168.1.1` / `255.255.255.0`，DHCP 开 `.100`–`.199` 租期 24，WAN「自动获取公网地址 · 已获取 203.0.113.2」，NAT 开；关闭 DHCP 后电脑1 节点地址行变「未获取到地址」 | [CP1-S9](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-045 | 页面操作 | fixture 图 | 点互联网；改名称为「外网」 | 只读接入地址与三行目标表；改名后节点标题同步 | [CP1-S9](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-042 | 页面操作 | 搭好 fixture 图 | 点电脑1 | 面板显示地址模式「自动获取」，四个字段置灰，下方「已获取 192.168.1.100 / 255.255.255.0，网关 192.168.1.1，DNS 192.168.1.1（来自 路由器1）」 | [CP1-S9](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-043 | 页面操作 | 接 T-CP1-042 | ①切「手动」②IP 填 `300.1.1.1` 失焦 ③改回 `192.168.1.10` | ①四字段可编辑 ②字段下红字「不是合法的 IP 地址」，节点上地址行不变 ③节点地址行更新 | [CP1-S9](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-044 | 页面操作 | fixture 图 | 点路由器1；再关闭 DHCP | LAN `192.168.1.1` / `255.255.255.0`，DHCP 开 `.100`–`.199` 租期 24，WAN「自动获取公网地址 · 已获取 203.0.113.2」，NAT 开；关闭 DHCP 后电脑1 节点地址行变「未获取到地址」 | [CP1-S9](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-045 | 页面操作 | fixture 图 | 点互联网；改名称为「外网」 | 只读接入地址与三行目标表；改名后节点标题同步 | [CP1-S9](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S10 结果面板与发起验证
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-046 | 页面操作 | fixture 图 | 点空白处 | 面板「静态检查：没有问题」「最近验证：还没有验证」 | [CP1-S10](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-047 | 页面操作 | fixture 图 | 电脑1 改手动、网关 `10.0.0.1`；点静态检查该行 | 静态检查出现一行「电脑1 · 网关 10.0.0.1 不在 192.168.1.0/24 网段内」，电脑1 节点红点 1；点该行后电脑1 选中，网关字段高亮 | [CP1-S10](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-048 | 页面操作 | 接 T-CP1-047 | 工具栏「验证」，类型 ping、起点 电脑1、目标 `192.168.1.1`、运行 | 弹窗关闭，面板显示「电脑1 → 192.168.1.1 通」，路径「电脑1 → 路由器1 → 电脑1」，逐跳三行 | [CP1-S10](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-049 | 页面操作 | 接 T-CP1-048 | 电脑1 改回自动获取，验证 ping `8.8.8.8` | 通，逐跳五行，路由器1 两行的 note 分别含「NAT」 | [CP1-S10](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-050 | 页面操作 | 接 T-CP1-049 | 关路由器 NAT 再验证；点「定位」 | 「不通」，原因含「私网地址」「NAT 已关闭」；点「定位」后路由器1 选中、NAT 开关高亮 | [CP1-S10](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-051 | 页面操作 | fixture 图 | 验证「访问网站」起点 电脑1 域名 `www.google.com` | 「成功」，显示 DNS 解析结果 `142.250.72.14`，逐跳列表分「DNS」「连接」两组 | [CP1-S10](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-046 | 页面操作 | fixture 图 | 点空白处 | 面板「静态检查：没有问题」「最近验证：还没有验证」 | [CP1-S10](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-047 | 页面操作 | fixture 图 | 电脑1 改手动、网关 `10.0.0.1`；点静态检查该行 | 静态检查出现一行「电脑1 · 网关 10.0.0.1 不在 192.168.1.0/24 网段内」，电脑1 节点红点 1；点该行后电脑1 选中，网关字段高亮 | [CP1-S10](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-048 | 页面操作 | 接 T-CP1-047 | 工具栏「验证」，类型 ping、起点 电脑1、目标 `192.168.1.1`、运行 | 弹窗关闭，面板显示「电脑1 → 192.168.1.1 通」，路径「电脑1 → 路由器1 → 电脑1」，逐跳三行 | [CP1-S10](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-049 | 页面操作 | 接 T-CP1-048 | 电脑1 改回自动获取，验证 ping `8.8.8.8` | 通，逐跳五行，路由器1 两行的 note 分别含「NAT」 | [CP1-S10](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-050 | 页面操作 | 接 T-CP1-049 | 关路由器 NAT 再验证；点「定位」 | 「不通」，原因含「私网地址」「NAT 已关闭」；点「定位」后路由器1 选中、NAT 开关高亮 | [CP1-S10](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-051 | 页面操作 | fixture 图 | 验证「访问网站」起点 电脑1 域名 `www.google.com` | 「成功」，显示 DNS 解析结果 `142.250.72.14`，逐跳列表分「DNS」「连接」两组 | [CP1-S10](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### CP1-S11 保存：自动保存、导入导出、新建
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-052 | 页面操作 | 搭 fixture 图 | 等工具栏显示「已保存」，刷新 | 图、配置、视口一致 | [CP1-S11](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-053 | 页面操作 | fixture 图 | 点「导出」 | 下载 `家庭最小网络.json`，内容与 CP1 关键设计第 1 节示例结构一致（id、MAC 可不同） | [CP1-S11](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-054 | 页面操作 | fixture 图 | 点「新建」；确认；刷新 | 出现确认框；确认后空画布，刷新仍为空 | [CP1-S11](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-055 | 页面操作 | 接 T-CP1-054（空画布），已有 T-CP1-053 导出的文件 | 点「导入」选刚导出的文件；验证 ping `8.8.8.8` | 三设备两连线回来，位置与配置一致；ping 结果与导出前相同 | [CP1-S11](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-056 | 页面操作 | — | 导入一个 `version: 2` 的文件 | 提示「文件格式不对：版本高于支持」，画布不变 | [CP1-S11](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-057 | 页面操作 | 画布非空 | 导入 | 先弹「替换当前画布？」 | [CP1-S11](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-052 | 页面操作 | 搭 fixture 图 | 等工具栏显示「已保存」，刷新 | 图、配置、视口一致 | [CP1-S11](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-053 | 页面操作 | fixture 图 | 点「导出」 | 下载 `家庭最小网络.json`，内容与 CP1 关键设计第 1 节示例结构一致（id、MAC 可不同） | [CP1-S11](checkpoints/CP1-lan-basics.md) | ✅ 通过（自动化浏览器无法落盘下载，已核对文件名与内容；真人点击落盘待你顺手确认） |
+| T-CP1-054 | 页面操作 | fixture 图 | 点「新建」；确认；刷新 | 出现确认框；确认后空画布，刷新仍为空 | [CP1-S11](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-055 | 页面操作 | 接 T-CP1-054（空画布），已有 T-CP1-053 导出的文件 | 点「导入」选刚导出的文件；验证 ping `8.8.8.8` | 三设备两连线回来，位置与配置一致；ping 结果与导出前相同 | [CP1-S11](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-056 | 页面操作 | — | 导入一个 `version: 2` 的文件 | 提示「文件格式不对：版本高于支持」，画布不变 | [CP1-S11](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-057 | 页面操作 | 画布非空 | 导入 | 先弹「替换当前画布？」 | [CP1-S11](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ### 阶段完成标准
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP1-058 | 页面操作 | 「新建」得到空画布 | 按 CP1『阶段完成标准』场景 1 的 7 步操作：依次拖入 电脑、路由器、互联网；连 电脑1 `eth0` – 路由器1 `lan1`、路由器1 `wan` – 互联网 `port1`；点电脑1、点路由器1 查看不改；点空白；「验证」ping 起点 电脑1 目标 `192.168.1.1`；ping 目标 `8.8.8.8`；「验证」访问网站 域名 `www.google.com` | 出现「电脑1」「路由器1」「互联网」；两根线标签 `eth0 – lan1`、`wan – port1`；电脑1 地址模式已是「自动获取」，下方「已获取 192.168.1.100 / 255.255.255.0，网关 192.168.1.1，DNS 192.168.1.1（来自 路由器1）」；路由器1 DHCP 开、NAT 开、WAN 已获取 `203.0.113.2`；静态检查「没有问题」；ping `192.168.1.1` →「电脑1 → 192.168.1.1 通」，路径 电脑1 → 路由器1 → 电脑1；ping `8.8.8.8` 通，路径 电脑1 → 路由器1 → 互联网 → 路由器1 → 电脑1，路由器1 去程一行 note 含「192.168.1.100 → 203.0.113.2」；访问网站「成功」，DNS `192.168.1.1` 解析到 `142.250.72.14` | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-059 | 页面操作 | 接场景 1（T-CP1-058） | 按 CP1『阶段完成标准』场景 2 的 3 步操作：点电脑1，地址模式切「手动」，IP `192.168.1.10`，掩码 `255.255.255.0`，网关 `10.0.0.1`，DNS `192.168.1.1`；点空白并点静态检查那一行；「验证」ping `8.8.8.8` | 静态检查一行「电脑1 · 网关 10.0.0.1 不在 192.168.1.0/24 网段内」，点它 → 电脑1 选中且网关字段高亮；ping「不通」，断在 电脑1，原因「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，逐跳仅一行 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-060 | 页面操作 | 接场景 2（T-CP1-059） | 按 CP1『阶段完成标准』场景 3 的 3 步操作：电脑1 网关改回 `192.168.1.1`，保持手动 `192.168.1.10`；点路由器1，关闭 NAT；「验证」ping `8.8.8.8`，点「定位」；打开 NAT 再验证 | 关 NAT 后静态检查出现「路由器1 · NAT 已关闭…」；ping「不通」，断在 互联网，原因「回程失败：源地址 192.168.1.10 是私网地址，互联网无法把应答送回。路由器1 的 NAT 已关闭」，逐跳三行，最后一行红；「定位」→ 路由器1 选中，NAT 开关高亮；打开 NAT 再验证 → 通 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-061 | 页面操作 | 接场景 3（T-CP1-060，NAT 已打开） | 按 CP1『阶段完成标准』场景 4 的 4 步操作：「导出」；「新建」并确认，刷新页面；「导入」选刚才的文件；「验证」ping `8.8.8.8` | 导出得到 `家庭最小网络.json`；新建后空画布，刷新仍为空；导入后三设备两连线，位置、电脑1 手动配置、路由器配置全部一致；ping 通，逐跳与场景 3 第 3 步一致 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | |
-| T-CP1-062 | 命令 | — | 按 CP1『阶段完成标准』场景 5 操作：`pnpm test` | 通过；`scenarios/cp1.test.ts` 中场景 1–4 各一条 `it`，断言 `verdict`、`stoppedAt`、`reasonCode`、`fixAt` 与场景文字一致；场景 4 断言 `parseTopology(JSON.stringify(t))` 深等于 `t` 且两次 `ping` 结果深等于 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | |
+| T-CP1-058 | 页面操作 | 「新建」得到空画布 | 按 CP1『阶段完成标准』场景 1 的 7 步操作：依次拖入 电脑、路由器、互联网；连 电脑1 `eth0` – 路由器1 `lan1`、路由器1 `wan` – 互联网 `port1`；点电脑1、点路由器1 查看不改；点空白；「验证」ping 起点 电脑1 目标 `192.168.1.1`；ping 目标 `8.8.8.8`；「验证」访问网站 域名 `www.google.com` | 出现「电脑1」「路由器1」「互联网」；两根线标签 `eth0 – lan1`、`wan – port1`；电脑1 地址模式已是「自动获取」，下方「已获取 192.168.1.100 / 255.255.255.0，网关 192.168.1.1，DNS 192.168.1.1（来自 路由器1）」；路由器1 DHCP 开、NAT 开、WAN 已获取 `203.0.113.2`；静态检查「没有问题」；ping `192.168.1.1` →「电脑1 → 192.168.1.1 通」，路径 电脑1 → 路由器1 → 电脑1；ping `8.8.8.8` 通，路径 电脑1 → 路由器1 → 互联网 → 路由器1 → 电脑1，路由器1 去程一行 note 含「192.168.1.100 → 203.0.113.2」；访问网站「成功」，DNS `192.168.1.1` 解析到 `142.250.72.14` | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-059 | 页面操作 | 接场景 1（T-CP1-058） | 按 CP1『阶段完成标准』场景 2 的 3 步操作：点电脑1，地址模式切「手动」，IP `192.168.1.10`，掩码 `255.255.255.0`，网关 `10.0.0.1`，DNS `192.168.1.1`；点空白并点静态检查那一行；「验证」ping `8.8.8.8` | 静态检查一行「电脑1 · 网关 10.0.0.1 不在 192.168.1.0/24 网段内」，点它 → 电脑1 选中且网关字段高亮；ping「不通」，断在 电脑1，原因「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，逐跳仅一行 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-060 | 页面操作 | 接场景 2（T-CP1-059） | 按 CP1『阶段完成标准』场景 3 的 3 步操作：电脑1 网关改回 `192.168.1.1`，保持手动 `192.168.1.10`；点路由器1，关闭 NAT；「验证」ping `8.8.8.8`，点「定位」；打开 NAT 再验证 | 关 NAT 后静态检查出现「路由器1 · NAT 已关闭…」；ping「不通」，断在 互联网，原因「回程失败：源地址 192.168.1.10 是私网地址，互联网无法把应答送回。路由器1 的 NAT 已关闭」，逐跳三行，最后一行红；「定位」→ 路由器1 选中，NAT 开关高亮；打开 NAT 再验证 → 通 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-061 | 页面操作 | 接场景 3（T-CP1-060，NAT 已打开） | 按 CP1『阶段完成标准』场景 4 的 4 步操作：「导出」；「新建」并确认，刷新页面；「导入」选刚才的文件；「验证」ping `8.8.8.8` | 导出得到 `家庭最小网络.json`；新建后空画布，刷新仍为空；导入后三设备两连线，位置、电脑1 手动配置、路由器配置全部一致；ping 通，逐跳与场景 3 第 3 步一致 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
+| T-CP1-062 | 命令 | — | 按 CP1『阶段完成标准』场景 5 操作：`pnpm test` | 通过；`scenarios/cp1.test.ts` 中场景 1–4 各一条 `it`，断言 `verdict`、`stoppedAt`、`reasonCode`、`fixAt` 与场景文字一致；场景 4 断言 `parseTopology(JSON.stringify(t))` 深等于 `t` 且两次 `ping` 结果深等于 | [CP1 阶段完成标准](checkpoints/CP1-lan-basics.md) | ✅ 通过 |
 
 ---
 

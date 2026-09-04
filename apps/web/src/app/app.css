@@ -6,6 +6,16 @@
   --panel-bg: #fafbfc;
   --text: #1a1d21;
   --text-dim: #6b7280;
+  --accent: #2563eb;
+  --accent-soft: #bfdbfe;
+  --danger: #dc2626;
+  --warning: #b45309;
+  --ok: #16a34a;
+  --radius: 6px;
+  --gap: 8px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-lg: 14px;
 }
 
 html,
@@ -19,6 +29,7 @@ body,
 body {
   font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text);
+  font-size: var(--fs-base);
 }
 
 .app-shell {
@@ -29,19 +40,66 @@ body {
 }
 
 .toolbar {
+  position: relative;
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--toolbar-bg);
 }
 
-.toolbar-title {
-  font-size: 14px;
+.toolbar-name {
+  width: 200px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: var(--fs-lg);
   font-weight: 600;
+  color: inherit;
+  background: transparent;
+}
+
+.toolbar-name:hover,
+.toolbar-name:focus {
+  border-color: var(--border);
+  outline: none;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: var(--gap);
+}
+
+.toolbar-save {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: var(--fs-base);
+  color: inherit;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #f3f4f6;
+}
+
+.btn-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
 }
 
 .device-bar {
@@ -53,7 +111,7 @@ body {
 
 .device-bar-title {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 
@@ -73,11 +131,4 @@ body {
 .side-panel-body {
   flex: 1;
   overflow: auto;
-}
-
-.side-panel-footer {
-  padding: 8px 12px;
-  border-top: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text-dim);
 }

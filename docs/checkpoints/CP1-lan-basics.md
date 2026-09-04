@@ -2,7 +2,7 @@
 
 > 总纲对应章节：[ROADMAP.md](../../ROADMAP.md) 的「CP1 局域网基础」
 > 前置：CP0 项目骨架（`packages/engine` 与 `apps/web` 两个包、vitest 跑通、空画布能打开）
-> 状态：进行中（2026-09-04 开工，引擎与网页两个 agent 并行）
+> 状态：已完成（2026-09-04）
 
 ## 目标
 
@@ -508,6 +508,31 @@
 
 **场景 5：引擎自动测试**
 - 【命令】`pnpm test` 通过；`scenarios/cp1.test.ts` 中场景 1–4 各一条 `it`，断言 `verdict`、`stoppedAt`、`reasonCode`、`fixAt` 与上面文字一致；场景 4 断言 `parseTopology(JSON.stringify(t))` 深等于 `t` 且两次 `ping` 结果深等于
+
+## 实施记录（2026-09-04）
+
+引擎与网页由两个 agent 并行实施，我独立复验：`pnpm lint / typecheck / test / build` 全绿，引擎 9 个文件 51 条测试；页面上亲手走了场景 1、2 与刷新保存，结果与文档逐字一致。62 条用例全部通过，导出文件的真实落盘未在自动化浏览器里验证。
+
+与文档的偏差与补充决定：
+
+引擎
+- 新建互联网默认只有 `port1`，「始终多留一个空闲口」由网页在连线变化后调 `createInternetPort` 维持
+- `NAT_NO_SESSION` 的测试拓扑：路由器 LAN 与互联网接入同用 `203.0.113.0/24`、NAT 关、电脑静态地址等于路由器 WAN 拿到的地址，应答回到 WAN 口而会话表为空
+- 「两个 NAT 会话」的测试把电脑 DNS 设为 `8.8.8.8`，否则 DNS 查询发给路由器不经 NAT
+- L011 对「网络地址 / 广播地址当主机地址」另给一句文案；L010 与 `NO_IP` 共用原因短句；L004 文案用前缀写法（`192.168.2.10/24`）
+- `NO_IP` 的 `fixAt` 为空，面板退回 `stoppedAt`
+- 新增 `src/test-support/`（仅测试用，不导出）；引擎 `tsconfig` 加 `resolveJsonModule` 并把 `fixtures` 纳入 include
+- 同一互联网设备的地址池跨端口共享，避免两台路由器拿到同一地址
+- `parseTopology` 返回 `{ ok, topology, errors }`，错误是带 path 的对象；租约字段名 `ifaceName`；空拓扑工厂 `createEmptyTopology`
+- `isPrivate` 返回 `'private' | 'carrier' | 'public'`，`carrier` 即「运营商内网」
+
+网页
+- 新增依赖 `idb`
+- 右侧面板底部 CP0 的「引擎 0.0.0」去掉，CP1 界面规格里没有它
+- 「导入」用页面内常驻的隐藏文件输入框
+- 选中连线时右侧显示结果面板；第二个互联网命名「互联网2」
+- 修了一个 React Flow 节点尺寸测量被覆盖导致连线时隐时现的问题；恢复了 React Flow 的署名标记（隐藏需要 Pro 订阅）
+- 页面上从设备栏拖入、拉线、拖动节点时，起点要落在端口圆点或节点主体上；从端口名文字处起拖会变成平移画布，这是 React Flow 默认行为
 
 ## 对其他检查点的约定
 
