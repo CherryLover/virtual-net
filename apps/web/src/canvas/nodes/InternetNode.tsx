@@ -7,7 +7,12 @@ export function InternetNode({ data }: NodeProps<DeviceNodeType>) {
   const device = data.device;
   if (device.type !== "internet") return null;
   return (
-    <NodeShell kind="internet" name={device.name} errorCount={data.errorCount}>
+    <NodeShell
+      kind="internet"
+      name={device.name}
+      address={data.address}
+      errorCount={data.errorCount}
+    >
       <PortHandles ports={device.ports} side="bottom" />
     </NodeShell>
   );

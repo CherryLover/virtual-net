@@ -1,9 +1,10 @@
 // 引擎适配层：网页只从这里 import 引擎能力，另加几个界面用的小工具。
 export * from "@virtual-net/engine";
+export * from "./cp2";
 
 import {
   createEmptyTopology,
-  createInternetPort,
+  ensureSparePort,
   type Lease,
   type Runtime,
   type Topology,
@@ -18,27 +19,23 @@ export function leaseOf(runtime: Runtime, deviceId: string, ifaceName: string): 
   return runtime.leases.find((l) => l.deviceId === deviceId && l.ifaceName === ifaceName) ?? null;
 }
 
-/** 互联网端口始终多留一个空闲口：不够就补一个，多了就从尾部收掉 */
-export function ensureInternetSparePort(topology: Topology): Topology {
-  let changed = false;
-  const devices = topology.devices.map((device) => {
-    if (device.type !== "internet") return device;
-    const free = device.ports.filter((p) => p.linkId === null);
-    if (free.length === 1) return device;
-    if (free.length === 0) {
-      const port = createInternetPort(topology, device.id);
-      if (!port) return device;
-      changed = true;
-      return { ...device, ports: [...device.ports, port] };
+/**
+ * 引擎的拓扑操作（`model/ops.ts`）是就地改的，store 里的拓扑是不可变的，
+ * 所以统一先深拷贝再改，返回新对象。
+ */
+export function mutateTopology(topology: Topology, run: (draft: Topology) => boolean): Topology {
+  const draft = structuredClone(topology);
+  return run(draft) ? draft : topology;
+}
+
+/** 互联网 `portN` 与 AP `wlanN` 始终恰好留一个空闲口 */
+export function ensureSparePorts(topology: Topology): Topology {
+  return mutateTopology(topology, (draft) => {
+    let changed = false;
+    for (const device of draft.devices) {
+      if (device.type !== "internet" && device.type !== "ap") continue;
+      if (ensureSparePort(draft, device.id)) changed = true;
     }
-    const ports = [...device.ports];
-    while (ports.length > 1 && ports.filter((p) => p.linkId === null).length > 1) {
-      const last = ports[ports.length - 1];
-      if (!last || last.linkId !== null) break;
-      ports.pop();
-      changed = true;
-    }
-    return { ...device, ports };
+    return changed;
   });
-  return changed ? { ...topology, devices } : topology;
 }

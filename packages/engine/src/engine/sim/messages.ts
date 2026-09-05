@@ -78,16 +78,61 @@ export const stopText = {
     reasonCode: "TARGET_UNREACHABLE",
     reason: `目标 ${domain} 当前不可达`,
   }),
+  vlanIsolated: (
+    targetIp: string,
+    targetName: string,
+    targetVlan: number | null,
+    ownVlan: number | null,
+  ): StopInfo => ({
+    reasonCode: "VLAN_ISOLATED",
+    reason:
+      `${targetIp}（${targetName}）在 VLAN ${targetVlan ?? "?"}，` +
+      `本机发出的包在 VLAN ${ownVlan ?? "?"}，二层隔离，需要路由器转发`,
+  }),
+  trunkNotAllowed: (deviceName: string, portName: string, vlan: number | null): StopInfo => ({
+    reasonCode: "TRUNK_NOT_ALLOWED",
+    reason: `${deviceName} 的 ${portName} 是 trunk 但未放行 VLAN ${vlan ?? "?"}，帧被丢弃`,
+  }),
+  vlanTagDropped: (vlan: number | null, deviceName: string, portName: string): StopInfo => ({
+    reasonCode: "VLAN_TAG_DROPPED",
+    reason: `帧带 VLAN ${vlan ?? "?"} 标签到达 ${deviceName} 的 ${portName}，该口不识别标签，丢弃`,
+  }),
+  l2Loop: (aName: string, bName: string, links: string): StopInfo => ({
+    reasonCode: "L2_LOOP",
+    reason: `${aName} 与 ${bName} 之间有两条二层路径（${links}），没有生成树协议，广播风暴`,
+  }),
+  pppoeRequired: (deviceName: string): StopInfo => ({
+    reasonCode: "PPPOE_REQUIRED",
+    reason: `上游要求拨号，${deviceName} 的 WAN 是自动获取，没有拿到地址`,
+  }),
+  pppoeRejected: (deviceName: string, upstream: string): StopInfo => ({
+    reasonCode: "PPPOE_REJECTED",
+    reason: `${deviceName} 在拨号，但上游（${upstream}）不接受拨号`,
+  }),
+  wanLanOverlap: (wanIp: string, subnet: string): StopInfo => ({
+    reasonCode: "WAN_LAN_OVERLAP",
+    reason: `WAN 地址 ${wanIp} 落在 LAN 网段 ${subnet} 内，路由器不知道往哪边发`,
+  }),
 };
 
 /** 自动获取失败的原因短句，NO_IP 与 L010 共用 */
-export function leaseFailureText(status: string, portName = "eth0"): string {
+export function leaseFailureText(
+  status: string,
+  portName = "eth0",
+  vlan: number | null = null,
+): string {
   switch (status) {
     case "no-link":
       return `${portName} 没有连线`;
     case "pool-exhausted":
       return "地址池已用完";
+    case "pppoe-required":
+      return "上游要求拨号，本机是自动获取";
+    case "pppoe-rejected":
+      return "本机在拨号，但上游不接受拨号";
     default:
-      return "所在网段没有 DHCP 服务器";
+      return vlan !== null && vlan !== 1
+        ? `VLAN ${vlan} 内没有 DHCP 服务器`
+        : "所在网段没有 DHCP 服务器";
   }
 }

@@ -11,7 +11,7 @@ export function RouterNode({ data }: NodeProps<DeviceNodeType>) {
   return (
     <NodeShell kind="router" name={device.name} address={data.address} errorCount={data.errorCount}>
       <PortHandles ports={wan} side="top" />
-      <PortHandles ports={lan} side="bottom" />
+      <PortHandles ports={lan} side="bottom" showVlan />
     </NodeShell>
   );
 }

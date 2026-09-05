@@ -6,14 +6,12 @@ import { issue, type LintRule } from "../context";
 
 export const l006PoolOverlapsStatic: LintRule = (ctx) => {
   const out: LintIssue[] = [];
-  for (const router of ctx.routers) {
-    if (!router.config.dhcp.enabled) continue;
-    const lanIface = ctx.runtime.ifaceOf(router.id, "br-lan");
-    const port = lanIface?.portIds[0];
-    if (!port) continue;
-    const segment = ctx.runtime.segmentOf(port);
+  for (const pool of ctx.pools) {
+    if (!pool.dhcp.enabled) continue;
+    const iface = ctx.runtime.ifaceOf(pool.device.id, pool.ifaceName);
+    const segment = iface ? ctx.runtime.segmentOfIface(iface) : null;
     if (!segment) continue;
-    const { rangeStart, rangeEnd } = router.config.dhcp;
+    const { rangeStart, rangeEnd } = pool.dhcp;
     for (const item of ctx.addressedIn(segment)) {
       if (item.device.type !== "pc" || item.device.config.addressMode !== "static") continue;
       if (!inRange(item.ip, rangeStart, rangeEnd)) continue;
@@ -21,10 +19,10 @@ export const l006PoolOverlapsStatic: LintRule = (ctx) => {
         issue(
           "L006",
           "warning",
-          `${item.device.name} 的地址 ${item.ip} 在 ${router.name} 的 DHCP 地址池 ${rangeStart}–${rangeEnd} 内，可能被分给别的设备`,
+          `${item.device.name} 的地址 ${item.ip} 在 ${pool.device.name} 的 DHCP 地址池 ${rangeStart}–${rangeEnd} 内，可能被分给别的设备`,
           [
             { deviceId: item.device.id, field: "ip" },
-            { deviceId: router.id, field: "dhcp" },
+            { deviceId: pool.device.id, field: pool.field },
           ],
         ),
       );

@@ -9,6 +9,10 @@ export function Toolbar() {
   const saveState = useTopologyStore((s) => s.saveState);
   const rename = useTopologyStore((s) => s.rename);
   const replaceTopology = useTopologyStore((s) => s.replaceTopology);
+  const undo = useTopologyStore((s) => s.undo);
+  const redo = useTopologyStore((s) => s.redo);
+  const canUndo = useTopologyStore((s) => s.past.length > 0);
+  const canRedo = useTopologyStore((s) => s.future.length > 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState(name);
   const [editing, setEditing] = useState(false);
@@ -18,7 +22,7 @@ export function Toolbar() {
     const topology = useTopologyStore.getState().topology;
     const empty = topology.devices.length === 0 && topology.links.length === 0;
     if (!empty && !window.confirm("清空当前画布？未导出的内容会丢失")) return;
-    replaceTopology(emptyTopology());
+    replaceTopology(emptyTopology(), { record: true });
   };
 
   const onImport = async (file: File) => {
@@ -31,7 +35,7 @@ export function Toolbar() {
     const topology = useTopologyStore.getState().topology;
     const empty = topology.devices.length === 0 && topology.links.length === 0;
     if (!empty && !window.confirm("替换当前画布？")) return;
-    replaceTopology(result.topology);
+    replaceTopology(result.topology, { record: true });
   };
 
   return (
@@ -53,6 +57,12 @@ export function Toolbar() {
       <div className="toolbar-actions">
         <button type="button" className="btn" onClick={onNew}>
           新建
+        </button>
+        <button type="button" className="btn" disabled={!canUndo} onClick={undo}>
+          撤销
+        </button>
+        <button type="button" className="btn" disabled={!canRedo} onClick={redo}>
+          重做
         </button>
         <button type="button" className="btn" onClick={() => fileInput.current?.click()}>
           导入

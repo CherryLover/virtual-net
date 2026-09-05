@@ -1,9 +1,11 @@
 /** 拓扑数据模型：设备、端口、连线（CP1 定稿，后续检查点只允许扩展） */
 
+import type { PortVlan } from "./vlan";
+
 /** 当前支持的拓扑格式版本 */
 export const TOPOLOGY_VERSION = 1;
 
-export type DeviceType = "pc" | "router" | "internet";
+export type DeviceType = "pc" | "router" | "internet" | "switch" | "ap" | "modem";
 
 export interface Position {
   x: number;
@@ -21,8 +23,8 @@ export interface Port {
   name: string;
   mac: string;
   linkId: string | null;
-  /** CP2 定义（access / trunk、PVID、放行列表）；CP1 不写、引擎忽略 */
-  vlan?: unknown;
+  /** CP2 定义（access / trunk、PVID、放行列表）；只允许出现在交换机 portN 与路由器 lanN */
+  vlan?: PortVlan;
 }
 
 export interface PcConfig {
@@ -33,16 +35,68 @@ export interface PcConfig {
   dns: string;
 }
 
+/** DHCP 池配置，路由器 LAN、路由器 VLAN 子接口、路由模式光猫共用 */
+export interface DhcpConfig {
+  enabled: boolean;
+  rangeStart: string;
+  rangeEnd: string;
+  leaseHours: number;
+}
+
+export interface PppoeConfig {
+  username: string;
+  password: string;
+}
+
+export interface StaticWanConfig {
+  ip: string;
+  mask: string;
+  gateway: string;
+  dns: string;
+}
+
+export type RouterWanMode = "dhcp" | "pppoe" | "static";
+
+export interface RouterWanConfig {
+  mode: RouterWanMode;
+  pppoe?: PppoeConfig;
+  static?: StaticWanConfig;
+}
+
+/** 路由器的 VLAN 子接口 `br-lan.<id>` */
+export interface RouterVlan {
+  id: number;
+  ip: string;
+  mask: string;
+  dhcp: DhcpConfig;
+}
+
 export interface RouterConfig {
   lan: { ip: string; mask: string };
-  dhcp: {
-    enabled: boolean;
-    rangeStart: string;
-    rangeEnd: string;
-    leaseHours: number;
-  };
-  wan: { mode: "dhcp" };
+  dhcp: DhcpConfig;
+  wan: RouterWanConfig;
   nat: boolean;
+  /** 额外的 VLAN 子接口；CP1 文件里没有这个字段 */
+  vlans?: RouterVlan[];
+}
+
+export interface SwitchConfig {
+  /** 端口数，4–48，必须等于 ports.length */
+  portCount: number;
+}
+
+export interface ApConfig {
+  /** 只是标签，不参与模拟 */
+  ssid: string;
+}
+
+export type ModemWanMode = "auto" | "dhcp" | "pppoe";
+
+export interface ModemConfig {
+  mode: "bridge" | "route";
+  wan: { mode: ModemWanMode; pppoe?: PppoeConfig };
+  lan: { ip: string; mask: string };
+  dhcp: DhcpConfig;
 }
 
 export interface InternetTarget {
@@ -54,14 +108,20 @@ export interface InternetTarget {
   reachable: boolean;
 }
 
+export type InternetAccessMode = "dhcp" | "pppoe";
+
+export interface InternetAccess {
+  ip: string;
+  mask: string;
+  poolStart: string;
+  poolEnd: string;
+  dns: string;
+  /** 上游接入方式，缺省 dhcp；CP1 文件里没有这个字段 */
+  mode?: InternetAccessMode;
+}
+
 export interface InternetConfig {
-  access: {
-    ip: string;
-    mask: string;
-    poolStart: string;
-    poolEnd: string;
-    dns: string;
-  };
+  access: InternetAccess;
   targets: InternetTarget[];
 }
 
@@ -87,7 +147,40 @@ export interface InternetDevice extends DeviceBase {
   config: InternetConfig;
 }
 
-export type Device = PcDevice | RouterDevice | InternetDevice;
+export interface SwitchDevice extends DeviceBase {
+  type: "switch";
+  config: SwitchConfig;
+}
+
+export interface ApDevice extends DeviceBase {
+  type: "ap";
+  config: ApConfig;
+}
+
+export interface ModemDevice extends DeviceBase {
+  type: "modem";
+  config: ModemConfig;
+}
+
+export type Device =
+  | PcDevice
+  | RouterDevice
+  | InternetDevice
+  | SwitchDevice
+  | ApDevice
+  | ModemDevice;
+
+/** 三层设备（有地址、有路由表、会做 NAT）：路由器与路由模式的光猫 */
+export function isL3Router(device: Device): device is RouterDevice | ModemDevice {
+  if (device.type === "router") return true;
+  return device.type === "modem" && device.config.mode === "route";
+}
+
+/** 二层透明设备：交换机、AP、桥接模式光猫。路由器的 LAN 网桥另算 */
+export function isTransparent(device: Device): boolean {
+  if (device.type === "switch" || device.type === "ap") return true;
+  return device.type === "modem" && device.config.mode === "bridge";
+}
 
 export interface LinkEnd {
   deviceId: string;

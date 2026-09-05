@@ -7,10 +7,12 @@ import { buildRoutes } from "./routes";
 import { buildSegmentIndex } from "./segment";
 import type { Lease, Runtime } from "./types";
 
+export * from "./dhcp";
 export * from "./interfaces";
 export * from "./routes";
 export * from "./segment";
 export * from "./types";
+export * from "./wan";
 
 export function buildRuntime(topology: Topology): Runtime {
   // 1 接口骨架 + 网段发现
@@ -18,7 +20,7 @@ export function buildRuntime(topology: Topology): Runtime {
   const index = buildSegmentIndex(topology, interfaces);
 
   // 2 / 3 WAN 与 LAN 自动获取
-  const leases = allocateLeases(topology, index);
+  const { leases, conflicts } = allocateLeases(topology, index, interfaces);
 
   // 4 接口表：静态配置与租约合并
   for (const iface of interfaces) {
@@ -45,9 +47,11 @@ export function buildRuntime(topology: Topology): Runtime {
   // 6 / 7 NAT 会话表与 ARP 表，初始为空
   const arp: Record<string, Record<string, string>> = {};
   const nat: Runtime["nat"] = {};
+  const mac: Runtime["mac"] = {};
   for (const device of topology.devices) {
     arp[device.id] = {};
     nat[device.id] = [];
+    mac[device.id] = {};
   }
 
   return {
@@ -58,12 +62,19 @@ export function buildRuntime(topology: Topology): Runtime {
     routes,
     arp,
     nat,
+    mac,
+    wanLeases: leases.filter((l) => l.scope === "wan"),
+    dhcpConflicts: conflicts,
+    index,
     ifaceOfPort: index.ifaceOfPort,
     ifaceOf: (deviceId, name) =>
       interfaces.find((i) => i.deviceId === deviceId && i.name === name) ?? null,
     segmentOf: index.segmentOf,
+    segmentOfIface: index.segmentOfIface,
     interfacesInSegment: index.interfacesInSegment,
     reachFromPort: index.reachFromPort,
+    reachFrom: index.reachFrom,
+    ifaceForFrame: index.ifaceForFrame,
     leaseOf: (deviceId, ifaceName): Lease | null =>
       leases.find((l) => l.deviceId === deviceId && l.ifaceName === ifaceName) ?? null,
   };

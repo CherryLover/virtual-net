@@ -1,4 +1,4 @@
-import type { Connection, EdgeChange, NodeChange } from "@xyflow/react";
+import type { Connection, EdgeChange, NodeChange, OnSelectionChangeParams } from "@xyflow/react";
 import {
   applyNodeChanges,
   Background,
@@ -10,18 +10,32 @@ import {
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DeviceType } from "../engine";
-import { leaseOf } from "../engine";
+import { DEVICE_TYPES } from "../engine";
 import { useTopologyStore } from "../store";
 import type { DeviceEdgeType } from "./DeviceEdge";
 import { DeviceEdge } from "./DeviceEdge";
+import { ApNode } from "./nodes/ApNode";
 import { InternetNode } from "./nodes/InternetNode";
+import { ModemNode } from "./nodes/ModemNode";
 import { PcNode } from "./nodes/PcNode";
 import { RouterNode } from "./nodes/RouterNode";
+import { SwitchNode } from "./nodes/SwitchNode";
+import { nodeSubtitle } from "./nodes/subtitle";
 import type { DeviceNodeType } from "./nodes/types";
 import "./canvas.css";
 
-const nodeTypes = { pc: PcNode, router: RouterNode, internet: InternetNode };
+const nodeTypes = {
+  pc: PcNode,
+  router: RouterNode,
+  internet: InternetNode,
+  switch: SwitchNode,
+  ap: ApNode,
+  modem: ModemNode,
+};
 const edgeTypes = { device: DeviceEdge };
+
+/** 拖动落点与对齐都吸附到这个网格 */
+export const GRID = 16;
 
 export function Canvas() {
   const topology = useTopologyStore((s) => s.topology);
@@ -51,29 +65,26 @@ export function Canvas() {
     return counts;
   }, [issues]);
 
+  const selectedIds = useMemo(() => {
+    if (selection.kind === "device") return new Set([selection.id]);
+    if (selection.kind === "devices") return new Set(selection.ids);
+    return new Set<string>();
+  }, [selection]);
+
   const derivedNodes: DeviceNodeType[] = useMemo(
     () =>
-      topology.devices.map((device) => {
-        let address: string | undefined;
-        if (device.type === "pc") {
-          if (device.config.addressMode === "dhcp") {
-            const lease = leaseOf(runtime, device.id, "eth0");
-            address = lease?.status === "ok" && lease.ip ? lease.ip : "未获取到地址";
-          } else {
-            address = device.config.ip || "未获取到地址";
-          }
-        } else if (device.type === "router") {
-          address = `LAN ${device.config.lan.ip}`;
-        }
-        return {
-          id: device.id,
-          type: device.type,
-          position: device.position,
-          selected: selection.kind === "device" && selection.id === device.id,
-          data: { device, address, errorCount: errorCounts.get(device.id) ?? 0 },
-        };
-      }),
-    [topology.devices, runtime, errorCounts, selection],
+      topology.devices.map((device) => ({
+        id: device.id,
+        type: device.type,
+        position: device.position,
+        selected: selectedIds.has(device.id),
+        data: {
+          device,
+          address: nodeSubtitle(device, runtime),
+          errorCount: errorCounts.get(device.id) ?? 0,
+        },
+      })),
+    [topology.devices, runtime, errorCounts, selectedIds],
   );
 
   const [nodes, setNodes] = useState<DeviceNodeType[]>(derivedNodes);
@@ -112,13 +123,20 @@ export function Canvas() {
 
   const onNodesChange = useCallback((changes: NodeChange<DeviceNodeType>[]) => {
     setNodes((prev) => applyNodeChanges(changes, prev));
-    const store = useTopologyStore.getState();
+    const moves: { id: string; position: { x: number; y: number } }[] = [];
     for (const change of changes) {
       if (change.type === "position" && change.dragging === false && change.position) {
-        store.moveDevice(change.id, change.position);
+        moves.push({
+          id: change.id,
+          position: {
+            x: Math.round(change.position.x),
+            y: Math.round(change.position.y),
+          },
+        });
       }
-      if (change.type === "remove") store.removeDevice(change.id);
     }
+    // 一次拖动（可能带着多个已选节点）算一步
+    if (moves.length > 0) useTopologyStore.getState().moveDevices(moves);
   }, []);
 
   const onEdgesChange = useCallback((changes: EdgeChange<DeviceEdgeType>[]) => {
@@ -126,6 +144,20 @@ export function Canvas() {
     for (const change of changes) {
       if (change.type === "remove") store.removeLink(change.id);
     }
+  }, []);
+
+  const onSelectionChange = useCallback(({ nodes: selected }: OnSelectionChangeParams) => {
+    const store = useTopologyStore.getState();
+    const ids = selected.map((n) => n.id);
+    const current = store.selection;
+    if (ids.length >= 2) {
+      if (current.kind === "devices" && current.ids.join() === ids.join()) return;
+      store.select({ kind: "devices", ids });
+      return;
+    }
+    // 单选与取消由点击处理，这里只负责从多选切回去
+    if (current.kind !== "devices") return;
+    store.select(ids.length === 1 ? { kind: "device", id: ids[0] as string } : { kind: "none" });
   }, []);
 
   const isValidConnection = useCallback((connection: Connection | DeviceEdgeType) => {
@@ -155,11 +187,12 @@ export function Canvas() {
     (event: React.DragEvent) => {
       event.preventDefault();
       const type = event.dataTransfer.getData("application/virtual-net-device") as DeviceType;
-      if (type !== "pc" && type !== "router" && type !== "internet") return;
+      if (!DEVICE_TYPES.includes(type)) return;
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      useTopologyStore
-        .getState()
-        .addDevice(type, { x: Math.round(position.x - 70), y: Math.round(position.y - 28) });
+      useTopologyStore.getState().addDevice(type, {
+        x: Math.round((position.x - 70) / GRID) * GRID,
+        y: Math.round((position.y - 28) / GRID) * GRID,
+      });
     },
     [screenToFlowPosition],
   );
@@ -167,6 +200,74 @@ export function Canvas() {
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
+  }, []);
+
+  // 键盘：删除、全选、撤销、重做
+  useEffect(() => {
+    /** 焦点在任意表单控件上：删除、全选这类会误伤填表的快捷键要让开 */
+    const inForm = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      const tag = el.tagName;
+      return (
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable === true
+      );
+    };
+    /**
+     * 焦点在能打字的地方：只有这时才把 Ctrl/Cmd+Z 让给浏览器自己的输入撤销。
+     * 复选框、下拉框没有输入撤销，让开只会让快捷键失灵。
+     */
+    const typing = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      if (el.tagName === "TEXTAREA" || el.isContentEditable === true) return true;
+      if (el.tagName !== "INPUT") return false;
+      const type = (el as HTMLInputElement).type;
+      return type !== "checkbox" && type !== "radio" && type !== "button" && type !== "file";
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      const store = useTopologyStore.getState();
+      const meta = event.metaKey || event.ctrlKey;
+      if (meta && event.key.toLowerCase() === "z") {
+        if (typing(event.target)) return;
+        event.preventDefault();
+        if (event.shiftKey) store.redo();
+        else store.undo();
+        return;
+      }
+      if (meta && event.key.toLowerCase() === "y") {
+        if (typing(event.target)) return;
+        event.preventDefault();
+        store.redo();
+        return;
+      }
+      if (meta && event.key.toLowerCase() === "a") {
+        if (inForm(event.target)) return;
+        event.preventDefault();
+        const ids = store.topology.devices.map((d) => d.id);
+        if (ids.length === 0) return;
+        store.select(
+          ids.length === 1 ? { kind: "device", id: ids[0] as string } : { kind: "devices", ids },
+        );
+        return;
+      }
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (inForm(event.target)) return;
+        const selection = store.selection;
+        if (selection.kind === "devices") {
+          event.preventDefault();
+          store.removeElements(selection.ids, []);
+        } else if (selection.kind === "device") {
+          event.preventDefault();
+          store.removeElements([selection.id], []);
+        } else if (selection.kind === "link") {
+          event.preventDefault();
+          store.removeLink(selection.id);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   return (
@@ -179,6 +280,7 @@ export function Canvas() {
         connectionMode={ConnectionMode.Loose}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onSelectionChange={onSelectionChange}
         onNodeClick={(_, node) =>
           useTopologyStore.getState().select({ kind: "device", id: node.id })
         }
@@ -187,14 +289,17 @@ export function Canvas() {
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onMoveEnd={(_, viewport) => useTopologyStore.getState().setViewport(viewport)}
-        deleteKeyCode={["Delete", "Backspace"]}
-        multiSelectionKeyCode={null}
+        deleteKeyCode={null}
+        selectionKeyCode="Shift"
+        multiSelectionKeyCode={["Meta", "Control"]}
         selectionOnDrag={false}
+        snapToGrid
+        snapGrid={[GRID, GRID]}
         panOnDrag
         minZoom={0.2}
         maxZoom={2}
       >
-        <Background />
+        <Background gap={GRID} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </main>

@@ -1,20 +1,29 @@
 /** 拓扑 JSON 的结构校验与版本检查 */
 
 import type {
+  ApConfig,
   Device,
   DeviceType,
+  DhcpConfig,
+  InternetAccess,
   InternetConfig,
   InternetTarget,
   Link,
   LinkEnd,
+  ModemConfig,
   PcConfig,
   Port,
   Position,
+  PppoeConfig,
   RouterConfig,
+  RouterVlan,
+  StaticWanConfig,
+  SwitchConfig,
   Topology,
   Viewport,
 } from "../model/topology";
 import { TOPOLOGY_VERSION } from "../model/topology";
+import { isVlanId, MAX_VLAN_ID, MIN_VLAN_ID, type PortVlan, portSupportsVlan } from "../model/vlan";
 
 export interface ParseError {
   /** 出错的字段路径，如 `devices[1].ports[0].mac` */
@@ -45,7 +54,30 @@ const PORT_NAME_RULES: Record<DeviceType, (names: string[]) => string | null> = 
     const bad = names.some((n, i) => n !== `port${i + 1}`);
     return bad ? "互联网端口必须依次命名 port1、port2…" : null;
   },
+  switch: (names) => {
+    if (names.length < SWITCH_MIN_PORTS || names.length > SWITCH_MAX_PORTS) {
+      return `交换机端口数只能是 ${SWITCH_MIN_PORTS}–${SWITCH_MAX_PORTS}`;
+    }
+    const bad = names.some((n, i) => n !== `port${i + 1}`);
+    return bad ? "交换机端口必须依次命名 port1、port2…" : null;
+  },
+  ap: (names) => {
+    if (names.length < 2) return "无线 AP 至少要有 uplink 和 wlan1";
+    if (names[0] !== "uplink") return "无线 AP 的第一个端口必须是 uplink";
+    const bad = names.slice(1).some((n, i) => n !== `wlan${i + 1}`);
+    return bad ? "无线 AP 的客户端口必须依次命名 wlan1、wlan2…" : null;
+  },
+  modem: (names) => {
+    const want = ["wan", "lan1"];
+    return names.length === want.length && want.every((n, i) => names[i] === n)
+      ? null
+      : "光猫端口必须是 wan、lan1";
+  },
 };
+
+const SWITCH_MIN_PORTS = 4;
+const SWITCH_MAX_PORTS = 48;
+const DEVICE_TYPES: DeviceType[] = ["pc", "router", "internet", "switch", "ap", "modem"];
 
 const MAC_RE = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
 
@@ -115,6 +147,46 @@ function readViewport(c: Collector, value: unknown): Viewport {
   };
 }
 
+/** VLAN 配置：access { pvid } / trunk { allowed, native } */
+function readPortVlan(c: Collector, value: unknown, path: string): PortVlan | undefined {
+  if (!isObject(value)) {
+    c.add(path, "vlan 必须是对象");
+    return undefined;
+  }
+  const mode = value.mode;
+  if (mode !== "access" && mode !== "trunk") {
+    c.add(`${path}.mode`, "vlan.mode 只能是 access 或 trunk");
+    return undefined;
+  }
+  if (mode === "access") {
+    const pvid = value.pvid;
+    if (!isVlanId(pvid)) {
+      c.add(`${path}.pvid`, `PVID 只能是 ${MIN_VLAN_ID}–${MAX_VLAN_ID} 的整数`);
+      return undefined;
+    }
+    return { mode: "access", pvid };
+  }
+  const allowedRaw = value.allowed;
+  if (!Array.isArray(allowedRaw)) {
+    c.add(`${path}.allowed`, "allowed 必须是数组");
+    return undefined;
+  }
+  const allowed: number[] = [];
+  for (const [i, id] of allowedRaw.entries()) {
+    if (!isVlanId(id)) {
+      c.add(`${path}.allowed[${i}]`, `VLAN 号只能是 ${MIN_VLAN_ID}–${MAX_VLAN_ID} 的整数`);
+      continue;
+    }
+    allowed.push(id);
+  }
+  const native = value.native;
+  if (!isVlanId(native)) {
+    c.add(`${path}.native`, `native 只能是 ${MIN_VLAN_ID}–${MAX_VLAN_ID} 的整数`);
+    return undefined;
+  }
+  return { mode: "trunk", allowed, native };
+}
+
 function readPort(c: Collector, value: unknown, path: string): Port {
   if (!isObject(value)) {
     c.add(path, "端口必须是对象");
@@ -132,7 +204,10 @@ function readPort(c: Collector, value: unknown, path: string): Port {
     mac,
     linkId: typeof linkId === "string" ? linkId : null,
   };
-  if ("vlan" in value) port.vlan = value.vlan;
+  if ("vlan" in value) {
+    const vlan = readPortVlan(c, value.vlan, `${path}.vlan`);
+    if (vlan) port.vlan = vlan;
+  }
   return port;
 }
 
@@ -154,6 +229,84 @@ function readPcConfig(c: Collector, value: unknown, path: string): PcConfig {
   };
 }
 
+function readDhcp(c: Collector, value: unknown, path: string): DhcpConfig {
+  if (!isObject(value)) {
+    c.add(path, "dhcp 必须是对象");
+    return { enabled: false, rangeStart: "", rangeEnd: "", leaseHours: 24 };
+  }
+  return {
+    enabled: readBoolean(c, value, "enabled", path),
+    rangeStart: readString(c, value, "rangeStart", path),
+    rangeEnd: readString(c, value, "rangeEnd", path),
+    leaseHours: readNumber(c, value, "leaseHours", path),
+  };
+}
+
+function readSubnet(c: Collector, value: unknown, path: string): { ip: string; mask: string } {
+  if (!isObject(value)) {
+    c.add(path, `${path.split(".").pop()} 必须是对象`);
+    return { ip: "", mask: "" };
+  }
+  return { ip: readString(c, value, "ip", path), mask: readString(c, value, "mask", path) };
+}
+
+function readPppoe(c: Collector, value: unknown, path: string): PppoeConfig {
+  if (!isObject(value)) {
+    c.add(path, "pppoe 必须是对象");
+    return { username: "", password: "" };
+  }
+  return {
+    username: readString(c, value, "username", path),
+    password: readString(c, value, "password", path),
+  };
+}
+
+function readStaticWan(c: Collector, value: unknown, path: string): StaticWanConfig {
+  if (!isObject(value)) {
+    c.add(path, "static 必须是对象");
+    return { ip: "", mask: "", gateway: "", dns: "" };
+  }
+  return {
+    ip: readString(c, value, "ip", path),
+    mask: readString(c, value, "mask", path),
+    gateway: readString(c, value, "gateway", path),
+    dns: readString(c, value, "dns", path),
+  };
+}
+
+function readRouterVlans(c: Collector, value: unknown, path: string): RouterVlan[] {
+  if (!Array.isArray(value)) {
+    c.add(path, "vlans 必须是数组");
+    return [];
+  }
+  const out: RouterVlan[] = [];
+  const seen = new Set<number>();
+  value.forEach((raw, i) => {
+    const item = `${path}[${i}]`;
+    if (!isObject(raw)) {
+      c.add(item, "VLAN 子接口必须是对象");
+      return;
+    }
+    const id = raw.id;
+    if (!isVlanId(id) || id === 1) {
+      c.add(`${item}.id`, `VLAN 号只能是 2–${MAX_VLAN_ID} 的整数`);
+      return;
+    }
+    if (seen.has(id)) {
+      c.add(`${item}.id`, `VLAN ${id} 重复`);
+      return;
+    }
+    seen.add(id);
+    out.push({
+      id,
+      ip: readString(c, raw, "ip", item),
+      mask: readString(c, raw, "mask", item),
+      dhcp: readDhcp(c, raw.dhcp, `${item}.dhcp`),
+    });
+  });
+  return out;
+}
+
 function readRouterConfig(c: Collector, value: unknown, path: string): RouterConfig {
   const fallback: RouterConfig = {
     lan: { ip: "", mask: "" },
@@ -165,33 +318,88 @@ function readRouterConfig(c: Collector, value: unknown, path: string): RouterCon
     c.add(path, "config 必须是对象");
     return fallback;
   }
-  const lanRaw = value.lan;
-  let lan = fallback.lan;
-  if (isObject(lanRaw)) {
-    lan = {
-      ip: readString(c, lanRaw, "ip", `${path}.lan`),
-      mask: readString(c, lanRaw, "mask", `${path}.lan`),
-    };
+  const lan = readSubnet(c, value.lan, `${path}.lan`);
+  const dhcp = readDhcp(c, value.dhcp, `${path}.dhcp`);
+
+  const wanRaw = value.wan;
+  const wan: RouterConfig["wan"] = { mode: "dhcp" };
+  if (!isObject(wanRaw)) {
+    c.add(`${path}.wan`, "wan 必须是对象");
   } else {
-    c.add(`${path}.lan`, "lan 必须是对象");
+    const mode = wanRaw.mode;
+    if (mode !== "dhcp" && mode !== "pppoe" && mode !== "static") {
+      c.add(`${path}.wan.mode`, "wan.mode 只能是 dhcp、pppoe 或 static");
+    } else {
+      wan.mode = mode;
+    }
+    if ("pppoe" in wanRaw) wan.pppoe = readPppoe(c, wanRaw.pppoe, `${path}.wan.pppoe`);
+    if ("static" in wanRaw) wan.static = readStaticWan(c, wanRaw.static, `${path}.wan.static`);
   }
-  const dhcpRaw = value.dhcp;
-  let dhcp = fallback.dhcp;
-  if (isObject(dhcpRaw)) {
-    dhcp = {
-      enabled: readBoolean(c, dhcpRaw, "enabled", `${path}.dhcp`),
-      rangeStart: readString(c, dhcpRaw, "rangeStart", `${path}.dhcp`),
-      rangeEnd: readString(c, dhcpRaw, "rangeEnd", `${path}.dhcp`),
-      leaseHours: readNumber(c, dhcpRaw, "leaseHours", `${path}.dhcp`),
-    };
-  } else {
-    c.add(`${path}.dhcp`, "dhcp 必须是对象");
+
+  const config: RouterConfig = { lan, dhcp, wan, nat: readBoolean(c, value, "nat", path) };
+  if ("vlans" in value) config.vlans = readRouterVlans(c, value.vlans, `${path}.vlans`);
+  return config;
+}
+
+function readSwitchConfig(
+  c: Collector,
+  value: unknown,
+  path: string,
+  portCount: number,
+): SwitchConfig {
+  if (!isObject(value)) {
+    c.add(path, "config 必须是对象");
+    return { portCount };
+  }
+  const count = readNumber(c, value, "portCount", path);
+  if (count !== portCount) {
+    c.add(`${path}.portCount`, `端口数 ${count} 与实际端口 ${portCount} 个不一致`);
+  }
+  return { portCount: count };
+}
+
+function readApConfig(c: Collector, value: unknown, path: string): ApConfig {
+  if (!isObject(value)) {
+    c.add(path, "config 必须是对象");
+    return { ssid: "" };
+  }
+  return { ssid: readString(c, value, "ssid", path) };
+}
+
+function readModemConfig(c: Collector, value: unknown, path: string): ModemConfig {
+  const fallback: ModemConfig = {
+    mode: "bridge",
+    wan: { mode: "auto" },
+    lan: { ip: "", mask: "" },
+    dhcp: { enabled: false, rangeStart: "", rangeEnd: "", leaseHours: 24 },
+  };
+  if (!isObject(value)) {
+    c.add(path, "config 必须是对象");
+    return fallback;
+  }
+  const mode = value.mode;
+  if (mode !== "bridge" && mode !== "route") {
+    c.add(`${path}.mode`, "光猫模式只能是 bridge 或 route");
   }
   const wanRaw = value.wan;
-  if (!isObject(wanRaw) || wanRaw.mode !== "dhcp") {
-    c.add(`${path}.wan`, "wan.mode 本版本只支持 dhcp");
+  const wan: ModemConfig["wan"] = { mode: "auto" };
+  if (!isObject(wanRaw)) {
+    c.add(`${path}.wan`, "wan 必须是对象");
+  } else {
+    const wanMode = wanRaw.mode;
+    if (wanMode !== "auto" && wanMode !== "dhcp" && wanMode !== "pppoe") {
+      c.add(`${path}.wan.mode`, "wan.mode 只能是 auto、dhcp 或 pppoe");
+    } else {
+      wan.mode = wanMode;
+    }
+    if ("pppoe" in wanRaw) wan.pppoe = readPppoe(c, wanRaw.pppoe, `${path}.wan.pppoe`);
   }
-  return { lan, dhcp, wan: { mode: "dhcp" }, nat: readBoolean(c, value, "nat", path) };
+  return {
+    mode: mode === "route" ? "route" : "bridge",
+    wan,
+    lan: readSubnet(c, value.lan, `${path}.lan`),
+    dhcp: readDhcp(c, value.dhcp, `${path}.dhcp`),
+  };
 }
 
 function readTarget(c: Collector, value: unknown, path: string): InternetTarget {
@@ -220,7 +428,7 @@ function readInternetConfig(c: Collector, value: unknown, path: string): Interne
     return { access: fallbackAccess, targets: [] };
   }
   const accessRaw = value.access;
-  let access = fallbackAccess;
+  let access: InternetAccess = fallbackAccess;
   if (isObject(accessRaw)) {
     access = {
       ip: readString(c, accessRaw, "ip", `${path}.access`),
@@ -229,6 +437,14 @@ function readInternetConfig(c: Collector, value: unknown, path: string): Interne
       poolEnd: readString(c, accessRaw, "poolEnd", `${path}.access`),
       dns: readString(c, accessRaw, "dns", `${path}.access`),
     };
+    if ("mode" in accessRaw) {
+      const mode = accessRaw.mode;
+      if (mode !== "dhcp" && mode !== "pppoe") {
+        c.add(`${path}.access.mode`, "接入方式只能是 dhcp 或 pppoe");
+      } else {
+        access.mode = mode;
+      }
+    }
   } else {
     c.add(`${path}.access`, "access 必须是对象");
   }
@@ -250,10 +466,11 @@ function readDevice(c: Collector, value: unknown, index: number): Device | null 
     return null;
   }
   const type = value.type;
-  if (type !== "pc" && type !== "router" && type !== "internet") {
+  if (typeof type !== "string" || !DEVICE_TYPES.includes(type as DeviceType)) {
     c.add(`${path}.type`, `设备类型 "${String(type)}" 不认识`);
     return null;
   }
+  const deviceType = type as DeviceType;
   const id = readString(c, value, "id", path);
   const name = readString(c, value, "name", path);
   const position = readPosition(c, value.position, `${path}.position`);
@@ -263,12 +480,32 @@ function readDevice(c: Collector, value: unknown, index: number): Device | null 
     return null;
   }
   const ports = portsRaw.map((p, i) => readPort(c, p, `${path}.ports[${i}]`));
-  const nameProblem = PORT_NAME_RULES[type](ports.map((p) => p.name));
+  const nameProblem = PORT_NAME_RULES[deviceType](ports.map((p) => p.name));
   if (nameProblem) c.add(`${path}.ports`, nameProblem, { deviceId: id });
+  ports.forEach((port, i) => {
+    if (port.vlan && !portSupportsVlan(deviceType, port.name)) {
+      c.add(`${path}.ports[${i}].vlan`, `${port.name} 不支持 VLAN 设置`, { deviceId: id });
+    }
+  });
   const base = { id, name, position, ports };
-  if (type === "pc") return { ...base, type, config: readPcConfig(c, value.config, path) };
-  if (type === "router") return { ...base, type, config: readRouterConfig(c, value.config, path) };
-  return { ...base, type, config: readInternetConfig(c, value.config, path) };
+  switch (deviceType) {
+    case "pc":
+      return { ...base, type: "pc", config: readPcConfig(c, value.config, path) };
+    case "router":
+      return { ...base, type: "router", config: readRouterConfig(c, value.config, path) };
+    case "switch":
+      return {
+        ...base,
+        type: "switch",
+        config: readSwitchConfig(c, value.config, path, ports.length),
+      };
+    case "ap":
+      return { ...base, type: "ap", config: readApConfig(c, value.config, path) };
+    case "modem":
+      return { ...base, type: "modem", config: readModemConfig(c, value.config, path) };
+    default:
+      return { ...base, type: "internet", config: readInternetConfig(c, value.config, path) };
+  }
 }
 
 function readLinkEnd(c: Collector, value: unknown, path: string): LinkEnd {

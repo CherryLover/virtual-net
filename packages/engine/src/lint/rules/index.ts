@@ -12,6 +12,17 @@ import { l010LeaseFailed } from "./l010-lease-failed";
 import { l011BadAddress } from "./l011-bad-address";
 import { l012NoDns } from "./l012-no-dns";
 import { l013NatOff } from "./l013-nat-off";
+import { l014VlanMismatch } from "./l014-vlan-mismatch";
+import { l015TrunkNotAllowed } from "./l015-trunk-not-allowed";
+import { l016TrunkPeerPlain } from "./l016-trunk-peer-plain";
+import { l017L2Loop } from "./l017-l2-loop";
+import { l018DoubleNat } from "./l018-double-nat";
+import { l019DhcpConflict } from "./l019-dhcp-conflict";
+import { l020Cgnat } from "./l020-cgnat";
+import { l021AccessMismatch } from "./l021-access-mismatch";
+import { l022WanLanOverlap } from "./l022-wan-lan-overlap";
+import { l023VlanSubnetOverlap } from "./l023-vlan-subnet-overlap";
+import { l024StaticGateway } from "./l024-static-gateway";
 
 /** 规则按编号排列，输出前再按级别排序 */
 export const LINT_RULES: LintRule[] = [
@@ -28,4 +39,15 @@ export const LINT_RULES: LintRule[] = [
   l011BadAddress,
   l012NoDns,
   l013NatOff,
+  l014VlanMismatch,
+  l015TrunkNotAllowed,
+  l016TrunkPeerPlain,
+  l017L2Loop,
+  l018DoubleNat,
+  l019DhcpConflict,
+  l020Cgnat,
+  l021AccessMismatch,
+  l022WanLanOverlap,
+  l023VlanSubnetOverlap,
+  l024StaticGateway,
 ];

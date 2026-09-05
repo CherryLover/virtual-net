@@ -221,112 +221,112 @@
 ### CP2-S1 模型扩展：类型、默认值、解析
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-001 | 引擎测试 | 空拓扑 | 连续创建 交换机、AP、光猫 | 名称「交换机1」「AP1」「光猫1」；端口分别为 `port1`–`port8`（每个 `vlan = access 1`）、`uplink wlan1`、`wan lan1`；MAC 接着已有最大值顺延 | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-002 | 引擎测试 | CP1 fixture `minimal.json` | 解析后再序列化 | 解析成功且序列化后深等于原文件（CP1-S1 测试不改一行通过） | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-003 | 引擎测试 | fixture `home-office.json` | ①原样解析并序列化 ②把交换机 `portCount` 改成 7 后解析 ③给某电脑 `eth0` 加 `vlan` 后解析 ④`vlans` 里放两项 `id: 10` 后解析 | ①解析成功并往返相等 ②失败，错误含「端口数」③失败，错误含「不支持 VLAN」④失败 | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-004 | 引擎测试 | — | `vlanOf(无 vlan 字段的 lan1)`；解析放行列表 `"10, 20,20"`、`"0"`、`"4095"` | `vlanOf` 返回 `{ mode: 'access', pvid: 1 }`；`"10, 20,20"` → `[10, 20]`；`"0"` / `"4095"` → 非法 | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-001 | 引擎测试 | 空拓扑 | 连续创建 交换机、AP、光猫 | 名称「交换机1」「AP1」「光猫1」；端口分别为 `port1`–`port8`（每个 `vlan = access 1`）、`uplink wlan1`、`wan lan1`；MAC 接着已有最大值顺延 | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-002 | 引擎测试 | CP1 fixture `minimal.json` | 解析后再序列化 | 解析成功且序列化后深等于原文件（CP1-S1 测试不改一行通过） | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-003 | 引擎测试 | fixture `home-office.json` | ①原样解析并序列化 ②把交换机 `portCount` 改成 7 后解析 ③给某电脑 `eth0` 加 `vlan` 后解析 ④`vlans` 里放两项 `id: 10` 后解析 | ①解析成功并往返相等 ②失败，错误含「端口数」③失败，错误含「不支持 VLAN」④失败 | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-004 | 引擎测试 | — | `vlanOf(无 vlan 字段的 lan1)`；解析放行列表 `"10, 20,20"`、`"0"`、`"4095"` | `vlanOf` 返回 `{ mode: 'access', pvid: 1 }`；`"10, 20,20"` → `[10, 20]`；`"0"` / `"4095"` → 非法 | [CP2-S1](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S2 segmentOf 加 VLAN 过滤与二层路径
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-005 | 引擎测试 | 交换机 `port1` access 10 接电脑A、`port2` access 10 接电脑B、`port3` access 20 接电脑C | ①算 A 的网段 ②带 `ignoreVlan` 再算 | ①A 的网段含 B 不含 C ②含 C，且 `dropAt = { 交换机, port3, 'access-pvid' }` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-006 | 引擎测试 | 两台交换机 `port8`–`port8` 相连，两端都 trunk 放行 `[10]` native 1；A 在交换机1 access 20 | ①算 A 的网段 ②只把交换机2 侧改成放行 `[10,20]` 再算 ③两边都放行 20 再算 | ①A 的网段不含交换机2 上任何设备，`dropAt.cause = 'trunk-not-allowed'`，`portId` = 交换机1 `port8` ②丢弃点仍在交换机1 ③网段含交换机2 上 access 20 的设备，路径里交换机1→2 那段 `tagged = true, vlan = 20` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-007 | 引擎测试 | 交换机 `port8` trunk（native 1，放行 10）直连电脑D | 算 VLAN 1 与 VLAN 10 的网段 | D 只出现在 VLAN 1 的网段里；VLAN 10 的走图到 D 时 `dropAt.cause = 'tagged-drop'` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-008 | 引擎测试 | 路由器 `lan1` trunk 放行 `[10,20]`，`vlans` 有 10、20 | ①生成接口表 ②`lan2` 设 access 20 再生成 | ①接口表出现 `br-lan`、`br-lan.10`、`br-lan.20`，三者 MAC 相同、`portIds` 都含 `lan1` ②`br-lan.20.portIds` 含 `lan2` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-009 | 引擎测试 | 交换机1 `port7`、`port8` 分别连交换机2 `port7`、`port8`（都 access 1） | `segmentOf` | `loop` 非空，含两根连线 | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-010 | 命令 | — | `pnpm test` | CP1 所有测试通过，无改动 | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-005 | 引擎测试 | 交换机 `port1` access 10 接电脑A、`port2` access 10 接电脑B、`port3` access 20 接电脑C | ①算 A 的网段 ②带 `ignoreVlan` 再算 | ①A 的网段含 B 不含 C ②含 C，且 `dropAt = { 交换机, port3, 'access-pvid' }` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-006 | 引擎测试 | 两台交换机 `port8`–`port8` 相连，两端都 trunk 放行 `[10]` native 1；A 在交换机1 access 20 | ①算 A 的网段 ②只把交换机2 侧改成放行 `[10,20]` 再算 ③两边都放行 20 再算 | ①A 的网段不含交换机2 上任何设备，`dropAt.cause = 'trunk-not-allowed'`，`portId` = 交换机1 `port8` ②丢弃点仍在交换机1 ③网段含交换机2 上 access 20 的设备，路径里交换机1→2 那段 `tagged = true, vlan = 20` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-007 | 引擎测试 | 交换机 `port8` trunk（native 1，放行 10）直连电脑D | 算 VLAN 1 与 VLAN 10 的网段 | D 只出现在 VLAN 1 的网段里；VLAN 10 的走图到 D 时 `dropAt.cause = 'tagged-drop'` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-008 | 引擎测试 | 路由器 `lan1` trunk 放行 `[10,20]`，`vlans` 有 10、20 | ①生成接口表 ②`lan2` 设 access 20 再生成 | ①接口表出现 `br-lan`、`br-lan.10`、`br-lan.20`，三者 MAC 相同、`portIds` 都含 `lan1` ②`br-lan.20.portIds` 含 `lan2` | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-009 | 引擎测试 | 交换机1 `port7`、`port8` 分别连交换机2 `port7`、`port8`（都 access 1） | `segmentOf` | `loop` 非空，含两根连线 | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-010 | 命令 | — | `pnpm test` | CP1 所有测试通过，无改动 | [CP2-S2](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S3 交换机：MAC 学习、泛洪、环路
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-011 | 引擎测试 | 电脑A、B 接交换机 `port1`、`port2`（默认 VLAN 1），A `192.168.1.10/24` | A ping B `192.168.1.11` | `ok`，五条 decisions：A `originate`、交换机 `forward`（`basis.mac = { learned: {A 的 MAC, port1}, lookup: 'flood', floodPorts: [port2] }`，`portOut = port2`）、B `answer`、交换机 `forward`（`learned: {B 的 MAC, port2}, lookup: 'hit'`）、A `receive`；`path` = [A, 交换机, B, 交换机, A]；所有 `packetIn/Out.vlan = null` | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-012 | 引擎测试 | CP1 fixture 中路由器 `lan1` 改接交换机 `port1`，电脑1 接 `port2` | ①电脑1 ping `8.8.8.8` ②再加电脑2 接 `port3`，电脑1 ping 电脑2 | ①`ok`，七条 decisions，交换机两条 ②通，路径不经过路由器 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-013 | 引擎测试 | A 接 access 10 口、C 接 access 20 口（如 T-CP2-005 拓扑），两者同网段地址 | A ping C | `fail`，一条 decision，`VLAN_ISOLATED`，`fixAt = { 交换机, port3 }`，`basis.vlan.dropAt.cause = 'access-pvid'`，文案含「VLAN 20」「VLAN 10」「二层隔离」 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-014 | 引擎测试 | S2 第二条的 trunk 漏放行拓扑（T-CP2-006） | A ping 交换机2 上的 E（同 VLAN 20 同网段） | `TRUNK_NOT_ALLOWED`，`fixAt` = 交换机1 `port8`，文案含「未放行 VLAN 20」 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-015 | 引擎测试 | 成环拓扑（S2 第五条，T-CP2-009） | A ping B（跨两台交换机） | `fail`，`stoppedAt` = 交换机1，`L2_LOOP`，文案含两根连线两端端口名 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-016 | 引擎测试 | 电脑1 接路由器 `lan1`、电脑2 接 `lan2` | 互 ping | 通，路径 [电脑1, 路由器, 电脑2, 路由器, 电脑1]，路由器两条 decision 都是 `forward` 且 `basis.route = null`、`basis.mac` 非空、`note` 含「二层转发」 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-011 | 引擎测试 | 电脑A、B 接交换机 `port1`、`port2`（默认 VLAN 1），A `192.168.1.10/24` | A ping B `192.168.1.11` | `ok`，五条 decisions：A `originate`、交换机 `forward`（`basis.mac = { learned: {A 的 MAC, port1}, lookup: 'flood', floodPorts: [port2] }`，`portOut = port2`）、B `answer`、交换机 `forward`（`learned: {B 的 MAC, port2}, lookup: 'hit'`）、A `receive`；`path` = [A, 交换机, B, 交换机, A]；所有 `packetIn/Out.vlan = null` | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-012 | 引擎测试 | CP1 fixture 中路由器 `lan1` 改接交换机 `port1`，电脑1 接 `port2` | ①电脑1 ping `8.8.8.8` ②再加电脑2 接 `port3`，电脑1 ping 电脑2 | ①`ok`，七条 decisions，交换机两条 ②通，路径不经过路由器 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-013 | 引擎测试 | A 接 access 10 口、C 接 access 20 口（如 T-CP2-005 拓扑），两者同网段地址 | A ping C | `fail`，一条 decision，`VLAN_ISOLATED`，`fixAt = { 交换机, port3 }`，`basis.vlan.dropAt.cause = 'access-pvid'`，文案含「VLAN 20」「VLAN 10」「二层隔离」 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-014 | 引擎测试 | S2 第二条的 trunk 漏放行拓扑（T-CP2-006） | A ping 交换机2 上的 E（同 VLAN 20 同网段） | `TRUNK_NOT_ALLOWED`，`fixAt` = 交换机1 `port8`，文案含「未放行 VLAN 20」 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-015 | 引擎测试 | 成环拓扑（S2 第五条，T-CP2-009） | A ping B（跨两台交换机） | `fail`，`stoppedAt` = 交换机1，`L2_LOOP`，文案含两根连线两端端口名 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-016 | 引擎测试 | 电脑1 接路由器 `lan1`、电脑2 接 `lan2` | 互 ping | 通，路径 [电脑1, 路由器, 电脑2, 路由器, 电脑1]，路由器两条 decision 都是 `forward` 且 `basis.route = null`、`basis.mac` 非空、`note` 含「二层转发」 | [CP2-S3](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S4 无线 AP
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-017 | 引擎测试 | 交换机 `port4` 接 AP `uplink`，电脑3 接 AP `wlan1`，电脑1 接交换机 `port2` | 电脑3 ping 电脑1 | `ok`，路径 [电脑3, AP, 交换机, 电脑1, 交换机, AP, 电脑3]，AP 两条 decision 的 `basis.mac.lookup` 分别 `flood` 与 `hit` | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-018 | 引擎测试 | AP `uplink` 接交换机 access 10 口 | ①`wlan1` 电脑 ping 交换机 access 10 的同网段电脑 ②ping 交换机 access 20 的电脑 | ①通 ②`VLAN_ISOLATED` | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-019 | 引擎测试 | AP `uplink` 接交换机 trunk 口（native 1，放行 10） | 算 `wlan1` 电脑所在网段 | `wlan1` 电脑只在 VLAN 1 网段里，VLAN 10 对它 `tagged-drop`（AP 透传标签，电脑丢弃） | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-020 | 引擎测试 | — | 给 AP `wlan1` 连线；再断开 | 连线后自动出现 `wlan2`；断开后若 `wlan2` 空闲则收回，始终恰好一个空闲 `wlanN` | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-021 | 引擎测试 | 电脑3 自动获取，AP 上游是开 DHCP 的路由器 | `buildRuntime` | 电脑3 拿到租约，`serverDeviceId` = 路由器 | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-017 | 引擎测试 | 交换机 `port4` 接 AP `uplink`，电脑3 接 AP `wlan1`，电脑1 接交换机 `port2` | 电脑3 ping 电脑1 | `ok`，路径 [电脑3, AP, 交换机, 电脑1, 交换机, AP, 电脑3]，AP 两条 decision 的 `basis.mac.lookup` 分别 `flood` 与 `hit` | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-018 | 引擎测试 | AP `uplink` 接交换机 access 10 口 | ①`wlan1` 电脑 ping 交换机 access 10 的同网段电脑 ②ping 交换机 access 20 的电脑 | ①通 ②`VLAN_ISOLATED` | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-019 | 引擎测试 | AP `uplink` 接交换机 trunk 口（native 1，放行 10） | 算 `wlan1` 电脑所在网段 | `wlan1` 电脑只在 VLAN 1 网段里，VLAN 10 对它 `tagged-drop`（AP 透传标签，电脑丢弃） | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-020 | 引擎测试 | — | 给 AP `wlan1` 连线；再断开 | 连线后自动出现 `wlan2`；断开后若 `wlan2` 空闲则收回，始终恰好一个空闲 `wlanN` | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-021 | 引擎测试 | 电脑3 自动获取，AP 上游是开 DHCP 的路由器 | `buildRuntime` | 电脑3 拿到租约，`serverDeviceId` = 路由器 | [CP2-S4](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S5 光猫：桥接与路由模式、上游接入方式
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-022 | 引擎测试 | 互联网（`dhcp`）`port1` — 光猫（桥接）`wan`，光猫 `lan1` — 路由器 `wan`（`dhcp`），电脑接 `lan1` | 电脑 ping `8.8.8.8` | `ok`，七条 decisions，光猫两条 `forward` 且 `basis.nat = null`、`basis.mac` 非空；路由器 WAN 租约 `203.0.113.2`，`serverDeviceId` = 互联网 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-023 | 引擎测试 | 同 T-CP2-022 拓扑 | 互联网改 `access.mode = pppoe`；电脑 ping `8.8.8.8` | 路由器 `wanLeases.status = 'pppoe-required'`；ping 停在路由器，`PPPOE_REQUIRED`，`fixAt = { 路由器, 'wan.mode' }`，文案含「要求拨号」「自动获取」 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-024 | 引擎测试 | 同 T-CP2-022 拓扑 | 光猫改 `route`（`wan.mode = auto`），互联网 `pppoe`；电脑 ping `8.8.8.8` | 光猫 WAN 租约 `via: 'pppoe'` `203.0.113.2`；路由器 WAN 租约 `192.168.100.100`，`serverDeviceId` = 光猫；ping `ok`，路径 [电脑, 路由器, 光猫, 互联网, 光猫, 路由器, 电脑]，路由器与光猫去程 `basis.nat.direction = 'out'` 各一次，互联网收到的 `srcIp = 203.0.113.2` | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-025 | 引擎测试 | 光猫 `route` | 路由器 `wan.mode = pppoe`；电脑 ping `8.8.8.8` | 路由器 `pppoe-rejected`，ping 停在路由器 `PPPOE_REJECTED`，文案含「光猫（路由模式）」 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-026 | 引擎测试 | 光猫桥接，路由器 `dhcp` | 互联网改运营商内网预设（`100.64.0.1/255.192.0.0`）；电脑 ping `8.8.8.8` | 路由器 WAN `100.64.0.2`，`addressClass = 'cgnat'`；ping 仍 `ok`（源在接入网段内，互联网能回程） | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-027 | 引擎测试 | 光猫路由模式 | `visitSite(电脑, www.google.com)` | `ok`，DNS 阶段路径 电脑 → 路由器（`originate`，上游 `192.168.100.1`）→ 光猫（`originate`，上游 `8.8.8.8`）→ 互联网 → 光猫 → 路由器 → 电脑 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-022 | 引擎测试 | 互联网（`dhcp`）`port1` — 光猫（桥接）`wan`，光猫 `lan1` — 路由器 `wan`（`dhcp`），电脑接 `lan1` | 电脑 ping `8.8.8.8` | `ok`，七条 decisions，光猫两条 `forward` 且 `basis.nat = null`、`basis.mac` 非空；路由器 WAN 租约 `203.0.113.2`，`serverDeviceId` = 互联网 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-023 | 引擎测试 | 同 T-CP2-022 拓扑 | 互联网改 `access.mode = pppoe`；电脑 ping `8.8.8.8` | 路由器 `wanLeases.status = 'pppoe-required'`；ping 停在路由器，`PPPOE_REQUIRED`，`fixAt = { 路由器, 'wan.mode' }`，文案含「要求拨号」「自动获取」 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-024 | 引擎测试 | 同 T-CP2-022 拓扑 | 光猫改 `route`（`wan.mode = auto`），互联网 `pppoe`；电脑 ping `8.8.8.8` | 光猫 WAN 租约 `via: 'pppoe'` `203.0.113.2`；路由器 WAN 租约 `192.168.100.100`，`serverDeviceId` = 光猫；ping `ok`，路径 [电脑, 路由器, 光猫, 互联网, 光猫, 路由器, 电脑]，路由器与光猫去程 `basis.nat.direction = 'out'` 各一次，互联网收到的 `srcIp = 203.0.113.2` | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-025 | 引擎测试 | 光猫 `route` | 路由器 `wan.mode = pppoe`；电脑 ping `8.8.8.8` | 路由器 `pppoe-rejected`，ping 停在路由器 `PPPOE_REJECTED`，文案含「光猫（路由模式）」 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-026 | 引擎测试 | 光猫桥接，路由器 `dhcp` | 互联网改运营商内网预设（`100.64.0.1/255.192.0.0`）；电脑 ping `8.8.8.8` | 路由器 WAN `100.64.0.2`，`addressClass = 'cgnat'`；ping 仍 `ok`（源在接入网段内，互联网能回程） | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-027 | 引擎测试 | 光猫路由模式 | `visitSite(电脑, www.google.com)` | `ok`，DNS 阶段路径 电脑 → 路由器（`originate`，上游 `192.168.100.1`）→ 光猫（`originate`，上游 `8.8.8.8`）→ 互联网 → 光猫 → 路由器 → 电脑 | [CP2-S5](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S6 路由器 WAN 模式与 VLAN 子接口
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-028 | 引擎测试 | 互联网 `pppoe`、光猫桥接、路由器 `wan.mode = pppoe`（账号任意） | `buildRuntime`；电脑 ping `8.8.8.8` | 路由器 WAN 租约 `via: 'pppoe'` `203.0.113.2`，网关 `203.0.113.1`；ping `ok` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-029 | 引擎测试 | 路由器 `static` `{ 203.0.113.50/24, 网关 203.0.113.1, DNS 8.8.8.8 }` 直连互联网 | ①ping `8.8.8.8` ②网关改 `203.0.113.99` 再 ping | ①无租约、接口地址即静态值，ping 通 ②`ARP_MISS`，文案含「网关」 | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-030 | 引擎测试 | 单臂路由：路由器 `lan1` trunk 放行 `[10,20]`，`vlans` = 10（`192.168.10.1/24`）、20（`192.168.20.1/24`）；交换机 `port1` trunk 放行 `[10,20]` 接 `lan1`，`port2` access 10 接 A（`192.168.10.10/24` 网关 `.1`），`port3` access 20 接 C（`192.168.20.10/24` 网关 `.1`） | A ping C | `ok`，九条 decisions，路径 [A, 交换机, 路由器, 交换机, C, 交换机, 路由器, 交换机, A]；交换机→路由器那条 `packetOut.vlan = 10`，路由器 `portIn = portOut = lan1`、`packetIn.vlan = 10`、`packetOut.vlan = 20`、`basis.route.iface = 'br-lan.20'` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-031 | 引擎测试 | 同 T-CP2-030 拓扑 | 把交换机 `port1` 放行改成 `[10]`，A ping C | 停在路由器，`TRUNK_NOT_ALLOWED`，`fixAt` = 交换机 `port1` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-032 | 引擎测试 | 多 LAN 口接法：`lan1` access 10、`lan2` access 20（无 trunk），A 接 `lan1`、C 接 `lan2` | A ping C | 通，路径 [A, 路由器, C, 路由器, A]，路由器 `portIn = lan1, portOut = lan2`，两端 `vlan = null` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-033 | 引擎测试 | 单臂路由拓扑（T-CP2-030） | A（VLAN 10）ping `8.8.8.8` | 通，路由器出向 NAT `before 192.168.10.10`、`after` 为 WAN 地址 | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-034 | 引擎测试 | 光猫路由模式 + 路由器 | 光猫 LAN 改 `192.168.1.1/24`（与路由器 LAN 同段）；电脑 ping `8.8.8.8` | 路由器 WAN 租约 `192.168.1.100`，路由表 `wanLanOverlap = true`；ping 停在路由器 `WAN_LAN_OVERLAP` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-028 | 引擎测试 | 互联网 `pppoe`、光猫桥接、路由器 `wan.mode = pppoe`（账号任意） | `buildRuntime`；电脑 ping `8.8.8.8` | 路由器 WAN 租约 `via: 'pppoe'` `203.0.113.2`，网关 `203.0.113.1`；ping `ok` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-029 | 引擎测试 | 路由器 `static` `{ 203.0.113.50/24, 网关 203.0.113.1, DNS 8.8.8.8 }` 直连互联网 | ①ping `8.8.8.8` ②网关改 `203.0.113.99` 再 ping | ①无租约、接口地址即静态值，ping 通 ②`ARP_MISS`，文案含「网关」 | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-030 | 引擎测试 | 单臂路由：路由器 `lan1` trunk 放行 `[10,20]`，`vlans` = 10（`192.168.10.1/24`）、20（`192.168.20.1/24`）；交换机 `port1` trunk 放行 `[10,20]` 接 `lan1`，`port2` access 10 接 A（`192.168.10.10/24` 网关 `.1`），`port3` access 20 接 C（`192.168.20.10/24` 网关 `.1`） | A ping C | `ok`，九条 decisions，路径 [A, 交换机, 路由器, 交换机, C, 交换机, 路由器, 交换机, A]；交换机→路由器那条 `packetOut.vlan = 10`，路由器 `portIn = portOut = lan1`、`packetIn.vlan = 10`、`packetOut.vlan = 20`、`basis.route.iface = 'br-lan.20'` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-031 | 引擎测试 | 同 T-CP2-030 拓扑 | 把交换机 `port1` 放行改成 `[10]`，A ping C | 停在路由器，`TRUNK_NOT_ALLOWED`，`fixAt` = 交换机 `port1` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-032 | 引擎测试 | 多 LAN 口接法：`lan1` access 10、`lan2` access 20（无 trunk），A 接 `lan1`、C 接 `lan2` | A ping C | 通，路径 [A, 路由器, C, 路由器, A]，路由器 `portIn = lan1, portOut = lan2`，两端 `vlan = null` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-033 | 引擎测试 | 单臂路由拓扑（T-CP2-030） | A（VLAN 10）ping `8.8.8.8` | 通，路由器出向 NAT `before 192.168.10.10`、`after` 为 WAN 地址 | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-034 | 引擎测试 | 光猫路由模式 + 路由器 | 光猫 LAN 改 `192.168.1.1/24`（与路由器 LAN 同段）；电脑 ping `8.8.8.8` | 路由器 WAN 租约 `192.168.1.100`，路由表 `wanLanOverlap = true`；ping 停在路由器 `WAN_LAN_OVERLAP` | [CP2-S6](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S7 多 DHCP 池
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-035 | 引擎测试 | S6 单臂路由拓扑（T-CP2-030），加 B 接 `port4` access 10 | A、B、C 全改自动获取，`buildRuntime` | A `192.168.10.100`、B `192.168.10.101`（来自 `br-lan.10`），C `192.168.20.100`（来自 `br-lan.20`），网关、DNS 各为所在 VLAN 的子接口地址 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-036 | 引擎测试 | 接 T-CP2-035 | VLAN 20 的 `dhcp.enabled = false` | C 租约 `no-server`，文案含「VLAN 20」；A、B 不受影响 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-037 | 引擎测试 | 路由模式光猫 + 路由器（LAN `192.168.1.1`）+ 电脑自动获取 | `buildRuntime` | 电脑租约来自路由器而不是光猫（不同网段），路由器 WAN 租约来自光猫 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-038 | 引擎测试 | 路由器 DHCP 开 | `lan2` 再接一台开 DHCP 的第二路由器 `lan1`（同 `192.168.1.0/24`，LAN IP `.2`），`buildRuntime` | 电脑租约来自 `devices` 顺序先出现者，`runtime.dhcpConflicts` 含该网段与两台设备 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-039 | 引擎测试 | 接 T-CP2-035 | VLAN 10 池改 `.100`–`.100`，两台自动获取 | 第二台 `pool-exhausted` | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-035 | 引擎测试 | S6 单臂路由拓扑（T-CP2-030），加 B 接 `port4` access 10 | A、B、C 全改自动获取，`buildRuntime` | A `192.168.10.100`、B `192.168.10.101`（来自 `br-lan.10`），C `192.168.20.100`（来自 `br-lan.20`），网关、DNS 各为所在 VLAN 的子接口地址 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-036 | 引擎测试 | 接 T-CP2-035 | VLAN 20 的 `dhcp.enabled = false` | C 租约 `no-server`，文案含「VLAN 20」；A、B 不受影响 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-037 | 引擎测试 | 路由模式光猫 + 路由器（LAN `192.168.1.1`）+ 电脑自动获取 | `buildRuntime` | 电脑租约来自路由器而不是光猫（不同网段），路由器 WAN 租约来自光猫 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-038 | 引擎测试 | 路由器 DHCP 开 | `lan2` 再接一台开 DHCP 的第二路由器 `lan1`（同 `192.168.1.0/24`，LAN IP `.2`），`buildRuntime` | 电脑租约来自 `devices` 顺序先出现者，`runtime.dhcpConflicts` 含该网段与两台设备 | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-039 | 引擎测试 | 接 T-CP2-035 | VLAN 10 池改 `.100`–`.100`，两台自动获取 | 第二台 `pool-exhausted` | [CP2-S7](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S8 新 lint 与场景测试
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-040 | 引擎测试 | fixture `home-office.json`（场景 1 的图） | `lint` | 空数组 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-041 | 引擎测试 | — | ①交换机1 `port8` access 10 — 交换机2 `port8` access 20，`lint` ②改成 trunk（native 1）— access 10，`lint` | ①恰一条 L014，`targets` 两端端口，带 `linkId` ②仍 L014，文案含「VLAN 1」「VLAN 10」 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-042 | 引擎测试 | S2 第二条 trunk 漏放行拓扑（T-CP2-006） | `lint`；两边放行后再 `lint` | L015 error，`targets[0]` = 交换机1 `port8`；两边放行后消失 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-043 | 引擎测试 | — | ①交换机 trunk 口直连电脑，`lint` ②成环拓扑，`lint` | ①L016 ②L017 error 且 `targets` 含两根连线 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-044 | 引擎测试 | 光猫路由模式 + 路由器 | ①路由器 NAT 开，`lint` ②路由器 NAT 关，`lint` ③光猫改桥接，`lint` | ①L018，`targets = [{ 路由器, field: 'nat' }]` ②无 L018 ③无 L018 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-045 | 引擎测试 | — | ①S7 双 DHCP 拓扑（T-CP2-038），`lint` ②互联网运营商内网预设，`lint` ③互联网 `pppoe` + 路由器 `dhcp`，`lint` | ①L019 一条，`targets` 两台设备 ②L020 定位路由器 `wan` ③L021 error 文案含「要求拨号」 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-046 | 引擎测试 | — | ①光猫 LAN 与路由器 LAN 同段 ②`vlans` 里 VLAN 10 `192.168.1.1/24` 与 LAN 重叠 ③`static` 网关不在段内 ④VLAN 20 池填 `192.168.10.100–199`，各自 `lint` | ①L022 ②L023 ③L024 ④L008 定位到 VLAN 20 行 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-047 | 命令 | — | `pnpm test` | 通过；`scenarios/cp2.test.ts` 三个 `it` 与阶段完成标准场景 1–3 同名，断言 `verdict`、`path`、`reasonCode`、lint 编号 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-040 | 引擎测试 | fixture `home-office.json`（场景 1 的图） | `lint` | 空数组 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-041 | 引擎测试 | — | ①交换机1 `port8` access 10 — 交换机2 `port8` access 20，`lint` ②改成 trunk（native 1）— access 10，`lint` | ①恰一条 L014，`targets` 两端端口，带 `linkId` ②仍 L014，文案含「VLAN 1」「VLAN 10」 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-042 | 引擎测试 | S2 第二条 trunk 漏放行拓扑（T-CP2-006） | `lint`；两边放行后再 `lint` | L015 error，`targets[0]` = 交换机1 `port8`；两边放行后消失 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-043 | 引擎测试 | — | ①交换机 trunk 口直连电脑，`lint` ②成环拓扑，`lint` | ①L016 ②L017 error 且 `targets` 含两根连线 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-044 | 引擎测试 | 光猫路由模式 + 路由器 | ①路由器 NAT 开，`lint` ②路由器 NAT 关，`lint` ③光猫改桥接，`lint` | ①L018，`targets = [{ 路由器, field: 'nat' }]` ②无 L018 ③无 L018 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-045 | 引擎测试 | — | ①S7 双 DHCP 拓扑（T-CP2-038），`lint` ②互联网运营商内网预设，`lint` ③互联网 `pppoe` + 路由器 `dhcp`，`lint` | ①L019 一条，`targets` 两台设备 ②L020 定位路由器 `wan` ③L021 error 文案含「要求拨号」 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-046 | 引擎测试 | — | ①光猫 LAN 与路由器 LAN 同段 ②`vlans` 里 VLAN 10 `192.168.1.1/24` 与 LAN 重叠 ③`static` 网关不在段内 ④VLAN 20 池填 `192.168.10.100–199`，各自 `lint` | ①L022 ②L023 ③L024 ④L008 定位到 VLAN 20 行 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-047 | 命令 | — | `pnpm test` | 通过；`scenarios/cp2.test.ts` 三个 `it` 与阶段完成标准场景 1–3 同名，断言 `verdict`、`path`、`reasonCode`、lint 编号 | [CP2-S8](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S9 新节点与表单
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-048 | 页面操作 | — | ①拖「交换机」②表单口数改 16 ③改 4 但 `port6` 有连线 | ①横向节点，底边 `port1`–`port8`，第二行 `8 口 · VLAN 1` ②节点变宽、`port16` 出现 ③红字 `port6 有连线`，不改 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-049 | 页面操作 | 接 T-CP2-048 | ①交换机表单勾选 `port2`、`port3`，批量设置 access VLAN 10 ②`port1` 设 trunk 放行 `10,20` | ①两行 PVID 变 10，节点两个柄下出现 `10` ②柄下 `T`，第二行 `8 口 · VLAN 1,10,20` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-050 | 页面操作 | — | 拖「无线 AP」；连一台电脑到 `wlan1` | 顶边 `uplink`、底边 `wlan1`，第二行 `Home-WiFi`；连线后出现 `wlan2` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-051 | 页面操作 | — | 拖「光猫」；切「路由」 | 顶 `wan` 底 `lan1`，第二行「桥接」，表单只有名称与模式；切「路由」后展开 WAN 接入、LAN、DHCP，第二行变「路由 192.168.100.1」 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-052 | 页面操作 | — | ①路由器表单 WAN 模式选「拨号」，账号留空失焦 ②VLAN 表点「添加 VLAN」③LAN 口表把 `lan1` 设 trunk 放行 `2` | ①出现账号、密码，账号空红字「必填」②新行 VLAN 2 `192.168.2.1/24`，节点第二行 `+1 VLAN` ③柄下 `T` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-053 | 页面操作 | — | ①互联网表单点「运营商内网」②方式选「拨号」 | ①接入四项变 `100.64.0.1 / 255.192.0.0 / 100.64.0.2–100.64.0.254`，节点第二行 `100.64.0.1/10 · 内网` ②追加 `· 拨号` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-054 | 页面操作 | 静态检查里存在定位到端口的问题（如 L015） | 点该条 | 设备选中，端口表对应行高亮 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-055 | 页面操作 | 完成以上改动 | 刷新页面；导出再导入 | 刷新后全部保留；导入后一致 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-048 | 页面操作 | — | ①拖「交换机」②表单口数改 16 ③改 4 但 `port6` 有连线 | ①横向节点，底边 `port1`–`port8`，第二行 `8 口 · VLAN 1` ②节点变宽、`port16` 出现 ③红字 `port6 有连线`，不改 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-049 | 页面操作 | 接 T-CP2-048 | ①交换机表单勾选 `port2`、`port3`，批量设置 access VLAN 10 ②`port1` 设 trunk 放行 `10,20` | ①两行 PVID 变 10，节点两个柄下出现 `10` ②柄下 `T`，第二行 `8 口 · VLAN 1,10,20` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-050 | 页面操作 | — | 拖「无线 AP」；连一台电脑到 `wlan1` | 顶边 `uplink`、底边 `wlan1`，第二行 `Home-WiFi`；连线后出现 `wlan2` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-051 | 页面操作 | — | 拖「光猫」；切「路由」 | 顶 `wan` 底 `lan1`，第二行「桥接」，表单只有名称与模式；切「路由」后展开 WAN 接入、LAN、DHCP，第二行变「路由 192.168.100.1」 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-052 | 页面操作 | — | ①路由器表单 WAN 模式选「拨号」，账号留空失焦 ②VLAN 表点「添加 VLAN」③LAN 口表把 `lan1` 设 trunk 放行 `2` | ①出现账号、密码，账号空红字「必填」②新行 VLAN 2 `192.168.2.1/24`，节点第二行 `+1 VLAN` ③柄下 `T` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-053 | 页面操作 | — | ①互联网表单点「运营商内网」②方式选「拨号」 | ①接入四项变 `100.64.0.1 / 255.192.0.0 / 100.64.0.2–100.64.0.254`，节点第二行 `100.64.0.1/10 · 内网` ②追加 `· 拨号` | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-054 | 页面操作 | 静态检查里存在定位到端口的问题（如 L015） | 点该条 | 设备选中，端口表对应行高亮 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-055 | 页面操作 | 完成以上改动 | 刷新页面；导出再导入 | 刷新后全部保留；导入后一致 | [CP2-S9](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### CP2-S10 画布批量操作与撤销
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-056 | 页面操作 | — | ①`Shift` + 空白处拖矩形框住 3 个节点 ②不按 `Shift` 拖空白 | ①三个都高亮，右侧面板「已选 3 项」②平移画布，不选中 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-057 | 页面操作 | 接 T-CP2-056（已选 3 个节点） | 拖其中一个节点 | 三个一起移动，连线跟随；松手位置对齐 16px 网格 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-058 | 页面操作 | 已选 3 个节点 | 点「顶」；点「横向等距」 | 「顶」后三个节点上边缘对齐到最上者；「横向等距」后三者水平间距相等，最左最右不动 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-059 | 页面操作 | 已选 3 个节点 | ①按 `Delete` ②`Ctrl/Cmd + Z` ③`Ctrl/Cmd + Shift + Z` | ①三个节点及其全部连线消失 ②全部回来，位置与连线一致 ③再次删除 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-060 | 页面操作 | — | 连续做 5 次操作（拖、改字段、连线、删线、对齐），期间移动视口、点选节点，然后连按 5 次撤销 | 逐步回到起点；移动视口、点选节点不消耗撤销步数 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-061 | 页面操作 | 接 T-CP2-060（已撤销） | 刷新页面 | 保持撤销后的状态；重做栈丢失可接受 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-062 | 页面操作 | — | ①`Ctrl/Cmd + A` ②「新建」后 `Ctrl/Cmd + Z` | ①所有节点选中 ②图回来 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-056 | 页面操作 | — | ①`Shift` + 空白处拖矩形框住 3 个节点 ②不按 `Shift` 拖空白 | ①三个都高亮，右侧面板「已选 3 项」②平移画布，不选中 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-057 | 页面操作 | 接 T-CP2-056（已选 3 个节点） | 拖其中一个节点 | 三个一起移动，连线跟随；松手位置对齐 16px 网格 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-058 | 页面操作 | 已选 3 个节点 | 点「顶」；点「横向等距」 | 「顶」后三个节点上边缘对齐到最上者；「横向等距」后三者水平间距相等，最左最右不动 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-059 | 页面操作 | 已选 3 个节点 | ①按 `Delete` ②`Ctrl/Cmd + Z` ③`Ctrl/Cmd + Shift + Z` | ①三个节点及其全部连线消失 ②全部回来，位置与连线一致 ③再次删除 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-060 | 页面操作 | — | 连续做 5 次操作（拖、改字段、连线、删线、对齐），期间移动视口、点选节点，然后连按 5 次撤销 | 逐步回到起点；移动视口、点选节点不消耗撤销步数 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-061 | 页面操作 | 接 T-CP2-060（已撤销） | 刷新页面 | 保持撤销后的状态；重做栈丢失可接受 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-062 | 页面操作 | — | ①`Ctrl/Cmd + A` ②「新建」后 `Ctrl/Cmd + Z` | ①所有节点选中 ②图回来 | [CP2-S10](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ### 阶段完成标准
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP2-063 | 页面操作 | 「新建」空画布 | 按 CP2『阶段完成标准』场景 1 的 9 步操作：拖入 互联网、光猫、路由器、交换机、无线 AP、电脑 ×3；连线 互联网 `port1` – 光猫1 `wan`、光猫1 `lan1` – 路由器1 `wan`、路由器1 `lan1` – 交换机1 `port1`、交换机1 `port2` – 电脑1 `eth0`、`port3` – 电脑2 `eth0`、`port4` – AP1 `uplink`、AP1 `wlan1` – 电脑3 `eth0`；互联网接入方式选「拨号」，光猫1 保持「桥接」，路由器1 WAN 模式选「拨号」账号 `test` 密码 `test`；点电脑1 / 2 / 3；点空白；「验证」ping 起点 电脑3 目标 `192.168.1.100`；ping 起点 电脑1 目标 `8.8.8.8`；访问网站 起点 电脑3 域名 `www.google.com`；「导出」 | 出现「互联网」「光猫1」「路由器1」「交换机1」「AP1」「电脑1」「电脑2」「电脑3」；路由器1 WAN 状态「拨号成功 203.0.113.2」；电脑1 / 2 / 3 都是自动获取，分别「已获取 192.168.1.100 / .101 / .102 … 来自 路由器1」；静态检查「没有问题」；ping `192.168.1.100` 通，路径 电脑3 → AP1 → 交换机1 → 电脑1 → 交换机1 → AP1 → 电脑3，AP1 与交换机1 的 note 含「学习」和「泛洪」或「命中」；ping `8.8.8.8` 通，路径 电脑1 → 交换机1 → 路由器1 → 光猫1 → 互联网 → 光猫1 → 路由器1 → 交换机1 → 电脑1，路由器1 去程 note 含「192.168.1.100 → 203.0.113.2」，光猫1 两行 note 含「二层转发」；访问网站成功；导出 JSON 与引擎 fixture `home-office.json` 结构一致 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-064 | 页面操作 | 接场景 1（T-CP2-063） | 按 CP2『阶段完成标准』场景 2 的 6 步操作：点光猫1，模式切「路由」（WAN 接入保持「跟随上游」）；点空白看静态检查，ping 电脑1 → `8.8.8.8` 并点「定位」；点路由器1，WAN 模式改「自动获取」；点空白看静态检查并点该条；ping 电脑1 → `8.8.8.8`；光猫1 切回「桥接」，路由器1 WAN 改回「拨号」 | 光猫1 WAN 状态「拨号成功 203.0.113.2」，节点第二行「路由 192.168.100.1」；静态检查一条 error「路由器1 · 路由器1 在拨号，但 光猫1 不接受拨号」；ping 不通，断在路由器1，原因含「不接受拨号」，「定位」→ 路由器1 WAN 模式高亮；改自动获取后 WAN 状态「已获取 192.168.100.100」；静态检查一条 warning「路由器1 · 路由器1 与 光猫1 都在做 NAT（双层 NAT）…」，点它 → 路由器1 选中，NAT 开关高亮；再 ping 通，路径 电脑1 → 交换机1 → 路由器1 → 光猫1 → 互联网 → 光猫1 → 路由器1 → 交换机1 → 电脑1，路由器1 去程 note 含「192.168.1.100 → 192.168.100.100」，光猫1 去程 note 含「192.168.100.100 → 203.0.113.2」；切回后静态检查「没有问题」 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-065 | 页面操作 | 「新建」空画布 | 按 CP2『阶段完成标准』场景 3 的 12 步操作：拖入 交换机、电脑 ×3，连 交换机1 `port2` – 电脑1、`port3` – 电脑2、`port4` – 电脑3；交换机1 表单 `port2`、`port3` 批量设 access VLAN 10，`port4` 设 access VLAN 20；三台电脑改手动 电脑1 `192.168.1.10/24`、电脑2 `192.168.1.11/24`、电脑3 `192.168.1.20/24`，网关、DNS 留空；ping 电脑1 → `192.168.1.11`；ping 电脑1 → `192.168.1.20` 并点「定位」；拖入 路由器、互联网，连 路由器1 `lan1` – 交换机1 `port1`、路由器1 `wan` – 互联网 `port1`，路由器1 VLAN 表添加 VLAN 10（`192.168.10.1/24`，DHCP 开）、VLAN 20（`192.168.20.1/24`，DHCP 开），LAN 口表 `lan1` 设 trunk 放行 `10,20`，交换机1 `port1` 设 trunk 放行 `10,20`；三台电脑改回自动获取；点空白；ping 电脑1 → `192.168.20.100`；ping 电脑1 → `192.168.10.101`；交换机1 `port1` 放行改为 `10`，再 ping 电脑1 → `192.168.20.100` 并点「定位」；放行改回 `10,20`，ping 电脑1 → `8.8.8.8` | 柄下出现 `10` `10` `20`；ping `192.168.1.11` 通，路径 电脑1 → 交换机1 → 电脑2 → 交换机1 → 电脑1；ping `192.168.1.20` 不通，断在电脑1，原因「192.168.1.20（电脑3）在 VLAN 20，本机发出的包在 VLAN 10，二层隔离，需要路由器转发」，「定位」→ 交换机1 选中、端口表 `port4` 行高亮；改回自动获取后 电脑1 `192.168.10.100`、电脑2 `192.168.10.101`（来自 路由器1），电脑3 `192.168.20.100`；静态检查「没有问题」；ping `192.168.20.100` 通，路径 电脑1 → 交换机1 → 路由器1 → 交换机1 → 电脑3 → 交换机1 → 路由器1 → 交换机1 → 电脑1，路由器1 去程 note 含「VLAN 10」「VLAN 20」；ping `192.168.10.101` 通，路径不经过路由器1；放行改 `10` 后静态检查 error「VLAN 20 两侧都有设备，但 交换机1 port1 未放行」，ping `192.168.20.100` 不通，断在路由器1，原因含「未放行 VLAN 20」，「定位」→ 交换机1 `port1` 行高亮；放行改回后 ping `8.8.8.8` 通 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | |
-| T-CP2-066 | 命令 | — | 按 CP2『阶段完成标准』场景 4 操作：`pnpm test` | 通过；`scenarios/cp2.test.ts` 场景 1–3 各一条 `it`，断言路径、`reasonCode`、`fixAt`、lint 编号与场景文字一致；场景 1 断言 `home-office.json` 往返相等 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | |
+| T-CP2-063 | 页面操作 | 「新建」空画布 | 按 CP2『阶段完成标准』场景 1 的 9 步操作：拖入 互联网、光猫、路由器、交换机、无线 AP、电脑 ×3；连线 互联网 `port1` – 光猫1 `wan`、光猫1 `lan1` – 路由器1 `wan`、路由器1 `lan1` – 交换机1 `port1`、交换机1 `port2` – 电脑1 `eth0`、`port3` – 电脑2 `eth0`、`port4` – AP1 `uplink`、AP1 `wlan1` – 电脑3 `eth0`；互联网接入方式选「拨号」，光猫1 保持「桥接」，路由器1 WAN 模式选「拨号」账号 `test` 密码 `test`；点电脑1 / 2 / 3；点空白；「验证」ping 起点 电脑3 目标 `192.168.1.100`；ping 起点 电脑1 目标 `8.8.8.8`；访问网站 起点 电脑3 域名 `www.google.com`；「导出」 | 出现「互联网」「光猫1」「路由器1」「交换机1」「AP1」「电脑1」「电脑2」「电脑3」；路由器1 WAN 状态「拨号成功 203.0.113.2」；电脑1 / 2 / 3 都是自动获取，分别「已获取 192.168.1.100 / .101 / .102 … 来自 路由器1」；静态检查「没有问题」；ping `192.168.1.100` 通，路径 电脑3 → AP1 → 交换机1 → 电脑1 → 交换机1 → AP1 → 电脑3，AP1 与交换机1 的 note 含「学习」和「泛洪」或「命中」；ping `8.8.8.8` 通，路径 电脑1 → 交换机1 → 路由器1 → 光猫1 → 互联网 → 光猫1 → 路由器1 → 交换机1 → 电脑1，路由器1 去程 note 含「192.168.1.100 → 203.0.113.2」，光猫1 两行 note 含「二层转发」；访问网站成功；导出 JSON 与引擎 fixture `home-office.json` 结构一致 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-064 | 页面操作 | 接场景 1（T-CP2-063） | 按 CP2『阶段完成标准』场景 2 的 6 步操作：点光猫1，模式切「路由」（WAN 接入保持「跟随上游」）；点空白看静态检查，ping 电脑1 → `8.8.8.8` 并点「定位」；点路由器1，WAN 模式改「自动获取」；点空白看静态检查并点该条；ping 电脑1 → `8.8.8.8`；光猫1 切回「桥接」，路由器1 WAN 改回「拨号」 | 光猫1 WAN 状态「拨号成功 203.0.113.2」，节点第二行「路由 192.168.100.1」；静态检查一条 error「路由器1 · 路由器1 在拨号，但 光猫1 不接受拨号」；ping 不通，断在路由器1，原因含「不接受拨号」，「定位」→ 路由器1 WAN 模式高亮；改自动获取后 WAN 状态「已获取 192.168.100.100」；静态检查一条 warning「路由器1 · 路由器1 与 光猫1 都在做 NAT（双层 NAT）…」，点它 → 路由器1 选中，NAT 开关高亮；再 ping 通，路径 电脑1 → 交换机1 → 路由器1 → 光猫1 → 互联网 → 光猫1 → 路由器1 → 交换机1 → 电脑1，路由器1 去程 note 含「192.168.1.100 → 192.168.100.100」，光猫1 去程 note 含「192.168.100.100 → 203.0.113.2」；切回后静态检查「没有问题」 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-065 | 页面操作 | 「新建」空画布 | 按 CP2『阶段完成标准』场景 3 的 12 步操作：拖入 交换机、电脑 ×3，连 交换机1 `port2` – 电脑1、`port3` – 电脑2、`port4` – 电脑3；交换机1 表单 `port2`、`port3` 批量设 access VLAN 10，`port4` 设 access VLAN 20；三台电脑改手动 电脑1 `192.168.1.10/24`、电脑2 `192.168.1.11/24`、电脑3 `192.168.1.20/24`，网关、DNS 留空；ping 电脑1 → `192.168.1.11`；ping 电脑1 → `192.168.1.20` 并点「定位」；拖入 路由器、互联网，连 路由器1 `lan1` – 交换机1 `port1`、路由器1 `wan` – 互联网 `port1`，路由器1 VLAN 表添加 VLAN 10（`192.168.10.1/24`，DHCP 开）、VLAN 20（`192.168.20.1/24`，DHCP 开），LAN 口表 `lan1` 设 trunk 放行 `10,20`，交换机1 `port1` 设 trunk 放行 `10,20`；三台电脑改回自动获取；点空白；ping 电脑1 → `192.168.20.100`；ping 电脑1 → `192.168.10.101`；交换机1 `port1` 放行改为 `10`，再 ping 电脑1 → `192.168.20.100` 并点「定位」；放行改回 `10,20`，ping 电脑1 → `8.8.8.8` | 柄下出现 `10` `10` `20`；ping `192.168.1.11` 通，路径 电脑1 → 交换机1 → 电脑2 → 交换机1 → 电脑1；ping `192.168.1.20` 不通，断在电脑1，原因「192.168.1.20（电脑3）在 VLAN 20，本机发出的包在 VLAN 10，二层隔离，需要路由器转发」，「定位」→ 交换机1 选中、端口表 `port4` 行高亮；改回自动获取后 电脑1 `192.168.10.100`、电脑2 `192.168.10.101`（来自 路由器1），电脑3 `192.168.20.100`；静态检查「没有问题」；ping `192.168.20.100` 通，路径 电脑1 → 交换机1 → 路由器1 → 交换机1 → 电脑3 → 交换机1 → 路由器1 → 交换机1 → 电脑1，路由器1 去程 note 含「VLAN 10」「VLAN 20」；ping `192.168.10.101` 通，路径不经过路由器1；放行改 `10` 后静态检查 error「VLAN 20 两侧都有设备，但 交换机1 port1 未放行」，ping `192.168.20.100` 不通，断在路由器1，原因含「未放行 VLAN 20」，「定位」→ 交换机1 `port1` 行高亮；放行改回后 ping `8.8.8.8` 通 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
+| T-CP2-066 | 命令 | — | 按 CP2『阶段完成标准』场景 4 操作：`pnpm test` | 通过；`scenarios/cp2.test.ts` 场景 1–3 各一条 `it`，断言路径、`reasonCode`、`fixAt`、lint 编号与场景文字一致；场景 1 断言 `home-office.json` 往返相等 | [CP2 阶段完成标准](checkpoints/CP2-switching-and-devices.md) | ✅ 通过 |
 
 ---
 

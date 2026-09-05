@@ -1,18 +1,22 @@
 /** 默认值工厂：空拓扑、创建设备、创建连线、互联网补空闲口 */
 
 import type {
+  ApConfig,
   Device,
   DeviceType,
   InternetConfig,
   Link,
   LinkEnd,
+  ModemConfig,
   PcConfig,
   Port,
   Position,
   RouterConfig,
+  SwitchConfig,
   Topology,
 } from "./topology";
 import { TOPOLOGY_VERSION } from "./topology";
+import { defaultPortVlan } from "./vlan";
 
 const MAC_PREFIX = "02:00:00:00:00:";
 const FIRST_MAC_VALUE = 1;
@@ -75,6 +79,33 @@ export function defaultRouterConfig(): RouterConfig {
     },
     wan: { mode: "dhcp" },
     nat: true,
+    vlans: [],
+  };
+}
+
+export const SWITCH_DEFAULT_PORTS = 8;
+export const SWITCH_MIN_PORTS = 4;
+export const SWITCH_MAX_PORTS = 48;
+
+export function defaultSwitchConfig(): SwitchConfig {
+  return { portCount: SWITCH_DEFAULT_PORTS };
+}
+
+export function defaultApConfig(): ApConfig {
+  return { ssid: "Home-WiFi" };
+}
+
+export function defaultModemConfig(): ModemConfig {
+  return {
+    mode: "bridge",
+    wan: { mode: "auto" },
+    lan: { ip: "192.168.100.1", mask: "255.255.255.0" },
+    dhcp: {
+      enabled: true,
+      rangeStart: "192.168.100.100",
+      rangeEnd: "192.168.100.199",
+      leaseHours: 24,
+    },
   };
 }
 
@@ -86,6 +117,7 @@ export function defaultInternetConfig(): InternetConfig {
       poolStart: "203.0.113.2",
       poolEnd: "203.0.113.254",
       dns: "8.8.8.8",
+      mode: "dhcp",
     },
     targets: [
       {
@@ -120,20 +152,33 @@ const PORT_NAMES: Record<DeviceType, string[]> = {
   pc: ["eth0"],
   router: ["wan", "lan1", "lan2", "lan3", "lan4"],
   internet: ["port1"],
+  switch: Array.from({ length: SWITCH_DEFAULT_PORTS }, (_, i) => `port${i + 1}`),
+  ap: ["uplink", "wlan1"],
+  modem: ["wan", "lan1"],
+};
+
+const DEVICE_LABELS: Record<DeviceType, string> = {
+  pc: "电脑",
+  router: "路由器",
+  internet: "互联网",
+  switch: "交换机",
+  ap: "AP",
+  modem: "光猫",
 };
 
 function nextName(topology: Topology, type: DeviceType): string {
   const count = topology.devices.filter((d) => d.type === type).length;
   if (type === "internet") return count === 0 ? "互联网" : `互联网${count + 1}`;
-  const label = type === "pc" ? "电脑" : "路由器";
-  return `${label}${count + 1}`;
+  return `${DEVICE_LABELS[type]}${count + 1}`;
 }
 
-function makePorts(topology: Topology, names: string[]): Port[] {
+function makePorts(topology: Topology, type: DeviceType, names: string[]): Port[] {
   const ports: Port[] = [];
   let next = macValue(nextMac(topology));
   for (const name of names) {
-    ports.push({ id: makeId("p_"), name, mac: formatMac(next), linkId: null });
+    const port: Port = { id: makeId("p_"), name, mac: formatMac(next), linkId: null };
+    if (type === "switch") port.vlan = defaultPortVlan();
+    ports.push(port);
     next += 1;
   }
   return ports;
@@ -141,11 +186,21 @@ function makePorts(topology: Topology, names: string[]): Port[] {
 
 /** 在 `topology` 语境下创建一台设备（不修改 topology） */
 export function createDevice(type: DeviceType, position: Position, topology: Topology): Device {
-  const ports = makePorts(topology, PORT_NAMES[type]);
+  const ports = makePorts(topology, type, PORT_NAMES[type]);
   const base = { id: makeId("d_"), name: nextName(topology, type), position, ports };
   if (type === "pc") return { ...base, type: "pc", config: defaultPcConfig() };
   if (type === "router") return { ...base, type: "router", config: defaultRouterConfig() };
+  if (type === "switch") return { ...base, type: "switch", config: defaultSwitchConfig() };
+  if (type === "ap") return { ...base, type: "ap", config: defaultApConfig() };
+  if (type === "modem") return { ...base, type: "modem", config: defaultModemConfig() };
   return { ...base, type: "internet", config: defaultInternetConfig() };
+}
+
+/** 追加一个端口（互联网 portN、AP wlanN、交换机 portN） */
+export function createPort(topology: Topology, name: string, withVlan = false): Port {
+  const port: Port = { id: makeId("p_"), name, mac: nextMac(topology), linkId: null };
+  if (withVlan) port.vlan = defaultPortVlan();
+  return port;
 }
 
 /** 互联网追加一个空闲端口（保证始终多留一个空闲口） */

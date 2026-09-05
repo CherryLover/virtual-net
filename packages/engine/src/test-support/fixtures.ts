@@ -1,8 +1,10 @@
 /** 测试专用：加载 fixture、拼小拓扑。不从包根导出 */
 
+import homeOfficeJson from "../../fixtures/home-office.json";
 import minimalJson from "../../fixtures/minimal.json";
 import { createDevice, createEmptyTopology } from "../model/defaults";
-import type { Device, DeviceType, Link, Position, Topology } from "../model/topology";
+import type { Device, DeviceType, Link, Position, RouterDevice, Topology } from "../model/topology";
+import type { PortVlan } from "../model/vlan";
 
 /** fixture 原文（只读，测试里不要改） */
 export const MINIMAL_RAW: unknown = minimalJson;
@@ -14,6 +16,39 @@ export function clone<T>(value: T): T {
 /** 第 1 节示例拓扑的一份可修改副本 */
 export function minimalTopology(): Topology {
   return clone(minimalJson) as unknown as Topology;
+}
+
+/** CP2 场景 1 的图（原文只读） */
+export const HOME_OFFICE_RAW: unknown = homeOfficeJson;
+
+export function homeOfficeTopology(): Topology {
+  return clone(homeOfficeJson) as unknown as Topology;
+}
+
+/** 给某个端口写 VLAN 配置 */
+export function setVlan(
+  topology: Topology,
+  deviceId: string,
+  portName: string,
+  vlan: PortVlan,
+): void {
+  const port = device(topology, deviceId).ports.find((p) => p.name === portName);
+  if (!port) throw new Error(`设备 ${deviceId} 没有端口 ${portName}`);
+  port.vlan = vlan;
+}
+
+export function access(pvid: number): PortVlan {
+  return { mode: "access", pvid };
+}
+
+export function trunk(allowed: number[], native = 1): PortVlan {
+  return { mode: "trunk", allowed, native };
+}
+
+export function routerOf(topology: Topology, deviceId: string): RouterDevice {
+  const found = device(topology, deviceId);
+  if (found.type !== "router") throw new Error("不是路由器");
+  return found;
 }
 
 export const PC1 = "d_pc1";

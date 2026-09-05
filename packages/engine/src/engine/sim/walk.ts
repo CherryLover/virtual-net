@@ -13,9 +13,12 @@ import type {
   Protocol,
 } from "../../model/probe";
 import type { Device, InternetTarget, Topology } from "../../model/topology";
-import { BROADCAST_MAC, peerEnd } from "../../model/topology";
+import { BROADCAST_MAC, isL3Router, peerEnd } from "../../model/topology";
+import { lanInterfacesOf } from "../runtime/interfaces";
 import { lookupRoutes } from "../runtime/routes";
+import type { L2Loop, L2Path } from "../runtime/segment";
 import type { L3Interface, Route, Runtime } from "../runtime/types";
+import { findUpstream, upstreamLabel } from "../runtime/wan";
 import { resolveArp } from "./arp";
 import { DecisionLog } from "./decision";
 import {
@@ -30,6 +33,7 @@ import {
   makePacket,
   sessionPortOf,
 } from "./frame";
+import { deliverFrame } from "./l2";
 import { leaseFailureText, type StopInfo, stopText } from "./messages";
 import { natInbound, natOutbound } from "./nat";
 
@@ -112,6 +116,41 @@ export class Walk {
     return null;
   }
 
+  /** 二层路径上第一台设备（L2_LOOP 停在这里） */
+  private firstHopOf(portId: string): { deviceId: string; portId: string } | null {
+    const peer = peerEnd(this.topology, portId);
+    return peer ? { deviceId: peer.deviceId, portId: peer.portId } : null;
+  }
+
+  private loopStop(loop: L2Loop): StopInfo {
+    const names: string[] = [];
+    const parts: string[] = [];
+    for (const linkId of loop.linkIds) {
+      const link = this.topology.links.find((l) => l.id === linkId);
+      if (!link) continue;
+      const a = `${this.name(link.a.deviceId)} ${this.portName(link.a.portId)}`;
+      const b = `${this.name(link.b.deviceId)} ${this.portName(link.b.portId)}`;
+      parts.push(`${a} – ${b}`);
+      for (const id of [link.a.deviceId, link.b.deviceId]) {
+        if (!names.includes(this.name(id))) names.push(this.name(id));
+      }
+    }
+    return stopText.l2Loop(names[0] ?? "设备", names[1] ?? "设备", parts.join("、"));
+  }
+
+  /** 上游是谁，PPPOE_REJECTED 文案用 */
+  private upstreamNameOf(deviceId: string): string {
+    const wanIface = this.runtime.ifaceOf(deviceId, "wan");
+    if (!wanIface) return "上游";
+    const env = {
+      topology: this.topology,
+      index: this.runtime.index,
+      interfaces: this.runtime.interfaces,
+      take: () => undefined,
+    };
+    return upstreamLabel(findUpstream(env, wanIface));
+  }
+
   private ownInterfaces(deviceId: string): L3Interface[] {
     return this.runtime.interfaces.filter((i) => i.deviceId === deviceId);
   }
@@ -181,11 +220,44 @@ export class Walk {
           { deviceId, field: "gateway" },
         );
       }
+      const wanLease = this.runtime.leaseOf(deviceId, "wan");
+      if (wanLease?.status === "pppoe-required") {
+        return this.fail(
+          deviceId,
+          stopText.pppoeRequired(device.name),
+          { ...base, note: "上游要求拨号，WAN 没拿到地址" },
+          { deviceId, field: "wan.mode" },
+        );
+      }
+      if (wanLease?.status === "pppoe-rejected") {
+        return this.fail(
+          deviceId,
+          stopText.pppoeRejected(device.name, this.upstreamNameOf(deviceId)),
+          { ...base, note: "上游不接受拨号，WAN 没拿到地址" },
+          { deviceId, field: "wan.mode" },
+        );
+      }
       return this.fail(
         deviceId,
         stopText.noRoute(device.name, opts.dstIp),
         { ...base, note: "路由表里没有能匹配的条目" },
         { deviceId, portId: device.ports.find((p) => p.name === "wan")?.id },
+      );
+    }
+    if (route.wanLanOverlap) {
+      const wan = this.runtime.ifaceOf(deviceId, "wan");
+      const lan = lanInterfacesOf(this.runtime.interfaces, deviceId).find(
+        (i) => i.ip && i.mask && wan?.ip && inSubnet(wan.ip, i.ip, i.mask),
+      );
+      return this.fail(
+        deviceId,
+        stopText.wanLanOverlap(wan?.ip ?? "", lan ? subnetLabel(lan.ip, lan.mask) : "LAN 网段"),
+        {
+          ...base,
+          basis: { ...base.basis, route: routeBasis(route) },
+          note: "WAN 与 LAN 网段重叠，转发不了",
+        },
+        { deviceId, field: "lan.ip" },
       );
     }
     if (route.kind === "default" && route.viaOffSubnet) {
@@ -223,6 +295,52 @@ export class Walk {
         null,
       );
     }
+    if (arp.kind === "loop") {
+      const first = this.firstHopOf(iface.portIds.find((id) => this.linkIdOf(id)) ?? "");
+      const stop = this.loopStop(arp.loop);
+      return this.fail(
+        first?.deviceId ?? deviceId,
+        stop,
+        {
+          phase: this.phase,
+          deviceId: first?.deviceId ?? deviceId,
+          action: "forward",
+          portIn: first?.portId ?? null,
+          note: "同一个 VLAN 里有两条二层路径，广播风暴",
+        },
+        null,
+      );
+    }
+    if (arp.kind === "vlan") {
+      const dropDevice = this.name(arp.drop.deviceId);
+      const dropPort = this.portName(arp.drop.portId);
+      const stop =
+        arp.drop.cause === "access-pvid" && arp.targetIface
+          ? stopText.vlanIsolated(
+              nextHop,
+              this.name(arp.targetIface.deviceId),
+              arp.targetVlan,
+              arp.ownVlan,
+            )
+          : arp.drop.cause === "trunk-not-allowed"
+            ? stopText.trunkNotAllowed(dropDevice, dropPort, arp.ownVlan ?? arp.targetVlan)
+            : stopText.vlanTagDropped(arp.ownVlan ?? arp.targetVlan, dropDevice, dropPort);
+      return this.fail(
+        deviceId,
+        stop,
+        {
+          ...base,
+          basis: {
+            ...base.basis,
+            route: routeBasis(route),
+            arp: { ip: nextHop, mac: null, hit: false },
+            vlan: { id: arp.ownVlan, dropAt: arp.drop },
+          },
+          note: "VLAN 把两边隔开了，ARP 问不到对方",
+        },
+        { deviceId: arp.drop.deviceId, portId: arp.drop.portId },
+      );
+    }
     if (arp.kind === "miss") {
       return this.fail(
         deviceId,
@@ -244,12 +362,12 @@ export class Walk {
     const l4: L4Summary = { ...opts.l4 };
     let natBasis = opts.basis?.nat ?? null;
     let natNote = "";
-    if (opts.natOut && device.type === "router" && iface.name === "wan") {
-      const lanIface = this.runtime.ifaceOf(deviceId, "br-lan");
-      const fromLan = Boolean(
-        lanIface?.ip && lanIface.mask && inSubnet(srcIp, lanIface.ip, lanIface.mask),
+    if (opts.natOut && isL3Router(device) && iface.name === "wan") {
+      const natOn = device.type === "router" ? device.config.nat : true;
+      const fromLan = lanInterfacesOf(this.runtime.interfaces, deviceId).some(
+        (lan) => lan.ip && lan.mask && inSubnet(srcIp, lan.ip, lan.mask),
       );
-      if (fromLan && device.config.nat) {
+      if (fromLan && natOn) {
         const probe = makePacket({
           srcMac: iface.mac,
           dstMac: arp.mac,
@@ -268,7 +386,7 @@ export class Walk {
         srcIp = session.outer.ip;
         if (opts.proto === "icmp") l4.icmpId = session.outer.port;
         else l4.srcPort = session.outer.port;
-      } else if (fromLan && !device.config.nat) {
+      } else if (fromLan && !natOn) {
         this.natOffRouters.push(deviceId);
         natNote = `NAT 关闭，源地址保持 ${srcIp} 出网`;
       }
@@ -283,32 +401,52 @@ export class Walk {
       l4,
       ttl: opts.ttl,
     });
+    packetOut.vlan = arp.path.egressWireVlan;
     const noteParts = [opts.note({ route, iface, nextHop, arpMac: arp.mac })];
+    const inVlan = opts.portIn
+      ? (this.runtime.ifaceForFrame(opts.portIn, opts.packetIn?.vlan ?? null)?.vlan ?? null)
+      : null;
+    if (inVlan !== null || iface.vlan !== null) {
+      noteParts.push(`VLAN ${inVlan ?? "-"} → VLAN ${iface.vlan ?? "-"}`);
+    }
     if (natNote) noteParts.push(natNote);
     if (arp.conflict) noteParts.push(`地址冲突：网段里不止一台设备使用 ${nextHop}`);
 
-    const linkId = this.linkIdOf(arp.portId);
     this.log.pass({
       ...base,
-      portOut: arp.portId,
-      linkId,
+      portOut: arp.path.egressPortId,
+      linkId: arp.path.egressLinkId,
       packetOut,
       basis: {
         ...base.basis,
         route: routeBasis(route),
         arp: { ip: nextHop, mac: arp.mac, hit: true },
         nat: natBasis,
+        ...(arp.path.vlan !== null || arp.path.egressWireVlan !== null
+          ? { vlan: { id: arp.path.vlan } }
+          : {}),
       },
       note: noteParts.join("；"),
     });
 
-    const peer = peerEnd(this.topology, arp.portId);
-    if (!peer) return null;
+    return this.crossPath(arp.path, packetOut, opts.action === "answer");
+  }
+
+  /** 沿二层路径穿过透明设备，返回落到对端三层设备上的那一跳 */
+  private crossPath(path: L2Path, packet: PacketSummary, isReply: boolean): Hop | null {
+    const arrival = deliverFrame({
+      runtime: this.runtime,
+      log: this.log,
+      phase: this.phase,
+      path,
+      packet,
+    });
+    if (!arrival.deviceId || !arrival.portId) return null;
     return {
-      deviceId: peer.deviceId,
-      portId: peer.portId,
-      packet: packetOut,
-      isReply: opts.action === "answer",
+      deviceId: arrival.deviceId,
+      portId: arrival.portId,
+      packet: arrival.packet,
+      isReply,
     };
   }
 
@@ -439,7 +577,7 @@ export class Walk {
 
   private deliver(hop: Hop): Hop | null {
     const device = this.device(hop.deviceId);
-    const inIface = this.runtime.ifaceOfPort(hop.portId);
+    const inIface = this.runtime.ifaceForFrame(hop.portId, hop.packet.vlan);
     const packetIn = hop.packet;
     const base = {
       phase: this.phase,
@@ -457,11 +595,8 @@ export class Walk {
       );
     }
 
-    // B1 二层过滤
+    // B1 二层过滤（网桥内的转发已经在二层路径里走完了）
     if (packetIn.dstMac !== inIface.mac && packetIn.dstMac !== BROADCAST_MAC) {
-      if (device.type === "router" && inIface.name === "br-lan") {
-        return this.bridgeForward(hop, inIface);
-      }
       return this.fail(
         hop.deviceId,
         stopText.l2Reject(packetIn.dstMac),
@@ -476,7 +611,7 @@ export class Walk {
     if (mine || target) return this.localHandle(hop, inIface, target);
 
     // B3
-    if (device.type === "router") return this.forward(hop);
+    if (isL3Router(device)) return this.forward(hop);
     if (device.type === "pc") {
       return this.fail(
         hop.deviceId,
@@ -489,46 +624,6 @@ export class Walk {
       hop.deviceId,
       stopText.unknownDest(packetIn.dstIp),
       { ...base, action: "forward", note: "目标库里没有这个地址" },
-      null,
-    );
-  }
-
-  /** B4 网桥内的二层转发：路由器只在 lan1–lan4 之间倒一手，不路由 */
-  private bridgeForward(hop: Hop, inIface: L3Interface): Hop | null {
-    const base = {
-      phase: this.phase,
-      deviceId: hop.deviceId,
-      portIn: hop.portId,
-      packetIn: hop.packet,
-    };
-    for (const portId of inIface.portIds) {
-      if (portId === hop.portId) continue;
-      const found = this.runtime
-        .reachFromPort(portId)
-        .some((iface) => iface.mac === hop.packet.dstMac);
-      if (!found) continue;
-      this.log.pass({
-        ...base,
-        action: "forward",
-        portOut: portId,
-        linkId: this.linkIdOf(portId),
-        packetOut: hop.packet,
-        basis: { route: null },
-        note: "二层转发，未路由",
-      });
-      const peer = peerEnd(this.topology, portId);
-      if (!peer) return null;
-      return {
-        deviceId: peer.deviceId,
-        portId: peer.portId,
-        packet: hop.packet,
-        isReply: hop.isReply,
-      };
-    }
-    return this.fail(
-      hop.deviceId,
-      stopText.l2Reject(hop.packet.dstMac),
-      { ...base, action: "forward", note: "网桥里找不到这个 MAC" },
       null,
     );
   }
@@ -607,7 +702,7 @@ export class Walk {
     }
 
     // 路由器从 wan 收到发给 WAN 地址的包：先查 NAT 会话
-    if (device.type === "router" && inIface.name === "wan" && packetIn.dstIp === inIface.ip) {
+    if (isL3Router(device) && inIface.name === "wan" && packetIn.dstIp === inIface.ip) {
       const session = natInbound(this.runtime, hop.deviceId, packetIn);
       if (!session) {
         return this.fail(
@@ -715,27 +810,26 @@ export class Walk {
     if (inSubnet(dstIp, access.ip, access.mask)) {
       for (const port of device.ports) {
         if (!port.linkId) continue;
-        const holder = this.runtime.reachFromPort(port.id).find((i) => i.ip === dstIp);
-        if (!holder) continue;
+        const arp = resolveArp(this.runtime, device.id, port.name, dstIp);
+        if (arp.kind !== "hit") continue;
         const packetOut = makePacket({
-          srcMac: this.runtime.ifaceOfPort(port.id)?.mac ?? "",
-          dstMac: holder.mac,
+          srcMac: port.mac,
+          dstMac: arp.mac,
           srcIp: packetIn.dstIp,
           dstIp,
           proto: opts.proto,
           l4: opts.l4,
         });
+        packetOut.vlan = arp.path.egressWireVlan;
         this.log.pass({
           ...base,
-          portOut: port.id,
-          linkId: port.linkId,
+          portOut: arp.path.egressPortId,
+          linkId: arp.path.egressLinkId,
           packetOut,
-          basis: { ...base.basis, arp: { ip: dstIp, mac: holder.mac, hit: true } },
+          basis: { ...base.basis, arp: { ip: dstIp, mac: arp.mac, hit: true } },
           note: opts.note,
         });
-        const peer = peerEnd(this.topology, port.id);
-        if (!peer) return null;
-        return { deviceId: peer.deviceId, portId: peer.portId, packet: packetOut, isReply: true };
+        return this.crossPath(arp.path, packetOut, true);
       }
       return this.fail(
         hop.deviceId,
@@ -811,7 +905,7 @@ export class Walk {
       );
     }
 
-    // 路由器：DNS 转发器
+    // 路由器 / 路由模式光猫：DNS 转发器
     const wanLease = this.runtime.leaseOf(hop.deviceId, "wan");
     const wanIface = this.runtime.ifaceOf(hop.deviceId, "wan");
     if (wanLease?.status !== "ok" || !wanLease.dns || !wanIface?.ip) {

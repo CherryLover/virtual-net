@@ -1,0 +1,448 @@
+{
+  "version": 1,
+  "name": "家庭办公网络",
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  },
+  "devices": [
+    {
+      "id": "d_inet",
+      "type": "internet",
+      "name": "互联网",
+      "position": {
+        "x": 360,
+        "y": 40
+      },
+      "ports": [
+        {
+          "id": "p_inet_1",
+          "name": "port1",
+          "mac": "02:00:00:00:00:01",
+          "linkId": "l_1"
+        },
+        {
+          "id": "p_inet_2",
+          "name": "port2",
+          "mac": "02:00:00:00:00:02",
+          "linkId": null
+        }
+      ],
+      "config": {
+        "access": {
+          "ip": "203.0.113.1",
+          "mask": "255.255.255.0",
+          "poolStart": "203.0.113.2",
+          "poolEnd": "203.0.113.254",
+          "dns": "8.8.8.8",
+          "mode": "pppoe"
+        },
+        "targets": [
+          {
+            "id": "t_gdns",
+            "domain": "dns.google",
+            "ip": "8.8.8.8",
+            "region": "overseas",
+            "dnsServer": true,
+            "reachable": true
+          },
+          {
+            "id": "t_baidu",
+            "domain": "www.baidu.com",
+            "ip": "110.242.68.66",
+            "region": "cn",
+            "dnsServer": false,
+            "reachable": true
+          },
+          {
+            "id": "t_google",
+            "domain": "www.google.com",
+            "ip": "142.250.72.14",
+            "region": "overseas",
+            "dnsServer": false,
+            "reachable": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "d_modem",
+      "type": "modem",
+      "name": "光猫1",
+      "position": {
+        "x": 360,
+        "y": 150
+      },
+      "ports": [
+        {
+          "id": "p_modem_wan",
+          "name": "wan",
+          "mac": "02:00:00:00:00:03",
+          "linkId": "l_1"
+        },
+        {
+          "id": "p_modem_lan1",
+          "name": "lan1",
+          "mac": "02:00:00:00:00:04",
+          "linkId": "l_2"
+        }
+      ],
+      "config": {
+        "mode": "bridge",
+        "wan": {
+          "mode": "auto"
+        },
+        "lan": {
+          "ip": "192.168.100.1",
+          "mask": "255.255.255.0"
+        },
+        "dhcp": {
+          "enabled": true,
+          "rangeStart": "192.168.100.100",
+          "rangeEnd": "192.168.100.199",
+          "leaseHours": 24
+        }
+      }
+    },
+    {
+      "id": "d_r1",
+      "type": "router",
+      "name": "路由器1",
+      "position": {
+        "x": 360,
+        "y": 260
+      },
+      "ports": [
+        {
+          "id": "p_r1_wan",
+          "name": "wan",
+          "mac": "02:00:00:00:00:05",
+          "linkId": "l_2"
+        },
+        {
+          "id": "p_r1_lan1",
+          "name": "lan1",
+          "mac": "02:00:00:00:00:06",
+          "linkId": "l_3"
+        },
+        {
+          "id": "p_r1_lan2",
+          "name": "lan2",
+          "mac": "02:00:00:00:00:07",
+          "linkId": null
+        },
+        {
+          "id": "p_r1_lan3",
+          "name": "lan3",
+          "mac": "02:00:00:00:00:08",
+          "linkId": null
+        },
+        {
+          "id": "p_r1_lan4",
+          "name": "lan4",
+          "mac": "02:00:00:00:00:09",
+          "linkId": null
+        }
+      ],
+      "config": {
+        "lan": {
+          "ip": "192.168.1.1",
+          "mask": "255.255.255.0"
+        },
+        "dhcp": {
+          "enabled": true,
+          "rangeStart": "192.168.1.100",
+          "rangeEnd": "192.168.1.199",
+          "leaseHours": 24
+        },
+        "wan": {
+          "mode": "pppoe",
+          "pppoe": {
+            "username": "test",
+            "password": "test"
+          }
+        },
+        "nat": true,
+        "vlans": []
+      }
+    },
+    {
+      "id": "d_sw1",
+      "type": "switch",
+      "name": "交换机1",
+      "position": {
+        "x": 360,
+        "y": 370
+      },
+      "ports": [
+        {
+          "id": "p_sw1_1",
+          "name": "port1",
+          "mac": "02:00:00:00:00:0a",
+          "linkId": "l_3",
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_2",
+          "name": "port2",
+          "mac": "02:00:00:00:00:0b",
+          "linkId": "l_4",
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_3",
+          "name": "port3",
+          "mac": "02:00:00:00:00:0c",
+          "linkId": "l_5",
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_4",
+          "name": "port4",
+          "mac": "02:00:00:00:00:0d",
+          "linkId": "l_6",
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_5",
+          "name": "port5",
+          "mac": "02:00:00:00:00:0e",
+          "linkId": null,
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_6",
+          "name": "port6",
+          "mac": "02:00:00:00:00:0f",
+          "linkId": null,
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_7",
+          "name": "port7",
+          "mac": "02:00:00:00:00:10",
+          "linkId": null,
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        },
+        {
+          "id": "p_sw1_8",
+          "name": "port8",
+          "mac": "02:00:00:00:00:11",
+          "linkId": null,
+          "vlan": {
+            "mode": "access",
+            "pvid": 1
+          }
+        }
+      ],
+      "config": {
+        "portCount": 8
+      }
+    },
+    {
+      "id": "d_ap1",
+      "type": "ap",
+      "name": "AP1",
+      "position": {
+        "x": 600,
+        "y": 470
+      },
+      "ports": [
+        {
+          "id": "p_ap1_up",
+          "name": "uplink",
+          "mac": "02:00:00:00:00:12",
+          "linkId": "l_6"
+        },
+        {
+          "id": "p_ap1_w1",
+          "name": "wlan1",
+          "mac": "02:00:00:00:00:13",
+          "linkId": "l_7"
+        },
+        {
+          "id": "p_ap1_w2",
+          "name": "wlan2",
+          "mac": "02:00:00:00:00:14",
+          "linkId": null
+        }
+      ],
+      "config": {
+        "ssid": "Home-WiFi"
+      }
+    },
+    {
+      "id": "d_pc1",
+      "type": "pc",
+      "name": "电脑1",
+      "position": {
+        "x": 120,
+        "y": 560
+      },
+      "ports": [
+        {
+          "id": "p_pc1_eth0",
+          "name": "eth0",
+          "mac": "02:00:00:00:00:15",
+          "linkId": "l_4"
+        }
+      ],
+      "config": {
+        "addressMode": "dhcp",
+        "ip": "",
+        "mask": "",
+        "gateway": "",
+        "dns": ""
+      }
+    },
+    {
+      "id": "d_pc2",
+      "type": "pc",
+      "name": "电脑2",
+      "position": {
+        "x": 300,
+        "y": 560
+      },
+      "ports": [
+        {
+          "id": "p_pc2_eth0",
+          "name": "eth0",
+          "mac": "02:00:00:00:00:16",
+          "linkId": "l_5"
+        }
+      ],
+      "config": {
+        "addressMode": "dhcp",
+        "ip": "",
+        "mask": "",
+        "gateway": "",
+        "dns": ""
+      }
+    },
+    {
+      "id": "d_pc3",
+      "type": "pc",
+      "name": "电脑3",
+      "position": {
+        "x": 600,
+        "y": 560
+      },
+      "ports": [
+        {
+          "id": "p_pc3_eth0",
+          "name": "eth0",
+          "mac": "02:00:00:00:00:17",
+          "linkId": "l_7"
+        }
+      ],
+      "config": {
+        "addressMode": "dhcp",
+        "ip": "",
+        "mask": "",
+        "gateway": "",
+        "dns": ""
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "l_1",
+      "a": {
+        "deviceId": "d_inet",
+        "portId": "p_inet_1"
+      },
+      "b": {
+        "deviceId": "d_modem",
+        "portId": "p_modem_wan"
+      }
+    },
+    {
+      "id": "l_2",
+      "a": {
+        "deviceId": "d_modem",
+        "portId": "p_modem_lan1"
+      },
+      "b": {
+        "deviceId": "d_r1",
+        "portId": "p_r1_wan"
+      }
+    },
+    {
+      "id": "l_3",
+      "a": {
+        "deviceId": "d_r1",
+        "portId": "p_r1_lan1"
+      },
+      "b": {
+        "deviceId": "d_sw1",
+        "portId": "p_sw1_1"
+      }
+    },
+    {
+      "id": "l_4",
+      "a": {
+        "deviceId": "d_sw1",
+        "portId": "p_sw1_2"
+      },
+      "b": {
+        "deviceId": "d_pc1",
+        "portId": "p_pc1_eth0"
+      }
+    },
+    {
+      "id": "l_5",
+      "a": {
+        "deviceId": "d_sw1",
+        "portId": "p_sw1_3"
+      },
+      "b": {
+        "deviceId": "d_pc2",
+        "portId": "p_pc2_eth0"
+      }
+    },
+    {
+      "id": "l_6",
+      "a": {
+        "deviceId": "d_sw1",
+        "portId": "p_sw1_4"
+      },
+      "b": {
+        "deviceId": "d_ap1",
+        "portId": "p_ap1_up"
+      }
+    },
+    {
+      "id": "l_7",
+      "a": {
+        "deviceId": "d_ap1",
+        "portId": "p_ap1_w1"
+      },
+      "b": {
+        "deviceId": "d_pc3",
+        "portId": "p_pc3_eth0"
+      }
+    }
+  ]
+}

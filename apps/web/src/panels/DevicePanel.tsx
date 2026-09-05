@@ -3,17 +3,21 @@ import { DeviceIcon } from "../icons";
 import { useTopologyStore } from "../store";
 import { DeviceProbe } from "./DeviceProbe";
 import { Field } from "./Field";
-import { InternetForm } from "./InternetForm";
-import { PcForm } from "./PcForm";
-import { RouterForm } from "./RouterForm";
+import { ApForm } from "./forms/ApForm";
+import { InternetForm } from "./forms/InternetForm";
+import { ModemForm } from "./forms/ModemForm";
+import { PcForm } from "./forms/PcForm";
+import { RouterForm } from "./forms/RouterForm";
+import { SwitchForm } from "./forms/SwitchForm";
 
 interface Props {
   device: Device;
   runtime: Runtime;
   highlight: string | null;
+  highlightPortId: string | null;
 }
 
-export function DevicePanel({ device, runtime, highlight }: Props) {
+export function DevicePanel({ device, runtime, highlight, highlightPortId }: Props) {
   const updateDevice = useTopologyStore((s) => s.updateDevice);
   return (
     <div className="panel-section">
@@ -21,6 +25,7 @@ export function DevicePanel({ device, runtime, highlight }: Props) {
         <DeviceIcon type={device.type} className="device-icon" />
         {device.name}
       </h3>
+      {/* 交换机、AP、光猫不是 ping 起点，不显示发起验证的块 */}
       {device.type === "pc" || device.type === "router" ? (
         <DeviceProbe device={device} runtime={runtime} />
       ) : null}
@@ -36,9 +41,21 @@ export function DevicePanel({ device, runtime, highlight }: Props) {
         <PcForm device={device} runtime={runtime} highlight={highlight} />
       ) : null}
       {device.type === "router" ? (
-        <RouterForm device={device} runtime={runtime} highlight={highlight} />
+        <RouterForm
+          device={device}
+          runtime={runtime}
+          highlight={highlight}
+          highlightPortId={highlightPortId}
+        />
       ) : null}
-      {device.type === "internet" ? <InternetForm device={device} /> : null}
+      {device.type === "switch" ? (
+        <SwitchForm device={device} highlight={highlight} highlightPortId={highlightPortId} />
+      ) : null}
+      {device.type === "ap" ? <ApForm device={device} highlight={highlight} /> : null}
+      {device.type === "modem" ? (
+        <ModemForm device={device} runtime={runtime} highlight={highlight} />
+      ) : null}
+      {device.type === "internet" ? <InternetForm device={device} highlight={highlight} /> : null}
     </div>
   );
 }

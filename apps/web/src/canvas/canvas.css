@@ -104,3 +104,44 @@
   color: var(--text-dim);
   pointer-events: none;
 }
+
+.device-node-switch {
+  border-left: 3px solid #0891b2;
+}
+
+.device-node-ap {
+  border-left: 3px solid #7c3aed;
+}
+
+.device-node-modem {
+  border-left: 3px solid #ea580c;
+}
+
+.device-node-switch .device-node-name {
+  justify-content: center;
+}
+
+.port-label-compact {
+  font-size: 8px;
+}
+
+.vlan-badge {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: #1e3a8a;
+  font-size: 9px;
+  line-height: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.vlan-badge-bottom {
+  bottom: -30px;
+}
+
+.vlan-badge-top {
+  top: -30px;
+}

@@ -37,7 +37,7 @@
 
 - [x] **CP0 项目骨架** — 仓库、引擎与网页两个包、测试跑通、空画布能打开 · [细化文档](docs/checkpoints/CP0-project-skeleton.md)
 - [x] **CP1 局域网基础** — 电脑 ↔ 路由器 ↔ 外网能通，配错能报出来 · [细化文档](docs/checkpoints/CP1-lan-basics.md)
-- [ ] **CP2 交换机与多设备** — 交换机、VLAN、光猫、无线 AP、多台电脑 · [细化文档](docs/checkpoints/CP2-switching-and-devices.md)
+- [x] **CP2 交换机与多设备** — 交换机、VLAN、光猫、无线 AP、多台电脑 · [细化文档](docs/checkpoints/CP2-switching-and-devices.md)
 - [ ] **CP3 路径追踪与动画** — 逐跳显示数据包怎么走、在哪停、为什么 · [细化文档](docs/checkpoints/CP3-trace-and-animation.md)
 - [ ] **CP4 分区与边界** — 国内 / 境外分区、长城防火墙、目标网站库、DNS 污染
 - [ ] **CP5 VPS 与代理线路** — VPS、代理服务端 / 客户端、分流、中转。"能不能上 YouTube"有答案
@@ -287,3 +287,4 @@ virtual-net/
 - 2026-09-04 CP0 完成并打勾：27 条用例全过，首次提交 77c177f，私有仓库 https://github.com/CherryLover/virtual-net 。偏差记在 CP0 文档「实施记录」
 - 2026-09-04 CP1 完成并打勾：62 条用例全过（引擎 51 条自动测试 + 页面场景），偏差记在 CP1 文档「实施记录」
 - 2026-09-04 CP1 试用调整：选中设备可直接一键 ping 网关 / 外网 / 打开网站；设备加线条图标。用例 T-CP1-063–068 全过
+- 2026-09-05 CP2 完成并打勾：66 条用例全过，98 条自动测试。偏差记在 CP2 文档「实施记录」

@@ -2,7 +2,8 @@
 
 import { formatIp, inSubnet, networkInt, parseIp, parseMask } from "../../model/address";
 import type { Topology } from "../../model/topology";
-import { BRIDGE_LAN } from "./interfaces";
+import { isL3Router } from "../../model/topology";
+import { lanInterfacesOf } from "./interfaces";
 import type { L3Interface, Lease, Route } from "./types";
 
 function directRoute(iface: L3Interface): Route | null {
@@ -58,9 +59,9 @@ export function buildRoutes(
           });
         }
       }
-    } else if (device.type === "router") {
-      const lan = own.find((i) => i.name === BRIDGE_LAN);
-      if (lan) {
+    } else if (isL3Router(device)) {
+      const lans = lanInterfacesOf(interfaces, device.id);
+      for (const lan of lans) {
         const direct = directRoute(lan);
         if (direct) routes.push(direct);
       }
@@ -69,8 +70,16 @@ export function buildRoutes(
         (l) => l.deviceId === device.id && l.scope === "wan" && l.status === "ok",
       );
       if (wan?.ip) {
+        // WAN 地址落在自己某个 LAN 网段里，路由器分不清往哪边发。
+        // 只在上游是本地三层设备（光猫 / 另一台路由器）时判定：
+        // 上游直接是互联网时按 CP1 的语义照常转发。
+        const upstream = topology.devices.find((d) => d.id === wanLease?.serverDeviceId);
+        const localUpstream = upstream?.type === "modem" || upstream?.type === "router";
+        const overlap =
+          localUpstream &&
+          lans.some((lan) => lan.ip && lan.mask && inSubnet(wan.ip, lan.ip, lan.mask));
         const direct = directRoute(wan);
-        if (direct) routes.push(direct);
+        if (direct) routes.push(overlap ? { ...direct, wanLanOverlap: true } : direct);
         if (wanLease?.gateway) {
           routes.push({
             dest: "0.0.0.0",
@@ -80,10 +89,11 @@ export function buildRoutes(
             iface: "wan",
             kind: "default",
             viaOffSubnet: !inSubnet(wanLease.gateway, wan.ip, wan.mask),
+            ...(overlap ? { wanLanOverlap: true } : {}),
           });
         }
       }
-    } else {
+    } else if (device.type === "internet") {
       for (const iface of own) {
         const direct = directRoute(iface);
         if (direct) routes.push(direct);

@@ -294,3 +294,166 @@
   flex: 1;
   min-width: 0;
 }
+
+.port-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.port-bulk {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.port-bulk .btn {
+  flex: none;
+  padding: 3px 8px;
+  font-size: var(--fs-sm);
+}
+
+.port-bulk-mode {
+  width: 80px;
+}
+
+.port-bulk-value {
+  width: 56px;
+}
+
+.port-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  table-layout: fixed;
+}
+
+.port-table th,
+.port-table td {
+  padding: 3px 3px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.port-table th {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* 320px 的面板里刚好放下：勾选 端口 对端 模式 VLAN */
+.port-table th:nth-child(1),
+.port-table td:nth-child(1) {
+  width: 18px;
+}
+
+.port-table th:nth-child(2),
+.port-table td:nth-child(2) {
+  width: 44px;
+}
+
+.port-table th:nth-child(4),
+.port-table td:nth-child(4) {
+  width: 66px;
+}
+
+.port-table th:nth-child(5),
+.port-table td:nth-child(5) {
+  width: 92px;
+}
+
+.port-cell-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 对端名字长，面板窄，缩一号并省略，全称放在 title 上 */
+.port-cell-peer {
+  color: var(--text-dim);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-cell-mode {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 3px;
+  font-size: var(--fs-sm);
+}
+
+.port-cell-vlan,
+.port-cell-native {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  font-size: var(--fs-sm);
+}
+
+.port-cell-trunk {
+  display: flex;
+  gap: 3px;
+}
+
+.port-cell-native {
+  width: 34px;
+  flex: none;
+}
+
+.port-row-highlight > td {
+  background: #fef3c7;
+}
+
+.segmented {
+  display: flex;
+}
+
+.segment {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: var(--fs-base);
+  color: inherit;
+  cursor: pointer;
+}
+
+.segment:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.segment:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+
+.segment-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.segment-on + .segment {
+  border-left: 1px solid var(--accent);
+}
+
+.preset-buttons,
+.align-buttons,
+.align-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 左右顶底一行，两个等距一行 */
+.align-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 10px;
+}
+
+.align-buttons .btn[data-align="spread-x"],
+.align-buttons .btn[data-align="spread-y"] {
+  grid-column: span 2;
+}

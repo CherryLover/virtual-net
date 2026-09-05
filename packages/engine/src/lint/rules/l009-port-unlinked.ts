@@ -10,6 +10,11 @@ export const l009PortUnlinked: LintRule = (ctx) => {
     if (!eth0 || eth0.linkId) continue;
     out.push(issue("L009", "warning", "eth0 没有连线", [{ deviceId: pc.id, portId: eth0.id }]));
   }
+  for (const device of [...ctx.switches, ...ctx.aps]) {
+    if (device.ports.some((p) => p.linkId)) continue;
+    const label = device.type === "switch" ? "交换机" : "无线 AP";
+    out.push(issue("L009", "warning", `${label}没有任何连线`, [{ deviceId: device.id }]));
+  }
   for (const router of ctx.routers) {
     const wan = router.ports.find((p) => p.name === "wan");
     if (!wan || wan.linkId) continue;

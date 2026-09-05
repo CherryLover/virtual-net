@@ -2,5 +2,7 @@
 export * from "./address";
 export * from "./defaults";
 export * from "./lint";
+export * from "./ops";
 export * from "./probe";
 export * from "./topology";
+export * from "./vlan";

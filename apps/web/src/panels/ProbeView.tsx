@@ -16,15 +16,15 @@ const PHASE_LABEL: Record<Decision["phase"], string> = {
   tcp: "连接",
 };
 
-export type FocusFn = (deviceId: string, field?: string) => void;
+export type FocusFn = (deviceId: string, field?: string, portId?: string) => void;
 
-/** 选中某台设备、居中画布、可选高亮字段 */
+/** 选中某台设备、居中画布、可选高亮字段或端口表某一行 */
 export function useDeviceFocus(): FocusFn {
   const select = useTopologyStore((s) => s.select);
   const { setCenter, getNode } = useReactFlow();
   return useCallback(
-    (deviceId: string, field?: string) => {
-      select({ kind: "device", id: deviceId }, field ?? null);
+    (deviceId: string, field?: string, portId?: string) => {
+      select({ kind: "device", id: deviceId }, field ?? null, portId ?? null);
       const node = getNode(deviceId);
       if (node) {
         void setCenter(node.position.x + 70, node.position.y + 28, { zoom: 1, duration: 200 });
@@ -72,7 +72,7 @@ export function ProbeView({ probe, nameOf, focus }: ProbeViewProps) {
           className="probe-locate"
           onClick={() => {
             const fix = probe.fixAt;
-            if (fix) focus(fix.deviceId, fix.field);
+            if (fix) focus(fix.deviceId, fix.field, fix.portId);
             else if (probe.stoppedAt) focus(probe.stoppedAt);
           }}
         >

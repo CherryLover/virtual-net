@@ -52,12 +52,32 @@ export interface DnsBasis {
   answer?: string;
 }
 
+/** 透明设备到访时的 MAC 学习与查表结果 */
+export interface MacBasis {
+  learned: { mac: string; portId: string };
+  lookup: "hit" | "flood";
+  /** 未命中时同 VLAN 内除入口外所有有连线的口 */
+  floodPorts?: string[];
+}
+
+export type PortVlanMode = "access" | "trunk" | "plain";
+
+/** VLAN 相关的判断依据；`dropAt` 是二层路径上第一处丢弃点 */
+export interface VlanBasis {
+  id: number | null;
+  in?: PortVlanMode;
+  out?: PortVlanMode;
+  dropAt?: { deviceId: string; portId: string; cause: string };
+}
+
 /** 开放对象：CP2 加 mac / vlan，CP5 加 tunnel */
 export interface DecisionBasis {
   route?: RouteBasis | null;
   arp?: ArpBasis | null;
   nat?: NatBasis | null;
   dns?: DnsBasis | null;
+  mac?: MacBasis | null;
+  vlan?: VlanBasis | null;
 }
 
 export interface Decision {
@@ -119,6 +139,13 @@ export const REASON_CODES = [
   "DNS_NXDOMAIN",
   "DNS_NO_UPSTREAM",
   "TARGET_UNREACHABLE",
+  "VLAN_ISOLATED",
+  "TRUNK_NOT_ALLOWED",
+  "VLAN_TAG_DROPPED",
+  "L2_LOOP",
+  "PPPOE_REQUIRED",
+  "PPPOE_REJECTED",
+  "WAN_LAN_OVERLAP",
 ] as const;
 
 export type ReasonCode = (typeof REASON_CODES)[number];

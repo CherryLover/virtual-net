@@ -2,16 +2,21 @@ import type { ReactNode } from "react";
 import { DeviceIcon } from "../../icons";
 
 interface Props {
-  kind: "pc" | "router" | "internet";
+  kind: string;
   name: string;
   address?: string;
   errorCount: number;
+  width?: number;
   children?: ReactNode;
 }
 
-export function NodeShell({ kind, name, address, errorCount, children }: Props) {
+export function NodeShell({ kind, name, address, errorCount, width, children }: Props) {
   return (
-    <div className={`device-node device-node-${kind}`} data-device-name={name}>
+    <div
+      className={`device-node device-node-${kind}`}
+      data-device-name={name}
+      style={width ? { width } : undefined}
+    >
       {errorCount > 0 ? (
         <span className="device-node-badge" title="静态检查错误">
           {errorCount}

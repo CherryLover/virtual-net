@@ -14,7 +14,7 @@ export const l010LeaseFailed: LintRule = (ctx) => {
       issue(
         "L010",
         "error",
-        `自动获取地址失败：${leaseFailureText(lease?.status ?? "no-server")}`,
+        `自动获取地址失败：${leaseFailureText(lease?.status ?? "no-server", "eth0", lease?.vlan ?? null)}`,
         [{ deviceId: pc.id, field: "addressMode" }],
       ),
     );

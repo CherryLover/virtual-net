@@ -2,6 +2,7 @@
 export * from "./arp";
 export * from "./decision";
 export * from "./frame";
+export * from "./l2";
 export * from "./messages";
 export * from "./nat";
 export * from "./ping";

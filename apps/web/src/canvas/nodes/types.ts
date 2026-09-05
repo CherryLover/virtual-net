@@ -7,4 +7,4 @@ export interface DeviceNodeData extends Record<string, unknown> {
   errorCount: number;
 }
 
-export type DeviceNodeType = Node<DeviceNodeData, "pc" | "router" | "internet">;
+export type DeviceNodeType = Node<DeviceNodeData, string>;

@@ -19,12 +19,12 @@ export function ResultsPanel() {
             const target = issue.targets[0];
             return (
               <li
-                key={`${issue.ruleId}-${issue.targets.map((t) => t.deviceId).join("-")}-${issue.message}`}
+                key={`${issue.ruleId}-${issue.targets.map((t) => `${t.deviceId}${t.portId ?? ""}`).join("-")}-${issue.message}`}
               >
                 <button
                   type="button"
                   className={`issue issue-${issue.severity}`}
-                  onClick={() => target && focus(target.deviceId, target.field)}
+                  onClick={() => target && focus(target.deviceId, target.field, target.portId)}
                 >
                   <span className="issue-icon">{issue.severity === "error" ? "✕" : "!"}</span>
                   <span className="issue-device">{target ? nameOf(target.deviceId) : ""}</span>

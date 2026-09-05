@@ -38,6 +38,18 @@ export function ProbeDialog({ onClose }: Props) {
           label: `${device.name} LAN ${device.config.lan.ip}`,
           ip: device.config.lan.ip,
         });
+        for (const vlan of device.config.vlans ?? []) {
+          if (vlan.ip)
+            list.push({ label: `${device.name} VLAN ${vlan.id} ${vlan.ip}`, ip: vlan.ip });
+        }
+        const wan = leaseOf(runtime, device.id, "wan");
+        if (wan?.ip) list.push({ label: `${device.name} WAN ${wan.ip}`, ip: wan.ip });
+      }
+      if (device.type === "modem" && device.config.mode === "route") {
+        list.push({
+          label: `${device.name} LAN ${device.config.lan.ip}`,
+          ip: device.config.lan.ip,
+        });
         const wan = leaseOf(runtime, device.id, "wan");
         if (wan?.ip) list.push({ label: `${device.name} WAN ${wan.ip}`, ip: wan.ip });
       }
