@@ -2,7 +2,7 @@
 
 > 总纲对应章节：[ROADMAP.md](../../ROADMAP.md) 的「CP3 路径追踪与动画」
 > 前置：CP1 局域网基础（决策记录 decision、ProbeResult、结果面板的逐跳列表）。CP2 的透明二层设备不是前置，但本检查点的动画要能容纳它们
-> 状态：进行中（2026-09-05 开工，逻辑层与界面层两个 agent 并行）
+> 状态：已完成（2026-09-05）
 
 ## 目标
 
@@ -394,6 +394,30 @@ topologyRevision: number       // 设备、连线、config 任一变化 +1；pos
 
 **引擎与网页自动测试**
 - 【命令】`pnpm test` → 引擎、网页两个包都通过；`scenarios/cp3.test.ts` 含场景 1、3 的 traceroute 断言；`trace/timeline.test.ts` 与 `trace/explain.test.ts` 含场景 1、2 的时间线形状与 title 断言
+
+## 实施记录（2026-09-05）
+
+58 条用例全部通过。独立复验：`pnpm lint / typecheck / test / build` 全绿（引擎 20 文件 105 条，网页 5 文件 36 条）；用脚本驱动浏览器：ping 8.8.8.8 播放中包序号 1→5 依次出现、逐跳五句 title 全部命中、第 2 跳包头两列对照含 NAT 前后地址与 TTL 64→63；traceroute 弹窗跑出「共 2 跳」与跳数表；网关配错时包停在电脑1 变红、气泡「网关不可达」+ 原文、无走过的线；改回网关后横幅与「重新验证」出现、播放条隐藏、重新验证后通；控制台无报错。与文档的偏差：
+
+逻辑层
+- `buildTimeline` 多一个可选 `links` 参数，travel 对端按连线判定；不传退回下一条 decision 的设备
+- `explain` 多一个可选 `context`（传 `{ dns }`），DNS 阶段最后一条 receive 才能写出域名与地址
+- `Timeline` 加 `warnings: string[]`
+- note 按「；」拆段，丢掉「VLAN x → VLAN -」类片段与重复行后再追加，CP2 遗留的怪文案由此消除
+- 目标应答了但回程失败时，最后一跳的地址取目标地址而不是入口接口地址
+- `trace/names.ts`：`TraceNames` 为函数式接口，另提供 `namesFromSnapshot / snapshotNames / createNames`
+
+界面层
+- 动画状态独立 store（`store/trace.ts`），不进撤销栈；与拓扑 store 的联动写在 `store/index.ts`
+- 删除参与过验证的设备不再清空结果（CP1 6.1 顺带修的行为被本检查点替代），改为出横幅，名字回落到建时间线时的拓扑快照
+- 拓扑改动判定用结构指纹，位置、视口、拓扑名、设备改名都不算
+- 打开包头时把包挪到那一跳；播放时钟单帧间隔封顶 1 s，标签页切回时重置基准
+- 选中设备的验证块加了「traceroute 外网」按钮
+- 角标、包、失败气泡都画在画布同一个叠加层
+
+遗留
+- 界面层的两条 store 测试引用了 `trace/testProbes.ts`（标注仅供 trace 测试用），如需可改为自读 fixture
+- 页面仍无 favicon
 
 ## 对其他检查点的约定
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { leaseOf, ping, visitSite } from "../engine";
+import { leaseOf } from "../engine";
+import type { ProbeRequest } from "../store";
 import { useTopologyStore } from "../store";
 import "./probe-dialog.css";
 
@@ -10,7 +11,7 @@ interface Props {
 export function ProbeDialog({ onClose }: Props) {
   const topology = useTopologyStore((s) => s.topology);
   const runtime = useTopologyStore((s) => s.runtime);
-  const setProbe = useTopologyStore((s) => s.setProbe);
+  const runProbe = useTopologyStore((s) => s.runProbe);
   const select = useTopologyStore((s) => s.select);
 
   const sources = useMemo(
@@ -62,18 +63,18 @@ export function ProbeDialog({ onClose }: Props) {
     return list;
   }, [topology.devices, runtime]);
 
-  const [kind, setKind] = useState<"ping" | "visitSite">("ping");
+  const [kind, setKind] = useState<ProbeRequest["kind"]>("ping");
   const [source, setSource] = useState(sources[0]?.id ?? "");
   const [targetIp, setTargetIp] = useState("");
   const [domain, setDomain] = useState(domains[0] ?? "");
 
   const run = () => {
     if (!source) return;
-    const result =
-      kind === "ping"
-        ? ping(topology, { sourceDeviceId: source, targetIp: targetIp.trim() })
-        : visitSite(topology, { sourceDeviceId: source, domain });
-    setProbe(result);
+    runProbe(
+      kind === "visitSite"
+        ? { kind, sourceDeviceId: source, domain }
+        : { kind, sourceDeviceId: source, targetIp: targetIp.trim() },
+    );
     select({ kind: "none" });
     onClose();
   };
@@ -103,6 +104,15 @@ export function ProbeDialog({ onClose }: Props) {
               />
               访问网站
             </label>
+            <label>
+              <input
+                type="radio"
+                name="probeKind"
+                checked={kind === "traceroute"}
+                onChange={() => setKind("traceroute")}
+              />
+              traceroute
+            </label>
           </div>
         </div>
 
@@ -124,7 +134,7 @@ export function ProbeDialog({ onClose }: Props) {
           </select>
         </div>
 
-        {kind === "ping" ? (
+        {kind !== "visitSite" ? (
           <div className="field">
             <label className="field-label" htmlFor="probe-target">
               目标

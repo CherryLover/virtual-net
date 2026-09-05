@@ -38,7 +38,7 @@ export function ResultsPanel() {
 
       <h3 className="panel-title">最近验证</h3>
       {probe ? (
-        <ProbeView probe={probe} nameOf={nameOf} focus={focus} />
+        <ProbeView probe={probe} focus={focus} />
       ) : (
         <p className="panel-empty">还没有验证</p>
       )}

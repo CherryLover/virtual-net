@@ -97,8 +97,24 @@ export interface Decision {
   note: string;
 }
 
-/** CP3 定义内容，CP1 只保留字段 */
-export type Hop = unknown;
+/** traceroute 的一跳（CP3 1.2） */
+export interface Hop {
+  /** 从 1 连续编号 */
+  hop: number;
+  deviceId: string;
+  /**
+   * 该跳应答用的地址：三层设备取 `portIn` 所属接口的地址，
+   * 目标取 `targetIp`，停在没有三层地址的设备上时为 null
+   */
+  ip: string | null;
+  /** 包到达时的 TTL */
+  ttlIn: number;
+  /** 上一跳到本跳之间穿过的透明设备，CP1 恒为空 */
+  through: string[];
+  /** 对应 decision 的 seq，点列表行跳到时间线用 */
+  seq: number;
+  status: "ok" | "stop";
+}
 
 export interface FixAt {
   deviceId: string;

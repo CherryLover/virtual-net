@@ -84,7 +84,8 @@
 
 .field-radios {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   font-size: var(--fs-base);
 }
 
@@ -180,6 +181,15 @@
 .issue-message,
 .hop-note {
   color: var(--text-dim);
+}
+
+/* 320 px 的面板放不下一行，解释文案单独占一行 */
+.hop {
+  flex-wrap: wrap;
+}
+
+.hop-note {
+  flex-basis: 100%;
 }
 
 .probe {
@@ -456,4 +466,271 @@
 .align-buttons .btn[data-align="spread-x"],
 .align-buttons .btn[data-align="spread-y"] {
   grid-column: span 2;
+}
+
+/* ── CP3 逐跳时间线、跳数表、包头 ─────────────────────── */
+
+.probe-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius);
+  background: #fffbeb;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.probe-banner .btn {
+  flex: none;
+  padding: 3px 8px;
+  font-size: var(--fs-sm);
+}
+
+.probe-banner .btn:disabled {
+  color: var(--text-dim);
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.hop-row {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.hop-row .hop {
+  flex: 1;
+  min-width: 0;
+}
+
+.hop-current {
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+.hop-stop.hop-current {
+  background: #fef2f2;
+}
+
+.hop:disabled {
+  cursor: default;
+}
+
+.hop-expand,
+.hop-inspect,
+.hop-locate {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.hop-expand:hover,
+.hop-inspect:hover,
+.hop-locate:hover {
+  border-color: var(--border);
+  background: #fff;
+  color: var(--text);
+}
+
+.hop-lines {
+  list-style: none;
+  margin: 2px 0 0 22px;
+  padding: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.hoptable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-sm);
+}
+
+.hoptable-head,
+.hoptable-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 92px 30px;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.hoptable-head {
+  color: var(--text-dim);
+}
+
+.hoptable-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: var(--fs-sm);
+  color: inherit;
+  cursor: pointer;
+}
+
+.hoptable-row:hover {
+  background: #f3f4f6;
+}
+
+.hoptable-row:disabled {
+  cursor: default;
+}
+
+.hoptable-device {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hoptable-stop {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.hoptable-through {
+  padding: 2px 6px 2px 28px;
+  color: var(--text-dim);
+}
+
+/* 包头模态框 */
+.pkt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.25);
+  cursor: default;
+}
+
+.pkt {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 41;
+  width: min(520px, calc(100vw - 40px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.pkt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pkt-title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.pkt-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pkt-nav .btn {
+  padding: 3px 8px;
+  font-size: var(--fs-sm);
+}
+
+.pkt-nav .btn:disabled {
+  color: var(--text-dim);
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.pkt-close {
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  font-size: var(--fs-base);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.pkt-renew {
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  background: #f5f3ff;
+  font-size: var(--fs-sm);
+  color: #6d28d9;
+}
+
+.pkt-grid {
+  display: grid;
+  grid-template-columns: 88px 1fr 1fr;
+  gap: 1px 8px;
+  align-items: center;
+  font-size: var(--fs-sm);
+}
+
+.pkt-grid-single {
+  grid-template-columns: 88px 1fr;
+}
+
+.pkt-col-label {
+  padding-bottom: 4px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pkt-section-title {
+  padding: 8px 0 2px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pkt-label {
+  color: var(--text-dim);
+}
+
+.pkt-value {
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pkt-changed {
+  background: #fef3c7;
+  font-weight: 600;
+}
+
+.pkt-lines {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+/* 作废后列表还能读，但一眼看得出不作数 */
+.probe-stale .probe-summary,
+.probe-stale .probe-path,
+.probe-stale .hoptable,
+.probe-stale .hop-group {
+  opacity: 0.55;
 }

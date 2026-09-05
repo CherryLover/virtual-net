@@ -17,8 +17,35 @@ import {
   emptyTopology,
   ensureSparePorts,
   lint,
+  ping,
+  traceroute,
+  visitSite,
 } from "../engine";
 import { keepViewport, pushHistory } from "./history";
+
+/** 发起过的验证，「重新验证」按它重跑（CP3 4.1） */
+export interface ProbeRequest {
+  kind: ProbeResult["kind"];
+  sourceDeviceId: string;
+  targetIp?: string;
+  domain?: string;
+}
+
+/**
+ * 拓扑里会影响验证结果的那部分。位置、视口、名称改了结果照样成立，
+ * 所以不进这个指纹，`topologyRevision` 也就不会变（CP3 4.2）。
+ */
+function structuralKey(topology: Topology): string {
+  return JSON.stringify({
+    devices: topology.devices.map((d) => ({
+      id: d.id,
+      type: d.type,
+      ports: d.ports,
+      config: d.config,
+    })),
+    links: topology.links,
+  });
+}
 
 export type Selection =
   | { kind: "device"; id: string }
@@ -43,6 +70,9 @@ interface TopologyState extends Derived {
   highlightField: string | null;
   highlightPortId: string | null;
   lastProbe: ProbeResult | null;
+  lastProbeRequest: ProbeRequest | null;
+  /** 设备、连线、配置任一变化 +1；位置、视口、名称不算 */
+  topologyRevision: number;
   saveState: SaveState;
   loaded: boolean;
   past: Topology[];
@@ -74,6 +104,8 @@ interface TopologyState extends Derived {
 
   select: (selection: Selection, field?: string | null, portId?: string | null) => void;
   setProbe: (result: ProbeResult | null) => void;
+  /** 跑一次验证并记下参数，「重新验证」用同一份参数重跑 */
+  runProbe: (request: ProbeRequest) => ProbeResult | null;
 
   undo: () => void;
   redo: () => void;
@@ -122,10 +154,12 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
   const commit = (topology: Topology, extra: Partial<TopologyState> = {}, record = true) => {
     const previous = get().topology;
     const next = normalize(topology);
+    const changed = structuralKey(previous) !== structuralKey(next);
     set({
       topology: next,
       ...derive(next),
       saveState: "saving",
+      ...(changed ? { topologyRevision: get().topologyRevision + 1 } : {}),
       ...(record ? { past: pushHistory(get().past, previous), future: [] } : {}),
       ...extra,
     });
@@ -138,6 +172,8 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
     highlightField: null,
     highlightPortId: null,
     lastProbe: null,
+    lastProbeRequest: null,
+    topologyRevision: 0,
     saveState: "saved",
     loaded: false,
     past: [],
@@ -151,6 +187,7 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
           highlightField: null,
           highlightPortId: null,
           lastProbe: options?.keepProbe ? get().lastProbe : null,
+          ...(options?.keepProbe ? {} : { lastProbeRequest: null }),
         },
         options?.record ?? false,
       );
@@ -213,16 +250,12 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
       if (deviceIds.length === 0 && linkIds.length === 0) return;
       const topology = get().topology;
       const next = dropElements(topology, deviceIds, linkIds);
-      // 结果里提到被删设备就作废，免得逐跳列表留下没有名字的设备
-      const probe = get().lastProbe;
-      const stale = deviceIds.some(
-        (id) => probe?.decisions.some((d) => d.deviceId === id) || probe?.path.includes(id),
-      );
+      // CP3 起结果不再随删除设备一起丢：拓扑版本变了，结果面板出「拓扑已改动」横幅，
+      // 列表仍可读（设备名走 trace 里的快照）
       commit(next, {
         selection: { kind: "none" },
         highlightField: null,
         highlightPortId: null,
-        ...(stale ? { lastProbe: null } : {}),
       });
     },
 
@@ -255,7 +288,27 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
 
     select: (selection, field = null, portId = null) =>
       set({ selection, highlightField: field, highlightPortId: portId }),
-    setProbe: (result) => set({ lastProbe: result }),
+    setProbe: (result) => set({ lastProbe: result, ...(result ? {} : { lastProbeRequest: null }) }),
+
+    runProbe: (request) => {
+      const topology = get().topology;
+      if (!topology.devices.some((d) => d.id === request.sourceDeviceId)) return null;
+      const source = request.sourceDeviceId;
+      let result: ProbeResult;
+      if (request.kind === "visitSite") {
+        if (!request.domain) return null;
+        result = visitSite(topology, { sourceDeviceId: source, domain: request.domain });
+      } else {
+        const targetIp = (request.targetIp ?? "").trim();
+        if (!targetIp) return null;
+        result =
+          request.kind === "traceroute"
+            ? traceroute(topology, { sourceDeviceId: source, targetIp })
+            : ping(topology, { sourceDeviceId: source, targetIp });
+      }
+      set({ lastProbe: result, lastProbeRequest: request });
+      return result;
+    },
 
     undo: () => {
       const { past, topology, future } = get();
@@ -268,10 +321,12 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
         past: past.slice(0, -1),
         future: pushHistory(future, topology),
         saveState: "saving",
+        topologyRevision: get().topologyRevision + 1,
         selection: { kind: "none" },
         highlightField: null,
         highlightPortId: null,
         lastProbe: null,
+        lastProbeRequest: null,
       });
     },
 
@@ -286,10 +341,12 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
         past: pushHistory(past, topology),
         future: future.slice(0, -1),
         saveState: "saving",
+        topologyRevision: get().topologyRevision + 1,
         selection: { kind: "none" },
         highlightField: null,
         highlightPortId: null,
         lastProbe: null,
+        lastProbeRequest: null,
       });
     },
   };
@@ -308,7 +365,7 @@ export function canConnect(
   return Boolean(pa && pb && pa.linkId === null && pb.linkId === null);
 }
 
-// 调试用：开发模式下把 store 挂到 window，方便在浏览器里查状态
-if (import.meta.env.DEV) {
+// 调试用：开发模式下把 store 挂到 window，方便在浏览器里查状态（vitest 跑在 node 里，没有 window）
+if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as unknown as Record<string, unknown>).__store = useTopologyStore;
 }

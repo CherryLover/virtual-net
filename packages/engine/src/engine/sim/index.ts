@@ -1,4 +1,4 @@
-// 一次验证的完整走法与两个 probe 入口
+// 一次验证的完整走法与三个 probe 入口
 export * from "./arp";
 export * from "./decision";
 export * from "./frame";
@@ -7,5 +7,6 @@ export * from "./messages";
 export * from "./nat";
 export * from "./ping";
 export * from "./result";
+export * from "./traceroute";
 export * from "./visitSite";
 export * from "./walk";

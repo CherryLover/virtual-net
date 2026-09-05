@@ -1,20 +1,12 @@
 import { useReactFlow } from "@xyflow/react";
-import { useCallback } from "react";
-import type { Decision, ProbeResult } from "../engine";
-import { useTopologyStore } from "../store";
-
-const ACTION_LABEL: Record<Decision["action"], string> = {
-  originate: "发出",
-  forward: "转发",
-  answer: "应答",
-  receive: "收到",
-};
-
-const PHASE_LABEL: Record<Decision["phase"], string> = {
-  icmp: "ICMP",
-  dns: "DNS",
-  tcp: "连接",
-};
+import { useCallback, useMemo } from "react";
+import type { ProbeResult } from "../engine";
+import { useTopologyStore, useTraceStore } from "../store";
+import type { TraceNames } from "../trace/names";
+import { createNames, namesFromSnapshot, RAW_NAMES } from "../trace/names";
+import { HopList } from "./trace/HopList";
+import { HopTable } from "./trace/HopTable";
+import { StaleBanner } from "./trace/StaleBanner";
 
 export type FocusFn = (deviceId: string, field?: string, portId?: string) => void;
 
@@ -34,30 +26,47 @@ export function useDeviceFocus(): FocusFn {
   );
 }
 
-/** 设备名查询：拓扑里找不到时退回 id */
+/**
+ * 名字查询。先查当前拓扑，查不到再回落到建时间线那一刻的快照，
+ * 这样设备被删掉之后逐跳列表也还显示得出名字（CP3 4.2）。
+ */
+export function useTraceNames(): TraceNames {
+  const topology = useTopologyStore((s) => s.topology);
+  const snapshot = useTraceStore((s) => s.snapshot);
+  return useMemo(() => {
+    const live = createNames(topology);
+    const before = snapshot ? namesFromSnapshot(snapshot) : RAW_NAMES;
+    return {
+      device: (id) => {
+        const name = live.device(id);
+        return name === id ? before.device(id) : name;
+      },
+      port: (id) => {
+        const name = live.port(id);
+        return name === id ? before.port(id) : name;
+      },
+    };
+  }, [topology, snapshot]);
+}
+
+/** 设备名查询：拓扑里找不到时退回快照，再找不到退回 id */
 export function useDeviceName(): (id: string) => string {
-  const devices = useTopologyStore((s) => s.topology.devices);
-  return (id: string) => devices.find((d) => d.id === id)?.name ?? id;
+  return useTraceNames().device;
 }
 
 interface ProbeViewProps {
   probe: ProbeResult;
-  nameOf: (id: string) => string;
   focus: FocusFn;
 }
 
-/** 一次验证的结果：结论、原因、路径、定位、逐跳 */
-export function ProbeView({ probe, nameOf, focus }: ProbeViewProps) {
-  const groups: { phase: Decision["phase"]; decisions: Decision[] }[] = [];
-  for (const decision of probe.decisions) {
-    const last = groups[groups.length - 1];
-    if (last && last.phase === decision.phase) last.decisions.push(decision);
-    else groups.push({ phase: decision.phase, decisions: [decision] });
-  }
-  const showPhase = probe.kind === "visitSite";
+/** 一次验证的结果：结论、原因、路径、定位、跳数表、逐跳时间线 */
+export function ProbeView({ probe, focus }: ProbeViewProps) {
+  const names = useTraceNames();
+  const stale = useTraceStore((s) => s.stale);
 
   return (
-    <div className="probe">
+    <div className={`probe${stale ? " probe-stale" : ""}`}>
+      <StaleBanner />
       <div className={`probe-summary probe-${probe.verdict}`}>{probe.summary}</div>
       {probe.reason ? <div className="probe-reason">{probe.reason}</div> : null}
       {probe.dns ? (
@@ -65,7 +74,7 @@ export function ProbeView({ probe, nameOf, focus }: ProbeViewProps) {
           DNS {probe.dns.server} 解析 {probe.dns.domain} → {probe.dns.ip}
         </div>
       ) : null}
-      <div className="probe-path">{probe.path.map(nameOf).join(" → ")}</div>
+      <div className="probe-path">{probe.path.map(names.device).join(" → ")}</div>
       {probe.fixAt || probe.stoppedAt ? (
         <button
           type="button"
@@ -79,27 +88,8 @@ export function ProbeView({ probe, nameOf, focus }: ProbeViewProps) {
           定位
         </button>
       ) : null}
-      {groups.map((group) => (
-        <div key={`${group.phase}-${group.decisions[0]?.seq}`} className="hop-group">
-          {showPhase ? <div className="hop-group-title">{PHASE_LABEL[group.phase]}</div> : null}
-          <ul className="hop-list">
-            {group.decisions.map((decision) => (
-              <li key={decision.seq}>
-                <button
-                  type="button"
-                  className={`hop${decision.verdict === "stop" ? " hop-stop" : ""}`}
-                  onClick={() => focus(decision.deviceId)}
-                >
-                  <span className="hop-seq">{decision.seq}</span>
-                  <span className="hop-device">{nameOf(decision.deviceId)}</span>
-                  <span className="hop-action">{ACTION_LABEL[decision.action]}</span>
-                  <span className="hop-note">{decision.note || decision.reason}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {probe.hops ? <HopTable hops={probe.hops} names={names} stale={stale} /> : null}
+      <HopList probe={probe} names={names} focus={focus} stale={stale} />
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DeviceType } from "../engine";
 import { DEVICE_TYPES } from "../engine";
-import { useTopologyStore } from "../store";
+import { useTopologyStore, useTraceStore } from "../store";
 import type { DeviceEdgeType } from "./DeviceEdge";
 import { DeviceEdge } from "./DeviceEdge";
 import { ApNode } from "./nodes/ApNode";
@@ -22,6 +22,10 @@ import { RouterNode } from "./nodes/RouterNode";
 import { SwitchNode } from "./nodes/SwitchNode";
 import { nodeSubtitle } from "./nodes/subtitle";
 import type { DeviceNodeType } from "./nodes/types";
+import { PlaybackBar } from "./trace/PlaybackBar";
+import { TraceLayer } from "./trace/TraceLayer";
+import { segmentIndexAt, traceView } from "./trace/traceView";
+import { usePlayback } from "./trace/usePlayback";
 import "./canvas.css";
 
 const nodeTypes = {
@@ -47,6 +51,17 @@ export function Canvas() {
   const wrapper = useRef<HTMLDivElement>(null);
   const restored = useRef(false);
   const domNode = useFlowStore((s) => s.domNode);
+
+  // CP3：播放时钟只在这里跑一份，画面全部由 cursorMs 派生
+  usePlayback();
+  const timeline = useTraceStore((s) => s.timeline);
+  const traceStale = useTraceStore((s) => s.stale);
+  const segmentIndex = useTraceStore((s) => segmentIndexAt(s.timeline, s.cursorMs));
+  const traceLive = timeline !== null && !traceStale;
+  const view = useMemo(
+    () => traceView(traceLive ? timeline : null, segmentIndex),
+    [traceLive, timeline, segmentIndex],
+  );
 
   useEffect(() => {
     if (!loaded || restored.current || !domNode) return;
@@ -78,13 +93,21 @@ export function Canvas() {
         type: device.type,
         position: device.position,
         selected: selectedIds.has(device.id),
+        className:
+          [
+            view.visits.has(device.id) ? "trace-visited" : "",
+            view.activeDeviceId === device.id ? "trace-active" : "",
+            view.stoppedDeviceId === device.id ? "trace-stopped" : "",
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined,
         data: {
           device,
           address: nodeSubtitle(device, runtime),
           errorCount: errorCounts.get(device.id) ?? 0,
         },
       })),
-    [topology.devices, runtime, errorCounts, selectedIds],
+    [topology.devices, runtime, errorCounts, selectedIds, view],
   );
 
   const [nodes, setNodes] = useState<DeviceNodeType[]>(derivedNodes);
@@ -112,13 +135,14 @@ export function Canvas() {
           target: link.b.deviceId,
           targetHandle: link.b.portId,
           selected: selection.kind === "link" && selection.id === link.id,
+          className: view.walkedLinkIds.has(link.id) ? "trace-walked" : undefined,
           data: {
             label: `${portName(link.a.deviceId, link.a.portId)} – ${portName(link.b.deviceId, link.b.portId)}`,
             hasError,
           },
         };
       }),
-    [topology.links, topology.devices, issues, selection],
+    [topology.links, topology.devices, issues, selection, view],
   );
 
   const onNodesChange = useCallback((changes: NodeChange<DeviceNodeType>[]) => {
@@ -225,6 +249,11 @@ export function Canvas() {
       const type = (el as HTMLInputElement).type;
       return type !== "checkbox" && type !== "radio" && type !== "button" && type !== "file";
     };
+    /** 按钮、链接：空格本来就是「按下去」，别再抢去做播放开关 */
+    const clickable = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return el?.tagName === "BUTTON" || el?.tagName === "A";
+    };
     const onKeyDown = (event: KeyboardEvent) => {
       const store = useTopologyStore.getState();
       const meta = event.metaKey || event.ctrlKey;
@@ -249,6 +278,23 @@ export function Canvas() {
         store.select(
           ids.length === 1 ? { kind: "device", id: ids[0] as string } : { kind: "devices", ids },
         );
+        return;
+      }
+      // CP3 播放快捷键：焦点落在按钮或输入框上时让开
+      if (event.key === " " || event.key === "Spacebar") {
+        if (inForm(event.target) || clickable(event.target)) return;
+        const trace = useTraceStore.getState();
+        if (!trace.timeline || trace.stale) return;
+        event.preventDefault();
+        trace.togglePlay();
+        return;
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        if (inForm(event.target)) return;
+        const trace = useTraceStore.getState();
+        if (!trace.timeline || trace.stale) return;
+        event.preventDefault();
+        trace.step(event.key === "ArrowRight" ? 1 : -1);
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
@@ -301,6 +347,8 @@ export function Canvas() {
       >
         <Background gap={GRID} />
         <Controls showInteractive={false} />
+        <TraceLayer view={view} live={traceLive} />
+        {traceLive && timeline ? <PlaybackBar timeline={timeline} /> : null}
       </ReactFlow>
     </main>
   );

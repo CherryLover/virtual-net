@@ -337,93 +337,93 @@
 ### CP3-S1 traceroute 引擎入口
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-001 | 引擎测试 | CP1 fixture 拓扑 | `traceroute(电脑1, '8.8.8.8')` | `verdict: 'ok'`，`hops` 两条：`{ hop: 1, 路由器1, ip: '192.168.1.1', ttlIn: 64, through: [] }`、`{ hop: 2, 互联网, ip: '8.8.8.8', ttlIn: 63 }`；`decisions` 与 `ping` 同参数结果深等于；`summary` 为「电脑1 → 8.8.8.8 共 2 跳」 | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-002 | 引擎测试 | CP1 fixture 拓扑 | `traceroute(电脑1, '192.168.1.1')` | 一跳，`ip: '192.168.1.1'`，`ttlIn: 64` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-003 | 引擎测试 | CP1 fixture 拓扑 | 断开 `wan` 连线再 traceroute `8.8.8.8` | `fail`，`hops` 一条 `{ hop: 1, 路由器1, status: 'stop' }`，`reasonCode: NO_ROUTE`，`summary` 含「第 1 跳失败」 | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-004 | 引擎测试 | CP1 fixture 拓扑 | 电脑1 手动网关 `10.0.0.1`，traceroute | `fail`，`hops` 为空数组，`reasonCode: GATEWAY_OFF_SUBNET` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-005 | 引擎测试 | — | 构造一条去程里含 TTL 不变的中间 decision（模拟 CP2 交换机，手工拼 decisions 传给派生函数） | 该设备不成跳，出现在下一跳的 `through` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-006 | 引擎测试 | — | 检查 `ping` / `visitSite` 的结果 | `hops` 为 `null` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-001 | 引擎测试 | CP1 fixture 拓扑 | `traceroute(电脑1, '8.8.8.8')` | `verdict: 'ok'`，`hops` 两条：`{ hop: 1, 路由器1, ip: '192.168.1.1', ttlIn: 64, through: [] }`、`{ hop: 2, 互联网, ip: '8.8.8.8', ttlIn: 63 }`；`decisions` 与 `ping` 同参数结果深等于；`summary` 为「电脑1 → 8.8.8.8 共 2 跳」 | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-002 | 引擎测试 | CP1 fixture 拓扑 | `traceroute(电脑1, '192.168.1.1')` | 一跳，`ip: '192.168.1.1'`，`ttlIn: 64` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-003 | 引擎测试 | CP1 fixture 拓扑 | 断开 `wan` 连线再 traceroute `8.8.8.8` | `fail`，`hops` 一条 `{ hop: 1, 路由器1, status: 'stop' }`，`reasonCode: NO_ROUTE`，`summary` 含「第 1 跳失败」 | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-004 | 引擎测试 | CP1 fixture 拓扑 | 电脑1 手动网关 `10.0.0.1`，traceroute | `fail`，`hops` 为空数组，`reasonCode: GATEWAY_OFF_SUBNET` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-005 | 引擎测试 | — | 构造一条去程里含 TTL 不变的中间 decision（模拟 CP2 交换机，手工拼 decisions 传给派生函数） | 该设备不成跳，出现在下一跳的 `through` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-006 | 引擎测试 | — | 检查 `ping` / `visitSite` 的结果 | `hops` 为 `null` | [CP3-S1](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S2 网页测试框架与时间线模型
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-007 | 命令 | — | 根目录 `pnpm test` | 引擎与网页两个包的测试都跑，退出码 0 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-008 | 网页测试 | fixture ping `8.8.8.8` 的结果 | `buildTimeline` | 5 个 dwell、4 个 travel、0 个 gap；片段首尾相接（每段 `startMs` 等于上一段 `endMs`），首段 0 起，末段 `endMs === totalMs`；`marks` 长 5 且每个 `atMs` 等于对应 dwell 的 `startMs` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-009 | 网页测试 | 接 T-CP3-008 | 检查每个 travel | `toDeviceId` 等于下一条 decision 的 `deviceId`；`linkId` 等于该 decision 的 `linkId` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-010 | 网页测试 | fixture `visitSite('www.google.com')` 的结果 | `buildTimeline` | 恰好 1 个 gap，位于 `phase` 从 `dns` 变 `tcp` 的两个 dwell 之间，`deviceId` 为电脑1 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-011 | 网页测试 | 接 T-CP3-010 | 检查路由器 DNS 转发那条 `originate`（`packetIn` 非空）与起点 `originate` 的 dwell | 前者 `style: 'renew'`；后者 `style: 'normal'` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-012 | 网页测试 | — | ①网关配错的失败结果 `buildTimeline` ②NAT 关闭的失败结果 `buildTimeline` | ①仅 1 个 dwell，`style: 'stop'`，无 travel ②3 个 dwell、2 个 travel，末段 `stop` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-013 | 网页测试 | — | 手工拼 32 条 decision 的结果 `buildTimeline` | `totalMs === 30000`，各片段比例与基准一致 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-014 | 网页测试 | — | 对时间线 `t`：`segmentAt(t, 0)`、`segmentAt(t, totalMs)`、`seekToSeq(t, 3)` | `segmentAt(t, 0)` 是首段；`segmentAt(t, totalMs)` 是末段；`seekToSeq(t, 3)` 返回第 3 条的 dwell 起点 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-015 | 网页测试 | — | 用 travel 对端与下一条 `deviceId` 不一致的手工数据 `buildTimeline` | 以连线为准，返回结果带 `warnings[]`，不抛错 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-007 | 命令 | — | 根目录 `pnpm test` | 引擎与网页两个包的测试都跑，退出码 0 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-008 | 网页测试 | fixture ping `8.8.8.8` 的结果 | `buildTimeline` | 5 个 dwell、4 个 travel、0 个 gap；片段首尾相接（每段 `startMs` 等于上一段 `endMs`），首段 0 起，末段 `endMs === totalMs`；`marks` 长 5 且每个 `atMs` 等于对应 dwell 的 `startMs` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-009 | 网页测试 | 接 T-CP3-008 | 检查每个 travel | `toDeviceId` 等于下一条 decision 的 `deviceId`；`linkId` 等于该 decision 的 `linkId` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-010 | 网页测试 | fixture `visitSite('www.google.com')` 的结果 | `buildTimeline` | 恰好 1 个 gap，位于 `phase` 从 `dns` 变 `tcp` 的两个 dwell 之间，`deviceId` 为电脑1 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-011 | 网页测试 | 接 T-CP3-010 | 检查路由器 DNS 转发那条 `originate`（`packetIn` 非空）与起点 `originate` 的 dwell | 前者 `style: 'renew'`；后者 `style: 'normal'` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-012 | 网页测试 | — | ①网关配错的失败结果 `buildTimeline` ②NAT 关闭的失败结果 `buildTimeline` | ①仅 1 个 dwell，`style: 'stop'`，无 travel ②3 个 dwell、2 个 travel，末段 `stop` | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-013 | 网页测试 | — | 手工拼 32 条 decision 的结果 `buildTimeline` | `totalMs === 30000`，各片段比例与基准一致 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-014 | 网页测试 | — | 对时间线 `t`：`segmentAt(t, 0)`、`segmentAt(t, totalMs)`、`seekToSeq(t, 3)` | `segmentAt(t, 0)` 是首段；`segmentAt(t, totalMs)` 是末段；`seekToSeq(t, 3)` 返回第 3 条的 dwell 起点 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-015 | 网页测试 | — | 用 travel 对端与下一条 `deviceId` 不一致的手工数据 `buildTimeline` | 以连线为准，返回结果带 `warnings[]`，不抛错 | [CP3-S2](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S3 动画状态与画布包标记
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-016 | 页面操作 | fixture 图 | 验证 ping `8.8.8.8` | 弹窗关闭后蓝色圆点从电脑1 出现，停一下，沿 `eth0 – lan1` 线移到路由器1，停，沿 `wan – port1` 到互联网，停，再原路返回电脑1，最后停住不动；全程约 7 s | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-017 | 页面操作 | ping `8.8.8.8` 播放中 | 拖动路由器1 节点 | 圆点跟着新的线走，不跳到旧位置 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-018 | 页面操作 | ping `8.8.8.8` 播放中 | 滚轮缩放、拖空白平移 | 圆点始终贴在线上或节点中心 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-019 | 页面操作 | ping `8.8.8.8` 播完 | 查看节点角标与连线 | 路由器1 角标显示 `2 · 4`，电脑1 `1 · 5`，互联网 `3`；两根线都是高亮色 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-020 | 页面操作 | 接 T-CP3-019 | 验证 ping `192.168.1.1` | 只走一根线来回；上一次的角标和高亮先清掉 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-021 | 网页测试 | — | `store` 收到 `lastProbe` | `trace.timeline` 非空、`cursorMs === 0`、`playing === true` | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-016 | 页面操作 | fixture 图 | 验证 ping `8.8.8.8` | 弹窗关闭后蓝色圆点从电脑1 出现，停一下，沿 `eth0 – lan1` 线移到路由器1，停，沿 `wan – port1` 到互联网，停，再原路返回电脑1，最后停住不动；全程约 7 s | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-017 | 页面操作 | ping `8.8.8.8` 播放中 | 拖动路由器1 节点 | 圆点跟着新的线走，不跳到旧位置 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-018 | 页面操作 | ping `8.8.8.8` 播放中 | 滚轮缩放、拖空白平移 | 圆点始终贴在线上或节点中心 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-019 | 页面操作 | ping `8.8.8.8` 播完 | 查看节点角标与连线 | 路由器1 角标显示 `2 · 4`，电脑1 `1 · 5`，互联网 `3`；两根线都是高亮色 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-020 | 页面操作 | 接 T-CP3-019 | 验证 ping `192.168.1.1` | 只走一根线来回；上一次的角标和高亮先清掉 | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-021 | 网页测试 | — | `store` 收到 `lastProbe` | `trace.timeline` 非空、`cursorMs === 0`、`playing === true` | [CP3-S3](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S4 播放控件
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-022 | 页面操作 | fixture 图 | 验证 ping `8.8.8.8` | 画布底部出现播放条，进度条上 5 个刻度，播放中滑块前进；播完按钮变回 ▶ | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-023 | 页面操作 | ping `8.8.8.8` 播放中 | 点 ⏸；再点 ▶ | 圆点停住；再点 ▶ 后从停的位置继续 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-024 | 页面操作 | ping `8.8.8.8` 结果已加载 | 滑块拖到最左并暂停，点 ⏭ 三次；再点 ⏮ 一次 | 圆点依次停在路由器1、互联网、路由器1（回程）的中心；⏮ 后回到互联网 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-025 | 页面操作 | ping `8.8.8.8` 结果已加载 | 速度切 2× 播放；切 0.5× 播放 | 2× 整趟约 3.5 s；0.5× 约 14 s | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-026 | 页面操作 | ping `8.8.8.8` 结果已加载 | 把滑块拖到进度条中段松手；再拖到最右 | 中段：圆点停在对应位置，不自动播放；最右：圆点停在电脑1，与播完状态一致 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-027 | 页面操作 | ping `8.8.8.8` 结果已加载 | ①点画布空白后按空格 ②按 `→` `←` ③在配置面板输入框里按空格 | ①播放 / 暂停切换 ②单步 ③只输入空格 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-028 | 页面操作 | ping `8.8.8.8` 结果已加载 | 点 ✕ | 圆点、角标、高亮消失，播放条隐藏，结果面板的结论与列表仍在 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-029 | 页面操作 | fixture 图 | 访问网站 `www.google.com` | 进度条中间一道分隔线，左段紫色、右段绿色；圆点过分隔线时在电脑1 上停一下并换色 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-022 | 页面操作 | fixture 图 | 验证 ping `8.8.8.8` | 画布底部出现播放条，进度条上 5 个刻度，播放中滑块前进；播完按钮变回 ▶ | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-023 | 页面操作 | ping `8.8.8.8` 播放中 | 点 ⏸；再点 ▶ | 圆点停住；再点 ▶ 后从停的位置继续 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-024 | 页面操作 | ping `8.8.8.8` 结果已加载 | 滑块拖到最左并暂停，点 ⏭ 三次；再点 ⏮ 一次 | 圆点依次停在路由器1、互联网、路由器1（回程）的中心；⏮ 后回到互联网 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-025 | 页面操作 | ping `8.8.8.8` 结果已加载 | 速度切 2× 播放；切 0.5× 播放 | 2× 整趟约 3.5 s；0.5× 约 14 s | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-026 | 页面操作 | ping `8.8.8.8` 结果已加载 | 把滑块拖到进度条中段松手；再拖到最右 | 中段：圆点停在对应位置，不自动播放；最右：圆点停在电脑1，与播完状态一致 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-027 | 页面操作 | ping `8.8.8.8` 结果已加载 | ①点画布空白后按空格 ②按 `→` `←` ③在配置面板输入框里按空格 | ①播放 / 暂停切换 ②单步 ③只输入空格 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-028 | 页面操作 | ping `8.8.8.8` 结果已加载 | 点 ✕ | 圆点、角标、高亮消失，播放条隐藏，结果面板的结论与列表仍在 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-029 | 页面操作 | fixture 图 | 访问网站 `www.google.com` | 进度条中间一道分隔线，左段紫色、右段绿色；圆点过分隔线时在电脑1 上停一下并换色 | [CP3-S4](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S5 逐跳列表与同步
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-030 | 页面操作 | fixture 图 | 验证 ping `8.8.8.8`，播放中观察逐跳列表 | 高亮行随圆点推进：圆点在路由器1 时第 2 行亮，回程到路由器1 时第 4 行亮 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-031 | 页面操作 | 接 T-CP3-030，已暂停 | 点第 3 行；点该行行尾的定位图标 | 圆点跳到互联网中心，第 3 行亮，设备未被选中、面板仍是结果面板；点定位图标后互联网选中并居中 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-032 | 页面操作 | 把浏览器窗口压矮到列表出滚动条 | 从头播放 | 高亮行始终在可视区内 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-033 | 页面操作 | ping `8.8.8.8` 播放中 | 点路由器1 节点；再点空白回到结果面板 | 面板切到配置表单，圆点继续走；回到结果面板后高亮行与圆点位置一致 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-034 | 页面操作 | fixture 图 | 验证类型选 traceroute，起点 电脑1，目标 `8.8.8.8`；点跳数表第 1 行 | 结论「电脑1 → 8.8.8.8 共 2 跳」，跳数表两行 `1 路由器1 192.168.1.1 64`、`2 互联网 8.8.8.8 63`，下方逐跳列表与 ping 相同 5 行；点第 1 行后圆点到路由器1 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-035 | 页面操作 | fixture 图 | 断开 `wan` 线再 traceroute | 跳数表一行红 `1 路由器1`，结论含「第 1 跳失败」 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-030 | 页面操作 | fixture 图 | 验证 ping `8.8.8.8`，播放中观察逐跳列表 | 高亮行随圆点推进：圆点在路由器1 时第 2 行亮，回程到路由器1 时第 4 行亮 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-031 | 页面操作 | 接 T-CP3-030，已暂停 | 点第 3 行；点该行行尾的定位图标 | 圆点跳到互联网中心，第 3 行亮，设备未被选中、面板仍是结果面板；点定位图标后互联网选中并居中 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-032 | 页面操作 | 把浏览器窗口压矮到列表出滚动条 | 从头播放 | 高亮行始终在可视区内 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-033 | 页面操作 | ping `8.8.8.8` 播放中 | 点路由器1 节点；再点空白回到结果面板 | 面板切到配置表单，圆点继续走；回到结果面板后高亮行与圆点位置一致 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-034 | 页面操作 | fixture 图 | 验证类型选 traceroute，起点 电脑1，目标 `8.8.8.8`；点跳数表第 1 行 | 结论「电脑1 → 8.8.8.8 共 2 跳」，跳数表两行 `1 路由器1 192.168.1.1 64`、`2 互联网 8.8.8.8 63`，下方逐跳列表与 ping 相同 5 行；点第 1 行后圆点到路由器1 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-035 | 页面操作 | fixture 图 | 断开 `wan` 线再 traceroute | 跳数表一行红 `1 路由器1`，结论含「第 1 跳失败」 | [CP3-S5](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S6 包头查看
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-036 | 网页测试 | — | ①`diffPacket` 对 fixture NAT 出向那一跳的 `packetIn` / `packetOut` ②对两侧相同的包 ③对一侧为 `null` 的包 | ①返回 `['srcMac', 'dstMac', 'srcIp', 'ttl']`，不含 `dstIp`、`l4.icmpId`（echo id 未被占用时不变）②空数组 ③空数组 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-037 | 页面操作 | fixture 图，ping `8.8.8.8` | 点第 2 行「包头」 | 模态框标题「第 2 跳 · 路由器1 · 转发」；三层区左列源 IP `192.168.1.100`、右列 `203.0.113.2` 高亮；TTL 左 64 右 63 高亮；四层区协议 ICMP、类型 请求、id 左右都是 1（未被占用时不变）；VLAN 区不显示 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-038 | 页面操作 | 接 T-CP3-037 | 点「下一跳」；再点「下一跳」 | 第 3 跳 互联网 · 应答，左列目的 IP `8.8.8.8`、右列源 IP `8.8.8.8`，类型 请求 → 应答；再下一跳为第 4 跳 NAT 还原，右列目的 IP `192.168.1.100` 高亮 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-039 | 页面操作 | fixture 图，ping `8.8.8.8` | 点第 1 行「包头」；点第 5 行「包头」 | 第 1 行只有「出」一列；第 5 行只有「进」一列 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-040 | 页面操作 | fixture 图 | 访问网站，打开 DNS 阶段路由器1 的「重新发出」那一跳的包头 | 顶部一行「路由器以自己的地址重新发起查询」，源 IP、目的 IP、源端口、MAC 全部高亮 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-041 | 页面操作 | 播放中 | 打开模态框；按 `Esc`；点画布上的圆点 | 打开时圆点停住；`Esc` 关闭；点圆点打开当前 `seq` 的包头 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-036 | 网页测试 | — | ①`diffPacket` 对 fixture NAT 出向那一跳的 `packetIn` / `packetOut` ②对两侧相同的包 ③对一侧为 `null` 的包 | ①返回 `['srcMac', 'dstMac', 'srcIp', 'ttl']`，不含 `dstIp`、`l4.icmpId`（echo id 未被占用时不变）②空数组 ③空数组 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-037 | 页面操作 | fixture 图，ping `8.8.8.8` | 点第 2 行「包头」 | 模态框标题「第 2 跳 · 路由器1 · 转发」；三层区左列源 IP `192.168.1.100`、右列 `203.0.113.2` 高亮；TTL 左 64 右 63 高亮；四层区协议 ICMP、类型 请求、id 左右都是 1（未被占用时不变）；VLAN 区不显示 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-038 | 页面操作 | 接 T-CP3-037 | 点「下一跳」；再点「下一跳」 | 第 3 跳 互联网 · 应答，左列目的 IP `8.8.8.8`、右列源 IP `8.8.8.8`，类型 请求 → 应答；再下一跳为第 4 跳 NAT 还原，右列目的 IP `192.168.1.100` 高亮 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-039 | 页面操作 | fixture 图，ping `8.8.8.8` | 点第 1 行「包头」；点第 5 行「包头」 | 第 1 行只有「出」一列；第 5 行只有「进」一列 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-040 | 页面操作 | fixture 图 | 访问网站，打开 DNS 阶段路由器1 的「重新发出」那一跳的包头 | 顶部一行「路由器以自己的地址重新发起查询」，源 IP、目的 IP、源端口、MAC 全部高亮 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-041 | 页面操作 | 播放中 | 打开模态框；按 `Esc`；点画布上的圆点 | 打开时圆点停住；`Esc` 关闭；点圆点打开当前 `seq` 的包头 | [CP3-S6](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S7 解释文案
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-042 | 网页测试 | fixture ping `8.8.8.8` 的 5 条 decision | 依次 `explain` | title 依次：`从 eth0 发出`、`转发并做 NAT，从 wan 发出`、`收到 ping 请求，应答`、`NAT 还原后转发，从 lan1 发出`、`收到应答，结束` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-043 | 网页测试 | 接 T-CP3-042 | 检查第 1 条、第 2 条的 lines | 第 1 条 lines 含 `查路由表：命中默认路由 0.0.0.0/0，下一跳 192.168.1.1，从 eth0 发出` 与 `ARP：192.168.1.1 → 02:00:00:00:00:03`；第 2 条 lines 含 `NAT：192.168.1.100:1 → 203.0.113.2:1` 与 `TTL 64 → 63` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-044 | 网页测试 | — | ①`explain` 网关配错的 stop decision ②`explain` 未知 `reasonCode: 'X'` 的 decision | ①title `网关不可达`，lines 首行等于 decision.reason ②title `验证终止` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-045 | 网页测试 | — | `explain` DNS 阶段路由器 `originate` | title `作为 DNS 转发器，向上游 8.8.8.8 重新发起查询`，lines 含 `DNS 转发：www.google.com → 上游 8.8.8.8` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-046 | 网页测试 | — | `explain` 手工拼 `basis: { route: null, arp: …, tunnel: {…} }` 的 forward | 不抛错，title 回落为 `note` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-047 | 页面操作 | 已有验证结果 | 查看结果面板逐跳列表；点行首 ▸ | 每行显示上述 title；展开看到 lines | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-042 | 网页测试 | fixture ping `8.8.8.8` 的 5 条 decision | 依次 `explain` | title 依次：`从 eth0 发出`、`转发并做 NAT，从 wan 发出`、`收到 ping 请求，应答`、`NAT 还原后转发，从 lan1 发出`、`收到应答，结束` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-043 | 网页测试 | 接 T-CP3-042 | 检查第 1 条、第 2 条的 lines | 第 1 条 lines 含 `查路由表：命中默认路由 0.0.0.0/0，下一跳 192.168.1.1，从 eth0 发出` 与 `ARP：192.168.1.1 → 02:00:00:00:00:03`；第 2 条 lines 含 `NAT：192.168.1.100:1 → 203.0.113.2:1` 与 `TTL 64 → 63` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-044 | 网页测试 | — | ①`explain` 网关配错的 stop decision ②`explain` 未知 `reasonCode: 'X'` 的 decision | ①title `网关不可达`，lines 首行等于 decision.reason ②title `验证终止` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-045 | 网页测试 | — | `explain` DNS 阶段路由器 `originate` | title `作为 DNS 转发器，向上游 8.8.8.8 重新发起查询`，lines 含 `DNS 转发：www.google.com → 上游 8.8.8.8` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-046 | 网页测试 | — | `explain` 手工拼 `basis: { route: null, arp: …, tunnel: {…} }` 的 forward | 不抛错，title 回落为 `note` | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-047 | 页面操作 | 已有验证结果 | 查看结果面板逐跳列表；点行首 ▸ | 每行显示上述 title；展开看到 lines | [CP3-S7](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### CP3-S8 失败呈现与作废处理
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-048 | 页面操作 | CP1 场景 2（电脑1 网关 `10.0.0.1`） | ping `8.8.8.8` | 圆点在电脑1 上变红不动；电脑1 红描边；气泡标题「网关不可达」，正文「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，按钮「定位」；两根线都是默认样式；进度条只有 1 个刻度 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-049 | 页面操作 | 接 T-CP3-048 | 点气泡「定位」 | 电脑1 选中，网关字段高亮 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-050 | 页面操作 | CP1 场景 3（NAT 关） | ping `8.8.8.8`；点「定位」 | 圆点走到互联网变红；互联网红描边；`eth0 – lan1`、`wan – port1` 高亮；气泡标题「无法回程」；「定位」跳到路由器1 的 NAT 开关 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-051 | 页面操作 | 播放中 | 把路由器1 的 DHCP 关掉；点「重新验证」 | 圆点、角标、高亮立即消失，播放条隐藏；结果面板顶部横幅「拓扑已改动，结果可能失效」+「重新验证」；点「重新验证」后重跑同一 ping，新结果播放 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-052 | 页面操作 | 播放中 | 拖动电脑1 位置 | 不出横幅，动画继续 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-053 | 页面操作 | 播放中 | 删除互联网节点；再删电脑1 | 横幅出现，无控制台报错；再删电脑1 后「重新验证」禁用，横幅「起点设备已删除」 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-054 | 网页测试 | — | ①改变 `topologyRevision` ②只改变 `position` | ①`trace.stale === true`、`playing === false` ②不改 `stale` | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-048 | 页面操作 | CP1 场景 2（电脑1 网关 `10.0.0.1`） | ping `8.8.8.8` | 圆点在电脑1 上变红不动；电脑1 红描边；气泡标题「网关不可达」，正文「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，按钮「定位」；两根线都是默认样式；进度条只有 1 个刻度 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-049 | 页面操作 | 接 T-CP3-048 | 点气泡「定位」 | 电脑1 选中，网关字段高亮 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-050 | 页面操作 | CP1 场景 3（NAT 关） | ping `8.8.8.8`；点「定位」 | 圆点走到互联网变红；互联网红描边；`eth0 – lan1`、`wan – port1` 高亮；气泡标题「无法回程」；「定位」跳到路由器1 的 NAT 开关 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-051 | 页面操作 | 播放中 | 把路由器1 的 DHCP 关掉；点「重新验证」 | 圆点、角标、高亮立即消失，播放条隐藏；结果面板顶部横幅「拓扑已改动，结果可能失效」+「重新验证」；点「重新验证」后重跑同一 ping，新结果播放 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-052 | 页面操作 | 播放中 | 拖动电脑1 位置 | 不出横幅，动画继续 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-053 | 页面操作 | 播放中 | 删除互联网节点；再删电脑1 | 横幅出现，无控制台报错；再删电脑1 后「重新验证」禁用，横幅「起点设备已删除」 | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-054 | 网页测试 | — | ①改变 `topologyRevision` ②只改变 `position` | ①`trace.stale === true`、`playing === false` ②不改 `stale` | [CP3-S8](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 
 ### 阶段完成标准
 | 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-CP3-055 | 页面操作 | 按 CP1 场景 1 搭好图（电脑1 自动获取、路由器1 DHCP 与 NAT 开、两根线） | 按 CP3『阶段完成标准』场景 1 的 6 步操作：「验证」ping 起点 电脑1 目标 `8.8.8.8`；观察逐跳列表；点 ⏸，点 ⏭ 到第 2 跳，点该行「包头」并展开该行；「下一跳」两次到第 4 跳；关闭模态框，速度 2×，▶ | 弹窗关闭，画布底部出现播放条，蓝色圆点从电脑1 出发依次停 路由器1 → 互联网 → 路由器1 → 电脑1，两根线变高亮，约 7 s 播完；逐跳 5 行 title 依次「从 eth0 发出」「转发并做 NAT，从 wan 发出」「收到 ping 请求，应答」「NAT 还原后转发，从 lan1 发出」「收到应答，结束」，播放中高亮行跟着圆点走；第 2 跳模态框左列源 IP `192.168.1.100`、右列 `203.0.113.2` 两格高亮，TTL `64` → `63` 高亮，展开该行看到「NAT：192.168.1.100:1 → 203.0.113.2:1」；第 4 跳右列目的 IP `192.168.1.100` 高亮，title「NAT 还原后转发」；2× 约 3.5 s 播完，路由器1 角标 `2 · 4` | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-056 | 页面操作 | 接场景 1（T-CP3-055） | 按 CP3『阶段完成标准』场景 2 的 4 步操作：电脑1 改手动 IP `192.168.1.10`，掩码 `255.255.255.0`，网关 `10.0.0.1`，DNS `192.168.1.1`；「验证」ping `8.8.8.8`；查看逐跳列表并展开首行；点气泡「定位」；网关改回 `192.168.1.1`，点「重新验证」 | 圆点在电脑1 上直接变红不移动，电脑1 红描边，气泡标题「网关不可达」，正文「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，两根线保持默认样式，进度条 1 个刻度；逐跳列表 1 行红底，title「网关不可达」，展开首行为同一段正文；「定位」→ 电脑1 选中，网关字段高亮；改回网关后横幅「拓扑已改动，结果可能失效」，「重新验证」→ 通，重新播放 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-057 | 页面操作 | 接场景 2 末（T-CP3-056，已改回网关） | 按 CP3『阶段完成标准』场景 3 的 3 步操作：「验证」类型 traceroute，起点 电脑1，目标 `8.8.8.8`；点跳数表第 2 行；删掉 `wan – port1` 连线，点「重新验证」 | 结论「电脑1 → 8.8.8.8 共 2 跳」，跳数表 `1 路由器1 192.168.1.1 64`、`2 互联网 8.8.8.8 63`，下方逐跳与 ping 相同 5 行，动画照常播完整往返；点第 2 行 → 圆点跳到互联网并暂停；删线后横幅出现，「重新验证」→ 结论「电脑1 → 8.8.8.8 第 1 跳失败」，跳数表一行红 `1 路由器1`，圆点在路由器1 变红，气泡「没有路由」+ CP1 的 `NO_ROUTE` 文案 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | |
-| T-CP3-058 | 命令 | — | 按 CP3『阶段完成标准』「引擎与网页自动测试」操作：`pnpm test` | 引擎、网页两个包都通过；`scenarios/cp3.test.ts` 含场景 1、3 的 traceroute 断言；`trace/timeline.test.ts` 与 `trace/explain.test.ts` 含场景 1、2 的时间线形状与 title 断言 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | |
+| T-CP3-055 | 页面操作 | 按 CP1 场景 1 搭好图（电脑1 自动获取、路由器1 DHCP 与 NAT 开、两根线） | 按 CP3『阶段完成标准』场景 1 的 6 步操作：「验证」ping 起点 电脑1 目标 `8.8.8.8`；观察逐跳列表；点 ⏸，点 ⏭ 到第 2 跳，点该行「包头」并展开该行；「下一跳」两次到第 4 跳；关闭模态框，速度 2×，▶ | 弹窗关闭，画布底部出现播放条，蓝色圆点从电脑1 出发依次停 路由器1 → 互联网 → 路由器1 → 电脑1，两根线变高亮，约 7 s 播完；逐跳 5 行 title 依次「从 eth0 发出」「转发并做 NAT，从 wan 发出」「收到 ping 请求，应答」「NAT 还原后转发，从 lan1 发出」「收到应答，结束」，播放中高亮行跟着圆点走；第 2 跳模态框左列源 IP `192.168.1.100`、右列 `203.0.113.2` 两格高亮，TTL `64` → `63` 高亮，展开该行看到「NAT：192.168.1.100:1 → 203.0.113.2:1」；第 4 跳右列目的 IP `192.168.1.100` 高亮，title「NAT 还原后转发」；2× 约 3.5 s 播完，路由器1 角标 `2 · 4` | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-056 | 页面操作 | 接场景 1（T-CP3-055） | 按 CP3『阶段完成标准』场景 2 的 4 步操作：电脑1 改手动 IP `192.168.1.10`，掩码 `255.255.255.0`，网关 `10.0.0.1`，DNS `192.168.1.1`；「验证」ping `8.8.8.8`；查看逐跳列表并展开首行；点气泡「定位」；网关改回 `192.168.1.1`，点「重新验证」 | 圆点在电脑1 上直接变红不移动，电脑1 红描边，气泡标题「网关不可达」，正文「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，两根线保持默认样式，进度条 1 个刻度；逐跳列表 1 行红底，title「网关不可达」，展开首行为同一段正文；「定位」→ 电脑1 选中，网关字段高亮；改回网关后横幅「拓扑已改动，结果可能失效」，「重新验证」→ 通，重新播放 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-057 | 页面操作 | 接场景 2 末（T-CP3-056，已改回网关） | 按 CP3『阶段完成标准』场景 3 的 3 步操作：「验证」类型 traceroute，起点 电脑1，目标 `8.8.8.8`；点跳数表第 2 行；删掉 `wan – port1` 连线，点「重新验证」 | 结论「电脑1 → 8.8.8.8 共 2 跳」，跳数表 `1 路由器1 192.168.1.1 64`、`2 互联网 8.8.8.8 63`，下方逐跳与 ping 相同 5 行，动画照常播完整往返；点第 2 行 → 圆点跳到互联网并暂停；删线后横幅出现，「重新验证」→ 结论「电脑1 → 8.8.8.8 第 1 跳失败」，跳数表一行红 `1 路由器1`，圆点在路由器1 变红，气泡「没有路由」+ CP1 的 `NO_ROUTE` 文案 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+| T-CP3-058 | 命令 | — | 按 CP3『阶段完成标准』「引擎与网页自动测试」操作：`pnpm test` | 引擎、网页两个包都通过；`scenarios/cp3.test.ts` 含场景 1、3 的 traceroute 断言；`trace/timeline.test.ts` 与 `trace/explain.test.ts` 含场景 1、2 的时间线形状与 title 断言 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |

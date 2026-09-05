@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import type { Device, Runtime } from "../engine";
-import { leaseOf, ping, visitSite } from "../engine";
+import { leaseOf } from "../engine";
 import { useTopologyStore } from "../store";
-import { ProbeView, useDeviceFocus, useDeviceName } from "./ProbeView";
+import { ProbeView, useDeviceFocus } from "./ProbeView";
 
 const DEFAULT_DOMAIN = "www.google.com";
 const PUBLIC_IP = "8.8.8.8";
@@ -28,10 +28,9 @@ function gatewayOf(device: Device, runtime: Runtime): string {
 
 export function DeviceProbe({ device, runtime }: Props) {
   const topology = useTopologyStore((s) => s.topology);
-  const setProbe = useTopologyStore((s) => s.setProbe);
+  const runProbe = useTopologyStore((s) => s.runProbe);
   const lastProbe = useTopologyStore((s) => s.lastProbe);
   const focus = useDeviceFocus();
-  const nameOf = useDeviceName();
 
   const domains = useMemo(
     () =>
@@ -57,12 +56,17 @@ export function DeviceProbe({ device, runtime }: Props) {
 
   const runPing = (ip: string) => {
     if (!ip) return;
-    setProbe(ping(topology, { sourceDeviceId: device.id, targetIp: ip }));
+    runProbe({ kind: "ping", sourceDeviceId: device.id, targetIp: ip });
+  };
+
+  const runTrace = (ip: string) => {
+    if (!ip) return;
+    runProbe({ kind: "traceroute", sourceDeviceId: device.id, targetIp: ip });
   };
 
   const runVisit = () => {
     if (!chosenDomain) return;
-    setProbe(visitSite(topology, { sourceDeviceId: device.id, domain: chosenDomain }));
+    runProbe({ kind: "visitSite", sourceDeviceId: device.id, domain: chosenDomain });
   };
 
   return (
@@ -80,6 +84,9 @@ export function DeviceProbe({ device, runtime }: Props) {
         </button>
         <button type="button" className="btn" onClick={() => runPing(PUBLIC_IP)}>
           ping 外网
+        </button>
+        <button type="button" className="btn" onClick={() => runTrace(PUBLIC_IP)}>
+          traceroute 外网
         </button>
       </div>
 
@@ -124,7 +131,7 @@ export function DeviceProbe({ device, runtime }: Props) {
         </button>
       </div>
 
-      {result ? <ProbeView probe={result} nameOf={nameOf} focus={focus} /> : null}
+      {result ? <ProbeView probe={result} focus={focus} /> : null}
     </div>
   );
 }
