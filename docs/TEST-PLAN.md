@@ -24,6 +24,7 @@
 | CP1 | [CP1-lan-basics.md](checkpoints/CP1-lan-basics.md) | 68 | T-CP1-001 – T-CP1-068 |
 | CP2 | [CP2-switching-and-devices.md](checkpoints/CP2-switching-and-devices.md) | 66 | T-CP2-001 – T-CP2-066 |
 | CP3 | [CP3-trace-and-animation.md](checkpoints/CP3-trace-and-animation.md) | 58 | T-CP3-001 – T-CP3-058 |
+| CP4 | [CP4-zones-and-border.md](checkpoints/CP4-zones-and-border.md) | 53 | T-CP4-001 – T-CP4-053 |
 
 ---
 
@@ -427,3 +428,98 @@
 | T-CP3-056 | 页面操作 | 接场景 1（T-CP3-055） | 按 CP3『阶段完成标准』场景 2 的 4 步操作：电脑1 改手动 IP `192.168.1.10`，掩码 `255.255.255.0`，网关 `10.0.0.1`，DNS `192.168.1.1`；「验证」ping `8.8.8.8`；查看逐跳列表并展开首行；点气泡「定位」；网关改回 `192.168.1.1`，点「重新验证」 | 圆点在电脑1 上直接变红不移动，电脑1 红描边，气泡标题「网关不可达」，正文「网关 10.0.0.1 不在本机网段 192.168.1.0/24，无法把包交给网关」，两根线保持默认样式，进度条 1 个刻度；逐跳列表 1 行红底，title「网关不可达」，展开首行为同一段正文；「定位」→ 电脑1 选中，网关字段高亮；改回网关后横幅「拓扑已改动，结果可能失效」，「重新验证」→ 通，重新播放 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 | T-CP3-057 | 页面操作 | 接场景 2 末（T-CP3-056，已改回网关） | 按 CP3『阶段完成标准』场景 3 的 3 步操作：「验证」类型 traceroute，起点 电脑1，目标 `8.8.8.8`；点跳数表第 2 行；删掉 `wan – port1` 连线，点「重新验证」 | 结论「电脑1 → 8.8.8.8 共 2 跳」，跳数表 `1 路由器1 192.168.1.1 64`、`2 互联网 8.8.8.8 63`，下方逐跳与 ping 相同 5 行，动画照常播完整往返；点第 2 行 → 圆点跳到互联网并暂停；删线后横幅出现，「重新验证」→ 结论「电脑1 → 8.8.8.8 第 1 跳失败」，跳数表一行红 `1 路由器1`，圆点在路由器1 变红，气泡「没有路由」+ CP1 的 `NO_ROUTE` 文案 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
 | T-CP3-058 | 命令 | — | 按 CP3『阶段完成标准』「引擎与网页自动测试」操作：`pnpm test` | 引擎、网页两个包都通过；`scenarios/cp3.test.ts` 含场景 1、3 的 traceroute 断言；`trace/timeline.test.ts` 与 `trace/explain.test.ts` 含场景 1、2 的时间线形状与 title 断言 | [CP3 阶段完成标准](checkpoints/CP3-trace-and-animation.md) | ✅ 通过 |
+
+---
+
+## CP4 分区与边界
+
+来源：[CP4-zones-and-border.md](checkpoints/CP4-zones-and-border.md)
+
+### CP4-S1 分区模型与 gfw 设备类型
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-001 | 引擎测试 | 空拓扑 | `createDevice(topology, 'gfw', pos)` | 端口两个，名 `inside`、`outside`；`config` 深等于 CP4 关键设计 3.2 的默认规则集 | [CP4-S1](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-002 | 引擎测试 | — | `parseTopology` 读 `fixtures/gfw-home.json` | 成功，设备 4 台、连线 3 根 | [CP4-S1](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-003 | 引擎测试 | gfw-home | 把 gfw 的端口名改成 `wan` 再 `parseTopology` | 失败，错误信息含「端口名」 | [CP4-S1](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-004 | 引擎测试 | gfw-home | `protocolDetection` 写成 `'max'`、`ipBlacklist` 写成 `['1.2.3']`，分别 `parseTopology` | 都失败，错误信息分别含「协议识别等级」「不是合法的 IP」 | [CP4-S1](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-005 | 引擎测试 | gfw-home 与 CP2 的 home-office | `zonesOf(topology)` | gfw-home：电脑1 `lan`、路由器1 `lan`、长城防火墙1 `border`、互联网 `internet`；home-office：光猫1 `isp` | [CP4-S1](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-006 | 引擎测试 | CP1 fixture（没有 gfw） | `parseTopology(MINIMAL_RAW)` 后 `buildRuntime` | 解析成功，`runtime.border === null` | [CP4-S1](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S2 目标网站库扩充与可编辑
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-007 | 引擎测试 | — | 检查 `defaultInternetConfig().targets` | 10 条，域名与 IP 与 CP4 关键设计 2.2 表逐行一致；`region: 'cn'` 4 条、`overseas` 6 条；`dnsServer` 恰好 `dns.alidns.com` 与 `dns.google` 两条 | [CP4-S2](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-008 | 引擎测试 | — | 检查 `defaultInternetConfig().access.dns` | 等于 `'223.5.5.5'` | [CP4-S2](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-009 | 引擎测试 | gfw-home | `regionOfIp` 依次查 `142.250.72.14`、`110.242.68.66`、`192.168.1.1` | 依次得 `'overseas'`、`'cn'`、`null` | [CP4-S2](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-010 | 引擎测试 | gfw-home | 把 `www.baidu.com` 的 IP 改成 `142.250.72.14`，跑 `lint` | L027 error，文案含「出现两次」，定位互联网 | [CP4-S2](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-011 | 引擎测试 | gfw-home | ①新增一条 `domain: ''` 的目标 ②新增一条 `ip: '999.1.1.1'` 的目标，各跑 `lint` | 都报 L027 error；②的文案含「不是合法的 IP 地址」 | [CP4-S2](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-012 | 引擎测试 | gfw-home 未改动 | 跑 `lint` | 不报 L027 | [CP4-S2](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S3 边界一跳与拦截判定
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-013 | 引擎测试 | gfw-home | `ping(电脑1, '110.242.68.66')` | `ok`；decisions 里长城防火墙1 出现两次（去 + 回），两条都 `action: 'forward'`、`basis.route === null`、`packetIn.ttl === packetOut.ttl`、`basis.border.matched === 'none'`、`targetRegion === 'cn'` | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-014 | 引擎测试 | gfw-home | `ping(电脑1, '142.250.72.14')` | `fail`，`reasonCode: 'GFW_IP_BLOCKED'`，`stoppedAt` 是长城防火墙1，`reason` 含「IP 黑名单」，`fixAt.field === 'ipBlacklist'` | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-015 | 引擎测试 | gfw-home | `ping(电脑1, '20.205.243.166')`（GitHub） | `ok`；边界那跳 `basis.border.matched === 'none'`、`targetRegion === 'overseas'` | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-016 | 引擎测试 | gfw-home | `visitSite(电脑1, 'chatgpt.com')` | `fail`，`reasonCode: 'GFW_SNI_BLOCKED'`，停在长城防火墙1；该跳 `packetIn.sni === 'chatgpt.com'`、`basis.border.rule === 'chatgpt.com'`；`dns.ip === '104.18.32.47'` 且 `poisoned` 非真 | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-017 | 引擎测试 | gfw-home | 把 gfw 的 `sniBlock` 关掉，再 `visitSite(电脑1, 'chatgpt.com')` | `ok` | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-018 | 引擎测试 | gfw-home | 把 gfw 的 `enabled` 关掉，再 `ping(电脑1, '142.250.72.14')` | `ok`；边界那跳 `basis.border.enabled === false`，`note` 含「防火墙已关闭」 | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-019 | 引擎测试 | gfw-home | `traceroute(电脑1, '110.242.68.66')` | 两跳（路由器1、互联网）；长城防火墙1 出现在第 2 跳的 `through` 里 | [CP4-S3](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S4 DNS 污染与 dnsQuery 入口
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-020 | 引擎测试 | gfw-home，电脑1 自动获取（上游 `223.5.5.5`） | `visitSite(电脑1, 'www.google.com')` | `fail`，`reasonCode: 'DNS_POISONED'`，停在长城防火墙1；`dns` 为 `{ server: '192.168.1.1', domain: 'www.google.com', ip: '243.185.187.39', realIp: '142.250.72.14', poisoned: true }`；互联网那条 DNS 应答 decision 的 `basis.border.matched === 'poisoned-answer'` | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-021 | 引擎测试 | gfw-home，电脑1 改静态、DNS 填 `8.8.8.8` | `visitSite(电脑1, 'www.google.com')` | `fail`，`reasonCode: 'DNS_POISONED'`；污染发生在长城防火墙1 那条 decision，`action: 'answer'`、`verdict: 'pass'`、`basis.border.matched === 'poison'` | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-022 | 引擎测试 | gfw-home | `dnsQuery(电脑1, 'www.google.com')` | `kind: 'dnsQuery'`、`verdict: 'ok'`、`hops === null`；`summary` 含「243.185.187.39」与「真实 142.250.72.14」 | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-023 | 引擎测试 | gfw-home | `dnsQuery(电脑1, 'github.com')` | `dns.ip === '20.205.243.166'`，`poisoned` 非真，`summary` 不含「污染」 | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-024 | 引擎测试 | gfw-home | ①`dnsQuery(电脑1, 'chatgpt.com')` ②`dnsQuery(电脑1, 'nowhere.com')` | ①`poisoned` 非真（不在污染名单） ②`fail`，`reasonCode: 'DNS_NXDOMAIN'` | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-025 | 引擎测试 | gfw-home，关掉 `dnsPoison.enabled` | `visitSite(电脑1, 'www.google.com')` | `fail` 但 `reasonCode: 'GFW_IP_BLOCKED'`（DNS 正常，改由 IP 黑名单拦），`dns.poisoned` 非真 | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-026 | 引擎测试 | gfw-home，关掉 gfw 的 `enabled` | `visitSite(电脑1, 'www.google.com')` | `ok`，`dns.ip === '142.250.72.14'`，`poisoned` 非真 | [CP4-S4](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S5 静态检查 L025–L028
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-027 | 引擎测试 | gfw-home，电脑1 改静态 DNS `8.8.8.8` | 跑 `lint` | L025 warning，文案含「在境外」「会在边界被污染」，定位电脑1 字段 dns | [CP4-S5](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-028 | 引擎测试 | 接 T-CP4-027，再把 gfw 的 `dnsPoison.enabled` 关掉 | 跑 `lint` | 不报 L025 | [CP4-S5](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-029 | 引擎测试 | gfw-home 原样 | 跑 `lint` | L026 报 4 条 warning（Google、YouTube、Telegram、ChatGPT），文案分别含「IP 黑名单」「域名黑名单」；GitHub 不在其中 | [CP4-S5](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-030 | 引擎测试 | gfw-home | ①删掉 gfw，路由器 `wan` 直连互联网 ②在①基础上再加一台启用的 gfw 串进去、另一台放在旁边也启用，各跑 `lint` | ①L028 warning 含「不经过长城防火墙」 ②L028 另报一条含「只有 长城防火墙1 生效」 | [CP4-S5](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-031 | 引擎测试 | gfw-home | 断开 gfw 的 `outside` 连线，跑 `lint` | L009 warning 含「outside 没有连线」 | [CP4-S5](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S6 画布分区与防火墙节点
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-032 | 页面操作 | 导入 gfw-home | 打开画布，滚轮缩放并拖动平移 | 自上而下四条背景带，标签「互联网」「边界」「运营商」「内网」；互联网带里一条竖虚线，左「国内」右「境外」；缩放平移时带跟着一起变换 | [CP4-S6](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-033 | 页面操作 | 接 T-CP4-032 | 查看互联网节点 | 目标分两栏，栏头「国内 4」「境外 6」；境外栏的 Google、YouTube、Telegram、ChatGPT 四行带锁标，GitHub 不带 | [CP4-S6](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-034 | 页面操作 | 接 T-CP4-032 | 从设备栏把「长城防火墙」拖到画布空白处 | 新节点红棕描边，第二行 `IP 3 · 域名 4 · 污染 3`，`inside` 柄在底边、`outside` 在顶边 | [CP4-S6](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-035 | 页面操作 | 接 T-CP4-034 | 删掉画布上原有的 gfw，把新的「长城防火墙」拖到 `wan – port1` 那根线上放下；再按 `Ctrl/Cmd + Z` 一次 | 原线消失，变成 `wan – inside`、`outside – port1` 两根线；撤销后回到拖入前 | [CP4-S6](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-036 | 页面操作 | 导入 gfw-home | 点工具栏「按分区排布」 | 四台设备分别落到互联网 / 边界 / 内网带里，运营商带留空；结果面板不出「拓扑已改动」横幅 | [CP4-S6](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-037 | 网页测试 | — | `nearestLinkAt(点, 连线几何)`：①点在某连线中点 ②点距任何连线 24px 以外 ③画布上没有连线 | ①返回该 linkId ②返回 `null` ③返回 `null` | [CP4-S6](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S7 防火墙表单与目标库编辑
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-038 | 页面操作 | 导入 gfw-home | 选中长城防火墙1 | 表单六个区块（启用 / IP 黑名单 / 域名黑名单 / DNS 污染 / HTTPS 握手域名拦截 / 协议识别等级）+「恢复默认规则」；协议识别等级默认 `standard`，下方一行灰字说明 | [CP4-S7](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-039 | 页面操作 | 接 T-CP4-038 | 关掉「启用」，再打开 | 关掉后下面区块置灰但内容还在，节点第二行变「已关闭」并转灰；打开后恢复 | [CP4-S7](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-040 | 页面操作 | 接 T-CP4-038 | IP 黑名单里加一行 `1.2.3` 后失焦；改成 `20.205.243.166` 再失焦 | 先红字「不是合法的 IP 地址」且不写入；改后写入，右侧显示 `github.com` | [CP4-S7](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-041 | 页面操作 | 接 T-CP4-038 | 把 DNS 污染的域名列表清空，然后验证 `chatgpt.com` | 输入框占位显示「留空则跟随域名黑名单」；验证失败原因由 SNI 拦截变成 DNS 污染 | [CP4-S7](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-042 | 页面操作 | 接 T-CP4-041 | 点「恢复默认规则」并确认；再按 `Ctrl/Cmd + Z` | 三个列表回到默认；撤销后回到改动前 | [CP4-S7](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-043 | 页面操作 | 导入 gfw-home，选中互联网 | 目标表里把 `github.com` 的区域改成「国内」；点「添加目标」填 `example.com` / `1.1.1.1` / 境外；点「恢复预设」 | 节点左栏变 5 条；验证弹窗的域名下拉里出现 `example.com`；「恢复预设」后回到 10 条 | [CP4-S7](checkpoints/CP4-zones-and-border.md) |  |
+
+### CP4-S8 DNS 查询验证、文案与结果展示
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-044 | 网页测试 | — | `reasonLabel` 依次传 `GFW_IP_BLOCKED`、`GFW_SNI_BLOCKED`、`DNS_POISONED`、`'X'` | 依次得「IP 被封」「域名被拦」「DNS 被污染」「验证终止」 | [CP4-S8](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-045 | 网页测试 | — | `explain` 传 ①`basis.border.matched: 'poison'` 的 gfw decision ②`basis.border.enabled: false` 的 decision | ①title `边界抢答，返回污染地址 243.185.187.39`，lines 含 `边界：出境，目标区域 境外` 与命中的域名 ②title `防火墙已关闭，直接放行` | [CP4-S8](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-046 | 网页测试 | — | `explain` 传 `matched: 'sni'` 且 `verdict: 'stop'` 的 decision，其中一份同时带 `basis.mac` | title `域名被拦`，lines 首行等于 `decision.reason`；带 `basis.mac` 的那份仍走 border 模板 | [CP4-S8](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-047 | 页面操作 | 导入 gfw-home | 工具栏「验证」→ 类型选「DNS 查询」，起点 电脑1，域名 `www.google.com`，运行 | 类型多出「DNS 查询」，选它后只剩起点与域名两项；结果面板 DNS 块置顶：服务器 `192.168.1.1`、解析到 `243.185.187.39`（红字 +「已污染」）、真实 `142.250.72.14` | [CP4-S8](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-048 | 页面操作 | 导入 gfw-home | 选中电脑1，点验证块的「DNS 查询」按钮 | 按钮存在，跑的域名与旁边「打开网站」下拉当前选中的域名一致 | [CP4-S8](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-049 | 页面操作 | 导入 gfw-home | 访问 `www.google.com`，看逐跳列表与画布，点气泡「定位」 | 边界那两行 title 分别是「边界抢答，返回污染地址 243.185.187.39」与「DNS 被污染」；包停在长城防火墙1 变红，气泡标题「DNS 被污染」；「定位」跳到该设备的 DNS 污染区块 | [CP4-S8](checkpoints/CP4-zones-and-border.md) |  |
+
+### 阶段完成标准
+| 编号 | 方式 | 前提 | 操作 | 预期 | 来源 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-CP4-050 | 页面操作 | 空画布 | 按 CP4『阶段完成标准』场景 1 的 8 步操作：拖入 电脑 / 路由器 / 长城防火墙 / 互联网，连 `eth0 – lan1`、`wan – inside`、`outside – port1`，电脑自动获取；点「按分区排布」；「打开网站」`www.google.com`；改开 `github.com`、`chatgpt.com`；目标框填 `142.250.72.14` 点 ping；点静态检查里的 L026 一条 | 四台设备各自落进内网 / 边界 / 互联网带；Google 失败，原因「域名 www.google.com 的解析结果 243.185.187.39 是边界返回的污染地址，连不上」，DNS 块显示 服务器 `192.168.1.1`、解析到 `243.185.187.39`（红字 +「已污染」）、真实 `142.250.72.14`，逐跳里两行 title 为「边界抢答，返回污染地址 243.185.187.39」与「DNS 被污染」；GitHub 通；ChatGPT 失败，原因「HTTPS 握手里的域名 chatgpt.com 在边界的域名黑名单里，连接被重置」；ping 失败，原因「目标地址 142.250.72.14（www.google.com）在边界的 IP 黑名单里，包被丢弃」；静态检查 4 条 L026 warning，点一条选中长城防火墙1 并高亮对应黑名单 | [CP4 阶段完成标准](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-051 | 页面操作 | 接场景 1（T-CP4-050） | 按 CP4『阶段完成标准』场景 2 的 5 步操作：选中长城防火墙1 关掉「启用」；再开 `www.google.com`；看逐跳列表与静态检查；把「启用」打开后重新验证 | 节点转灰、第二行「已关闭」；Google 通，DNS 块显示解析到 `142.250.72.14` 且无「已污染」标；逐跳里长城防火墙1 两行 title 都是「防火墙已关闭，直接放行」；L026 的 4 条 warning 消失；重新打开开关后回到场景 1 的失败结果 | [CP4 阶段完成标准](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-052 | 页面操作 | 接场景 2 末（T-CP4-051，防火墙已开） | 按 CP4『阶段完成标准』场景 3 的 5 步操作：电脑1 改手动 IP `192.168.1.10`、掩码 `255.255.255.0`、网关 `192.168.1.1`、DNS `8.8.8.8`；看静态检查并点 L025；「验证」类型「DNS 查询」域名 `www.google.com`；再「打开网站」`www.google.com`；DNS 改回 `192.168.1.1` 再做一次 DNS 查询 | L025 warning「DNS 服务器 8.8.8.8 在境外，明文查询会在边界被污染」，点它定位到电脑1 的 DNS 字段；DNS 查询结论「电脑1 解析 www.google.com → 243.185.187.39（被污染，真实 142.250.72.14）」，污染那跳在长城防火墙1，title「边界抢答，返回污染地址 243.185.187.39」；打开网站仍失败且原因仍是 DNS 被污染；改回 `192.168.1.1` 后结果同样是 `243.185.187.39`，但污染那跳落在互联网上，title「国内 DNS 向境外权威服务器递归时同样穿过边界，返回被污染的地址」 | [CP4 阶段完成标准](checkpoints/CP4-zones-and-border.md) |  |
+| T-CP4-053 | 命令 | — | 按 CP4『阶段完成标准』「引擎与网页自动测试」操作：`pnpm test` | 引擎、网页两个包都通过；`scenarios/cp4.test.ts` 含三个场景的断言；`apps/web/src/trace/explain.test.ts` 含 border 模板断言 | [CP4 阶段完成标准](checkpoints/CP4-zones-and-border.md) |  |

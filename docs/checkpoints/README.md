@@ -84,6 +84,7 @@
 | 交换机 | `switch` | `port1`…`portN`，默认 8 口 | CP2 |
 | 无线 AP | `ap` | `uplink`、`wlan1`…`wlanN`（无线客户端视为连到 `wlanN` 的有线口，始终多留一个空闲口） | CP2 |
 | 光猫 | `modem` | `wan`（上行，连互联网）、`lan1`（连路由器 WAN） | CP2 |
+| 长城防火墙 | `gfw` | `inside`（朝内网）、`outside`（朝互联网），二层透明 | CP4 |
 
 通用词：
 - **连线**：两个端口之间的一根网线，`link`
