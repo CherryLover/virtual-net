@@ -1,6 +1,7 @@
 // 引擎适配层：网页只从这里 import 引擎能力，另加几个界面用的小工具。
 export * from "@virtual-net/engine";
 export * from "./cp2";
+export * from "./sample";
 
 import {
   createEmptyTopology,

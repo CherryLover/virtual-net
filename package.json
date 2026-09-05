@@ -14,9 +14,11 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "build": "pnpm typecheck && pnpm --filter @virtual-net/web build"
+    "build": "pnpm typecheck && pnpm --filter @virtual-net/web build",
+    "deploy": "pnpm build && wrangler deploy"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.12"
+    "@biomejs/biome": "^2.5.12",
+    "wrangler": "^4.129.0"
   }
 }

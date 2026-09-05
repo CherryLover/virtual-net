@@ -2,6 +2,11 @@ packages:
   - packages/*
   - apps/*
 
+# pnpm 11 默认拦截依赖的安装脚本，wrangler 依赖链需要放行下面两个
+allowBuilds:
+  esbuild: true
+  workerd: true
+
 catalog:
   typescript: ^7.0.2
 

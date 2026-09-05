@@ -31,6 +31,20 @@ pnpm typecheck   # 每个包各自做类型检查
 pnpm build       # 类型检查后打包，产出 apps/web/dist
 ```
 
+## 部署
+
+线上地址：<https://vnet.flyooo.uk>（备用 <https://virtual-net.jiwzdj.workers.dev>）
+
+一条命令完成打包和发布：
+
+```bash
+pnpm deploy    # 等价于 pnpm build && wrangler deploy
+```
+
+站点跑在 Cloudflare Workers 的静态资源托管上，配置在仓库根的 `wrangler.jsonc`：
+访问未命中的路径统一回落到 `index.html`（前端路由需要），`apps/web/public/_headers`
+给带 hash 的构建产物加了长缓存。首次在新机器上部署要先 `npx wrangler login` 登录 Cloudflare。
+
 ## 目录结构
 
 `packages/engine` 是纯 TypeScript 的模拟引擎，`apps/web` 是网页；网页单向引用引擎。

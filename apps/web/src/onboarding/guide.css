@@ -1,0 +1,56 @@
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  border: 0;
+  padding: 0;
+  background: rgba(17, 20, 24, 0.32);
+  cursor: default;
+}
+
+.guide {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 31;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+.guide-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.guide-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.guide-section-title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.guide-section p {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.75;
+  color: var(--text-dim);
+}
+
+.guide-start {
+  align-self: flex-end;
+}

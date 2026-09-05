@@ -1,10 +1,14 @@
 import { useRef, useState } from "react";
-import { emptyTopology, parseTopology } from "../engine";
+import { emptyTopology, parseTopology, sampleTopology } from "../engine";
 import { exportTopology } from "../storage";
 import { useTopologyStore } from "../store";
 import { ProbeDialog } from "./ProbeDialog";
 
-export function Toolbar() {
+interface Props {
+  onHelp: () => void;
+}
+
+export function Toolbar({ onHelp }: Props) {
   const name = useTopologyStore((s) => s.topology.name);
   const saveState = useTopologyStore((s) => s.saveState);
   const rename = useTopologyStore((s) => s.rename);
@@ -23,6 +27,13 @@ export function Toolbar() {
     const empty = topology.devices.length === 0 && topology.links.length === 0;
     if (!empty && !window.confirm("清空当前画布？未导出的内容会丢失")) return;
     replaceTopology(emptyTopology(), { record: true });
+  };
+
+  const onSample = () => {
+    const topology = useTopologyStore.getState().topology;
+    const empty = topology.devices.length === 0 && topology.links.length === 0;
+    if (!empty && !window.confirm("替换当前画布？")) return;
+    replaceTopology(sampleTopology(), { record: true });
   };
 
   const onImport = async (file: File) => {
@@ -58,6 +69,9 @@ export function Toolbar() {
         <button type="button" className="btn" onClick={onNew}>
           新建
         </button>
+        <button type="button" className="btn" onClick={onSample}>
+          示例
+        </button>
         <button type="button" className="btn" disabled={!canUndo} onClick={undo}>
           撤销
         </button>
@@ -90,6 +104,9 @@ export function Toolbar() {
         </button>
       </div>
       <span className="toolbar-save">{saveState === "saving" ? "保存中" : "已保存"}</span>
+      <button type="button" className="btn" onClick={onHelp}>
+        帮助
+      </button>
       {dialogOpen ? <ProbeDialog onClose={() => setDialogOpen(false)} /> : null}
     </header>
   );
