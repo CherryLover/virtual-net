@@ -2,12 +2,20 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDevice, createEmptyTopology, type Device } from "../../engine";
 import type { TraceView } from "./traceView";
 import { VisitBadges } from "./VisitBadges";
 
 const { openInspector, nodes } = vi.hoisted(() => ({
   openInspector: vi.fn(),
-  nodes: [{ id: "pc", position: { x: 120, y: 180 }, measured: { width: 160 } }],
+  nodes: [
+    {
+      id: "pc",
+      position: { x: 120, y: 180 },
+      measured: { width: 160 },
+      data: { device: undefined as Device | undefined },
+    },
+  ],
 }));
 vi.mock("@xyflow/react", () => ({ useNodes: () => nodes }));
 vi.mock("../../store", () => ({ useTraceStore: { getState: () => ({ openInspector }) } }));
@@ -33,6 +41,9 @@ const view: TraceView = {
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   openInspector.mockClear();
+  const node = nodes[0];
+  if (!node) throw new Error("node fixture missing");
+  node.data.device = undefined;
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -44,11 +55,26 @@ afterEach(async () => {
 });
 
 describe("visit badges", () => {
+  it("only adds extra clearance when an upper switch port has a VLAN label", async () => {
+    const device = createDevice("switch", { x: 120, y: 180 }, createEmptyTopology());
+    const port = device.ports[0];
+    const node = nodes[0];
+    if (!port || !node) throw new Error("switch fixture missing");
+    port.displaySide = "top";
+    port.vlan = { mode: "access", pvid: 2 };
+    node.data.device = device;
+    await act(async () => root.render(createElement(VisitBadges, { view })));
+    expect(container.querySelector<HTMLElement>(".trace-badge")?.style.top).toBe("148px");
+    port.displaySide = "bottom";
+    await act(async () => root.render(createElement(VisitBadges, { view })));
+    expect(container.querySelector<HTMLElement>(".trace-badge")?.style.top).toBe("162px");
+  });
+
   it("leaves room above the node for port labels and bounds the badge width", async () => {
     await act(async () => root.render(createElement(VisitBadges, { view })));
     const badge = container.querySelector<HTMLElement>(".trace-badge");
     expect(badge?.style.left).toBe("120px");
-    expect(badge?.style.top).toBe("144px");
+    expect(badge?.style.top).toBe("162px");
     expect(badge?.style.maxWidth).toBe("160px");
   });
 

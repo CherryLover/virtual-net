@@ -1,6 +1,9 @@
 /** 到访角标（CP3 2.4）：设备被走过几次就列几个序号，正播到的那个实心 */
 import { useNodes } from "@xyflow/react";
 import { useTraceStore } from "../../store";
+import { vlanBadgeText } from "../handles/VlanBadge";
+import { switchLayout } from "../nodes/switchLayout";
+import type { DeviceNodeType } from "../nodes/types";
 import type { TraceView } from "./traceView";
 
 interface Props {
@@ -8,7 +11,7 @@ interface Props {
 }
 
 export function VisitBadges({ view }: Props) {
-  const nodes = useNodes();
+  const nodes = useNodes<DeviceNodeType>();
   if (view.visits.size === 0) return null;
 
   return (
@@ -16,6 +19,12 @@ export function VisitBadges({ view }: Props) {
       {[...view.visits.entries()].map(([deviceId, visits]) => {
         const node = nodes.find((n) => n.id === deviceId);
         if (!node) return null;
+        const device = node.data?.device;
+        const gap =
+          device?.type === "switch" &&
+          switchLayout(device.ports).groups.top.some((port) => vlanBadgeText(port) !== null)
+            ? 32
+            : 18;
         return (
           <div
             key={deviceId}
@@ -23,7 +32,7 @@ export function VisitBadges({ view }: Props) {
             data-device={deviceId}
             style={{
               left: node.position.x,
-              top: node.position.y - 36,
+              top: node.position.y - gap,
               maxWidth: node.measured?.width ?? 140,
             }}
           >

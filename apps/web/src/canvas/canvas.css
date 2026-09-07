@@ -311,12 +311,12 @@
   display: flex;
   width: max-content;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 1px;
   align-items: center;
   transform: translateY(-100%);
-  padding: 2px;
+  padding: 1px;
   border: 1px solid var(--trace-walked);
-  border-radius: 5px;
+  border-radius: 4px;
   background: #fff;
   font-size: 10px;
   line-height: 14px;
@@ -325,9 +325,9 @@
 }
 
 .trace-badge-seq {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 2px;
   border: none;
   background: none;
   color: inherit;
