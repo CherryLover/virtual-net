@@ -1,17 +1,17 @@
 .device-bar-list {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  margin-top: 22px;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .device-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px;
+  padding: 6px 8px;
   width: 100%;
-  min-height: 54px;
+  min-height: 40px;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: transparent;
@@ -26,8 +26,8 @@
   border-color: var(--border);
 }
 .device-card .device-icon {
-  width: 36px;
-  height: 30px;
+  width: 26px;
+  height: 24px;
 }
 .device-card span {
   min-width: 0;
@@ -64,16 +64,48 @@
   min-height: 24px;
 }
 .library-group h3 {
+  margin: 0 0 6px;
+}
+.library-group-toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin: 0 0 6px;
-  font-size: 11px;
+  gap: 6px;
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
 }
-.library-group h3 span {
+.library-group-toggle > svg {
+  flex: none;
+}
+.library-group-toggle[aria-expanded="false"] > svg {
+  transform: rotate(-90deg);
+}
+.library-group-toggle > span:not(.library-count) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.library-count {
+  margin-left: auto;
+  color: var(--text-dim);
   font-weight: 400;
+}
+.library-role + .library-role {
+  margin-top: 8px;
+}
+.library-role h4 {
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
 }
 
 .device-card:active {

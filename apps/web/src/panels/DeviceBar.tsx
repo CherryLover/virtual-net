@@ -1,17 +1,19 @@
 import { useReactFlow } from "@xyflow/react";
-import { Search, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { DEVICE_LABELS, DEVICE_TYPES } from "../engine";
+import { DEVICE_LABELS } from "../engine";
 import { DeviceIcon } from "../icons";
 import { useTopologyStore } from "../store";
 import { useLayoutStore } from "../store/layout";
 import { IconButton } from "../ui/IconButton";
+import { filterLibrary, libraryGroupCount } from "./libraryCatalog";
 import { canDropLibraryDevice, type LibraryDrag, moveLibraryDrag } from "./libraryDrag";
 import "./device-bar.css";
 
 export function DeviceBar() {
   const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const { screenToFlowPosition } = useReactFlow();
   const open = useLayoutStore((s) => s.libraryOpen);
   const toggle = useLayoutStore((s) => s.toggleLibrary);
@@ -35,19 +37,11 @@ export function DeviceBar() {
       window.removeEventListener("keydown", onEscape);
     };
   }, []);
-  const groups = [
-    { name: "终端与服务器", types: DEVICE_TYPES.filter((t) => t === "pc" || t === "server") },
-    {
-      name: "网络设备",
-      types: DEVICE_TYPES.filter((t) =>
-        ["switch", "ap", "router", "modem", "access-control"].includes(t),
-      ),
-    },
-    { name: "网络与服务", types: DEVICE_TYPES.filter((t) => t === "internet" || t === "proxy") },
-  ];
-  const needle = query.trim().toLowerCase();
-  const matches = (type: (typeof DEVICE_TYPES)[number]) =>
-    `${DEVICE_LABELS[type]} ${type}`.toLowerCase().includes(needle);
+  const groups = filterLibrary(query);
+  const search = (value: string) => {
+    setQuery(value);
+    setCollapsed(new Set());
+  };
   return (
     <aside
       className={`device-bar${dragPreview ? " library-dragging" : ""}`}
@@ -80,117 +74,144 @@ export function DeviceBar() {
           aria-label="搜索设备"
           placeholder="搜索设备"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => search(e.target.value)}
         />
-        {query ? <IconButton icon={X} label="清除搜索" onClick={() => setQuery("")} /> : null}
+        {query ? <IconButton icon={X} label="清除搜索" onClick={() => search("")} /> : null}
       </label>
       <div className="device-bar-list">
-        {groups.map((group) => {
-          const types = group.types.filter(matches);
-          return types.length ? (
-            <section key={group.name} className="library-group">
-              <h3>
-                {group.name}
-                <span>{types.length}</span>
-              </h3>
-              {types.map((type) => (
-                <button
-                  type="button"
-                  key={type}
-                  className={`device-card${dragPreview?.type === type ? " device-card-dragging" : ""}`}
-                  draggable={false}
-                  data-device-type={type}
-                  onClick={(event) => {
-                    if (suppressClick.current && event.detail !== 0) {
-                      suppressClick.current = false;
-                      return;
-                    }
-                    suppressClick.current = false;
-                    const bounds = document.querySelector(".canvas")?.getBoundingClientRect();
-                    if (!bounds) return;
-                    const position = screenToFlowPosition({
-                      x: bounds.left + bounds.width / 2,
-                      y: bounds.top + bounds.height / 2,
-                    });
-                    const offset = (useTopologyStore.getState().topology.devices.length % 5) * 16;
-                    useTopologyStore.getState().addDevice(type, {
-                      x: Math.round((position.x - 70 + offset) / 16) * 16,
-                      y: Math.round((position.y - 28 + offset) / 16) * 16,
-                    });
-                  }}
-                  onPointerDown={(event) => {
-                    if (event.button !== 0 || !event.isPrimary || activeDrag.current) return;
-                    const point = { x: event.clientX, y: event.clientY };
-                    suppressClick.current = false;
-                    activeDrag.current = {
-                      pointerId: event.pointerId,
-                      type,
-                      origin: point,
-                      point,
-                      moved: false,
-                    };
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                  }}
-                  onPointerMove={(event) => {
-                    const current = activeDrag.current;
-                    if (!current || current.pointerId !== event.pointerId) return;
-                    const next = moveLibraryDrag(current, { x: event.clientX, y: event.clientY });
-                    activeDrag.current = next;
-                    if (next.moved) {
-                      event.preventDefault();
-                      setDragPreview(next);
-                    }
-                  }}
-                  onPointerUp={(event) => {
-                    const current = activeDrag.current;
-                    if (!current || current.pointerId !== event.pointerId) return;
-                    const final = moveLibraryDrag(current, { x: event.clientX, y: event.clientY });
-                    activeDrag.current = null;
-                    suppressClick.current = final.moved;
-                    if (final.moved) {
-                      event.preventDefault();
-                      const canvas = document.querySelector(".canvas");
-                      const bounds = canvas?.getBoundingClientRect();
-                      const hit = document.elementFromPoint(event.clientX, event.clientY);
-                      if (
-                        canvas &&
-                        bounds &&
-                        canDropLibraryDevice(final, bounds) &&
-                        hit?.closest(".canvas") === canvas
-                      ) {
-                        const point = screenToFlowPosition(final.point);
-                        useTopologyStore.getState().addDevice(type, {
-                          x: Math.round((point.x - 70) / 16) * 16,
-                          y: Math.round((point.y - 28) / 16) * 16,
+        {groups.map((group) => (
+          <section key={group.id} className="library-group" aria-label={group.name}>
+            <h3>
+              <button
+                type="button"
+                className="library-group-toggle"
+                aria-expanded={!collapsed.has(group.id)}
+                aria-controls={`library-${group.id}`}
+                onClick={() =>
+                  setCollapsed((previous) => {
+                    const next = new Set(previous);
+                    if (next.has(group.id)) next.delete(group.id);
+                    else next.add(group.id);
+                    return next;
+                  })
+                }
+              >
+                <ChevronDown size={14} aria-hidden="true" />
+                <span>{group.name}</span>
+                <span className="library-count">{libraryGroupCount(group)}</span>
+              </button>
+            </h3>
+            <div id={`library-${group.id}`} hidden={collapsed.has(group.id)}>
+              {group.roles.map((role) => (
+                <div className="library-role" key={role.name}>
+                  <h4>{role.name}</h4>
+                  {role.types.map((type) => (
+                    <button
+                      type="button"
+                      key={type}
+                      className={`device-card${dragPreview?.type === type ? " device-card-dragging" : ""}`}
+                      draggable={false}
+                      data-device-type={type}
+                      onClick={(event) => {
+                        if (suppressClick.current && event.detail !== 0) {
+                          suppressClick.current = false;
+                          return;
+                        }
+                        suppressClick.current = false;
+                        const bounds = document.querySelector(".canvas")?.getBoundingClientRect();
+                        if (!bounds) return;
+                        const position = screenToFlowPosition({
+                          x: bounds.left + bounds.width / 2,
+                          y: bounds.top + bounds.height / 2,
                         });
-                      }
-                    }
-                    setDragPreview(null);
-                    if (event.currentTarget.hasPointerCapture(event.pointerId))
-                      event.currentTarget.releasePointerCapture(event.pointerId);
-                  }}
-                  onPointerCancel={(event) => {
-                    if (activeDrag.current?.pointerId !== event.pointerId) return;
-                    activeDrag.current = null;
-                    suppressClick.current = true;
-                    setDragPreview(null);
-                  }}
-                  onLostPointerCapture={(event) => {
-                    if (activeDrag.current?.pointerId !== event.pointerId) return;
-                    activeDrag.current = null;
-                    suppressClick.current = true;
-                    setDragPreview(null);
-                  }}
-                  onDragStart={(event) => event.preventDefault()}
-                >
-                  <DeviceIcon type={type} className="device-icon" />
-                  <span>{DEVICE_LABELS[type]}</span>
-                </button>
+                        const offset =
+                          (useTopologyStore.getState().topology.devices.length % 5) * 16;
+                        useTopologyStore.getState().addDevice(type, {
+                          x: Math.round((position.x - 70 + offset) / 16) * 16,
+                          y: Math.round((position.y - 28 + offset) / 16) * 16,
+                        });
+                      }}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0 || !event.isPrimary || activeDrag.current) return;
+                        const point = { x: event.clientX, y: event.clientY };
+                        suppressClick.current = false;
+                        activeDrag.current = {
+                          pointerId: event.pointerId,
+                          type,
+                          origin: point,
+                          point,
+                          moved: false,
+                        };
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                      }}
+                      onPointerMove={(event) => {
+                        const current = activeDrag.current;
+                        if (!current || current.pointerId !== event.pointerId) return;
+                        const next = moveLibraryDrag(current, {
+                          x: event.clientX,
+                          y: event.clientY,
+                        });
+                        activeDrag.current = next;
+                        if (next.moved) {
+                          event.preventDefault();
+                          setDragPreview(next);
+                        }
+                      }}
+                      onPointerUp={(event) => {
+                        const current = activeDrag.current;
+                        if (!current || current.pointerId !== event.pointerId) return;
+                        const final = moveLibraryDrag(current, {
+                          x: event.clientX,
+                          y: event.clientY,
+                        });
+                        activeDrag.current = null;
+                        suppressClick.current = final.moved;
+                        if (final.moved) {
+                          event.preventDefault();
+                          const canvas = document.querySelector(".canvas");
+                          const bounds = canvas?.getBoundingClientRect();
+                          const hit = document.elementFromPoint(event.clientX, event.clientY);
+                          if (
+                            canvas &&
+                            bounds &&
+                            canDropLibraryDevice(final, bounds) &&
+                            hit?.closest(".canvas") === canvas
+                          ) {
+                            const point = screenToFlowPosition(final.point);
+                            useTopologyStore.getState().addDevice(type, {
+                              x: Math.round((point.x - 70) / 16) * 16,
+                              y: Math.round((point.y - 28) / 16) * 16,
+                            });
+                          }
+                        }
+                        setDragPreview(null);
+                        if (event.currentTarget.hasPointerCapture(event.pointerId))
+                          event.currentTarget.releasePointerCapture(event.pointerId);
+                      }}
+                      onPointerCancel={(event) => {
+                        if (activeDrag.current?.pointerId !== event.pointerId) return;
+                        activeDrag.current = null;
+                        suppressClick.current = true;
+                        setDragPreview(null);
+                      }}
+                      onLostPointerCapture={(event) => {
+                        if (activeDrag.current?.pointerId !== event.pointerId) return;
+                        activeDrag.current = null;
+                        suppressClick.current = true;
+                        setDragPreview(null);
+                      }}
+                      onDragStart={(event) => event.preventDefault()}
+                    >
+                      <DeviceIcon type={type} className="device-icon" />
+                      <span>{DEVICE_LABELS[type]}</span>
+                    </button>
+                  ))}
+                </div>
               ))}
-            </section>
-          ) : null;
-        })}
-        {!DEVICE_TYPES.some(matches) ? <p className="panel-empty">没有匹配的设备</p> : null}
+            </div>
+          </section>
+        ))}
+        {groups.length === 0 ? <p className="panel-empty">没有匹配的设备</p> : null}
       </div>
     </aside>
   );
