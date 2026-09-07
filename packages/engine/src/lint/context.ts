@@ -11,11 +11,13 @@ import type {
   ModemDevice,
   PcDevice,
   Port,
+  ProxyDevice,
   RouterDevice,
+  ServerDevice,
   SwitchDevice,
   Topology,
 } from "../model/topology";
-import { isL3Router, isTransparent } from "../model/topology";
+import { isHost, isL3Router, isTransparent } from "../model/topology";
 import { portSupportsVlan, untaggedVlanOf, vlanMembership, vlanOf } from "../model/vlan";
 
 export interface Addressed {
@@ -44,7 +46,7 @@ export interface LintContext {
   topology: Topology;
   runtime: Runtime;
   devices: Device[];
-  pcs: PcDevice[];
+  pcs: (PcDevice | ServerDevice | ProxyDevice)[];
   routers: RouterDevice[];
   switches: SwitchDevice[];
   aps: ApDevice[];
@@ -158,7 +160,7 @@ export function makeContext(topology: Topology, runtime: Runtime): LintContext {
     topology,
     runtime,
     devices: topology.devices,
-    pcs: topology.devices.filter((d): d is PcDevice => d.type === "pc"),
+    pcs: topology.devices.filter(isHost),
     routers: topology.devices.filter((d): d is RouterDevice => d.type === "router"),
     switches: topology.devices.filter((d): d is SwitchDevice => d.type === "switch"),
     aps: topology.devices.filter((d): d is ApDevice => d.type === "ap"),

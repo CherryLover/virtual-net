@@ -8,6 +8,7 @@ interface Props {
   device: SwitchDevice;
   highlight: string | null;
   highlightPortId: string | null;
+  hidePorts?: boolean;
 }
 
 /** 口数校验：范围之外，或改小时末尾要删的口有连线 */
@@ -23,7 +24,7 @@ function portCountError(device: SwitchDevice, text: string): string | null {
   return linked ? `${linked.name} 有连线` : null;
 }
 
-export function SwitchForm({ device, highlight, highlightPortId }: Props) {
+export function SwitchForm({ device, highlight, highlightPortId, hidePorts }: Props) {
   const runOp = useTopologyStore((s) => s.runOp);
   return (
     <div className="form">
@@ -35,7 +36,7 @@ export function SwitchForm({ device, highlight, highlightPortId }: Props) {
         validate={(value) => portCountError(device, value)}
         onCommit={(value) => runOp((draft) => setPortCount(draft, device.id, Number(value.trim())))}
       />
-      <PortVlanTable device={device} highlightPortId={highlightPortId} />
+      {hidePorts ? null : <PortVlanTable device={device} highlightPortId={highlightPortId} />}
     </div>
   );
 }

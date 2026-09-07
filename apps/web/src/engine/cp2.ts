@@ -5,7 +5,17 @@
 import type { DeviceType, InternetAccess, Topology } from "@virtual-net/engine";
 
 /** 设备栏卡片顺序（CP2 第 5 节） */
-export const DEVICE_TYPES: DeviceType[] = ["pc", "switch", "ap", "router", "modem", "internet"];
+export const DEVICE_TYPES: DeviceType[] = [
+  "pc",
+  "server",
+  "switch",
+  "ap",
+  "router",
+  "modem",
+  "access-control",
+  "proxy",
+  "internet",
+];
 
 export const DEVICE_LABELS: Record<DeviceType, string> = {
   pc: "电脑",
@@ -14,6 +24,9 @@ export const DEVICE_LABELS: Record<DeviceType, string> = {
   router: "路由器",
   modem: "光猫",
   internet: "互联网",
+  server: "服务器",
+  proxy: "代理",
+  "access-control": "访问控制",
 };
 
 /** 互联网接入段的两组预设（CP2 关键设计 1） */

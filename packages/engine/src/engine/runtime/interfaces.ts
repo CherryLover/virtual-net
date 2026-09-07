@@ -5,7 +5,7 @@
  */
 
 import type { Device, Topology } from "../../model/topology";
-import { isL3Router } from "../../model/topology";
+import { isHost, isL3Router } from "../../model/topology";
 import { vlanMembership, vlanOf } from "../../model/vlan";
 import type { L3Interface } from "./types";
 
@@ -30,7 +30,7 @@ export function listInterfaces(topology: Topology): L3Interface[] {
 }
 
 function interfacesOfDevice(device: Device): L3Interface[] {
-  if (device.type === "pc") {
+  if (isHost(device)) {
     const eth0 = device.ports[0];
     if (!eth0) return [];
     return [
@@ -46,7 +46,8 @@ function interfacesOfDevice(device: Device): L3Interface[] {
       },
     ];
   }
-  if (device.type === "switch" || device.type === "ap") return [];
+  if (device.type === "switch" || device.type === "ap" || device.type === "access-control")
+    return [];
   if (device.type === "modem") {
     if (device.config.mode !== "route") return [];
     const out: L3Interface[] = [];
@@ -141,7 +142,7 @@ export function staticAddressOf(
   device: Device,
   iface: L3Interface,
 ): { ip: string; mask: string } | null {
-  if (device.type === "pc") {
+  if (isHost(device)) {
     if (device.config.addressMode !== "static") return null;
     if (!device.config.ip) return null;
     return { ip: device.config.ip, mask: device.config.mask };

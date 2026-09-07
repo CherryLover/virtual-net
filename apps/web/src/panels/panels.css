@@ -285,6 +285,7 @@
 
 .device-probe-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -303,6 +304,7 @@
 .device-probe-input {
   flex: 1;
   min-width: 0;
+  flex-basis: 100px;
 }
 
 .port-table-head {
@@ -677,6 +679,49 @@
   font-size: var(--fs-sm);
   color: #6d28d9;
 }
+.probe .connection-list {
+  margin: 4px 0;
+}
+.probe .connection-list li {
+  padding: 2px 0 8px 10px;
+  border-left-color: var(--trace-walked);
+}
+.probe .connection-list li.connection-fail {
+  border-left-color: var(--danger);
+}
+.probe .connection-step {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 0;
+  min-height: 28px;
+  text-align: left;
+}
+.probe .connection-step:hover:not(:disabled) {
+  background: #edf4f2;
+}
+.connection-verdict {
+  flex: none;
+  font-size: 11px;
+  color: var(--ok);
+}
+.connection-fail .connection-verdict {
+  color: var(--danger);
+}
+.connection-list small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.probe-path,
+.probe-dns {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
 
 .pkt-grid {
   display: grid;
@@ -733,4 +778,192 @@
 .probe-stale .hoptable,
 .probe-stale .hop-group {
   opacity: 0.55;
+}
+
+.inspector-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.inspector-heading > div {
+  display: flex;
+}
+.side-panel-body:has(.device-inspector) {
+  overflow: hidden;
+}
+.device-inspector {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.device-inspector-head {
+  padding: 16px 16px 12px;
+  flex: none;
+}
+.device-inspector-head .panel-title {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+  align-items: flex-start;
+}
+.device-inspector-head .device-icon {
+  width: 30px;
+  height: 26px;
+}
+.device-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 5px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.status-ok {
+  color: var(--ok);
+}
+.status-warning {
+  color: var(--warning);
+}
+.inspector-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  flex: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+}
+.inspector-tabs button {
+  min-height: 40px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.inspector-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.device-inspector-content {
+  padding: 16px;
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+.device-inspector-content > .panel-section {
+  padding: 0;
+}
+.device-inspector-content > .field {
+  margin-bottom: 18px;
+}
+.field-input {
+  min-height: 32px;
+}
+.form {
+  gap: 16px;
+}
+.group {
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  gap: 12px;
+}
+.device-probe {
+  padding: 0 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  border-radius: 0;
+}
+.panel-danger-zone {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.btn-danger {
+  color: var(--danger);
+}
+.connection-endpoints {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.connection-endpoints .btn {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.port-overview {
+  margin-top: 16px;
+}
+.port-overview-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.port-overview-row > div {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.port-overview-row span {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+.port-side-select {
+  width: 76px;
+  flex: none;
+  font-size: 12px;
+}
+.port-table-head {
+  flex-wrap: wrap;
+}
+.issue {
+  flex-wrap: wrap;
+}
+.issue-message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.issue-device {
+  overflow-wrap: anywhere;
+  flex-shrink: 1;
+}
+.target-table {
+  table-layout: fixed;
+  overflow-wrap: anywhere;
+}
+.target-table th,
+.target-table td {
+  padding: 6px 3px;
+}
+.port-table th:nth-child(5),
+.port-table td:nth-child(5) {
+  width: 78px;
+}
+.port-table th:nth-child(2),
+.port-table td:nth-child(2) {
+  width: 40px;
+}
+.pkt-renew {
+  background: #edf4f2;
+  color: #087f73;
 }

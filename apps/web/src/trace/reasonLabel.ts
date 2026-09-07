@@ -8,6 +8,12 @@
 export const UNKNOWN_REASON_LABEL = "验证终止";
 
 export const REASON_LABELS: Record<string, string> = {
+  ACCESS_DENIED: "规则拒绝",
+  SERVICE_CLOSED: "服务端口未开放",
+  PROXY_UNAVAILABLE: "代理不可用",
+  PROXY_PROTOCOL_MISMATCH: "代理协议不匹配",
+  PROXY_AUTH_FAILED: "代理认证失败",
+  PROXY_DNS_MODE: "解析方式不支持",
   // CP1
   NO_IP: "没有地址",
   PORT_UNLINKED: "端口未连线",

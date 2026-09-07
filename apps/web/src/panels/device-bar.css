@@ -1,24 +1,111 @@
 .device-bar-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 22px;
+  margin-top: 22px;
 }
 
 .device-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--border);
+  padding: 10px;
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  background: #fff;
+  background: transparent;
   font-size: var(--fs-base);
   text-align: left;
   cursor: grab;
   user-select: none;
+  touch-action: none;
+}
+.device-card:hover {
+  background: #fff;
+  border-color: var(--border);
+}
+.device-card .device-icon {
+  width: 36px;
+  height: 30px;
+}
+.device-card span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.library-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text-dim);
+}
+.library-search input {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  outline: none;
+}
+.library-search .icon-button {
+  width: 22px;
+  height: 24px;
+  min-height: 24px;
+}
+.library-group h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.library-group h3 span {
+  font-weight: 400;
 }
 
 .device-card:active {
   cursor: grabbing;
+}
+.device-card-dragging {
+  background: #e2f2ed;
+  border-color: var(--accent);
+}
+.library-drag-preview {
+  position: fixed;
+  z-index: 100;
+  width: 142px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 18px #152b2424;
+  pointer-events: none;
+  font-size: 13px;
+}
+.library-drag-preview .device-icon {
+  width: 32px;
+  height: 28px;
+}
+@media (max-width: 759px) {
+  .device-bar.library-dragging {
+    opacity: 0.3;
+    pointer-events: none;
+  }
 }

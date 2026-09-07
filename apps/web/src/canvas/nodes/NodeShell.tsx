@@ -7,15 +7,16 @@ interface Props {
   address?: string;
   errorCount: number;
   width?: number;
+  height?: number;
   children?: ReactNode;
 }
 
-export function NodeShell({ kind, name, address, errorCount, width, children }: Props) {
+export function NodeShell({ kind, name, address, errorCount, width, height, children }: Props) {
   return (
     <div
       className={`device-node device-node-${kind}`}
       data-device-name={name}
-      style={width ? { width } : undefined}
+      style={{ width, minHeight: height }}
     >
       {errorCount > 0 ? (
         <span className="device-node-badge" title="静态检查错误">

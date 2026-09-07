@@ -2,6 +2,7 @@
 
 import { inRange } from "../../model/address";
 import type { LintIssue } from "../../model/lint";
+import { isHost } from "../../model/topology";
 import { issue, type LintRule } from "../context";
 
 export const l006PoolOverlapsStatic: LintRule = (ctx) => {
@@ -13,7 +14,7 @@ export const l006PoolOverlapsStatic: LintRule = (ctx) => {
     if (!segment) continue;
     const { rangeStart, rangeEnd } = pool.dhcp;
     for (const item of ctx.addressedIn(segment)) {
-      if (item.device.type !== "pc" || item.device.config.addressMode !== "static") continue;
+      if (!isHost(item.device) || item.device.config.addressMode !== "static") continue;
       if (!inRange(item.ip, rangeStart, rangeEnd)) continue;
       out.push(
         issue(

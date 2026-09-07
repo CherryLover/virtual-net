@@ -149,6 +149,9 @@ export function defaultInternetConfig(): InternetConfig {
 }
 
 const PORT_NAMES: Record<DeviceType, string[]> = {
+  server: ["eth0"],
+  proxy: ["eth0"],
+  "access-control": ["port1", "port2"],
   pc: ["eth0"],
   router: ["wan", "lan1", "lan2", "lan3", "lan4"],
   internet: ["port1"],
@@ -158,6 +161,9 @@ const PORT_NAMES: Record<DeviceType, string[]> = {
 };
 
 const DEVICE_LABELS: Record<DeviceType, string> = {
+  server: "服务器",
+  proxy: "代理",
+  "access-control": "访问控制",
   pc: "电脑",
   router: "路由器",
   internet: "互联网",
@@ -188,6 +194,39 @@ function makePorts(topology: Topology, type: DeviceType, names: string[]): Port[
 export function createDevice(type: DeviceType, position: Position, topology: Topology): Device {
   const ports = makePorts(topology, type, PORT_NAMES[type]);
   const base = { id: makeId("d_"), name: nextName(topology, type), position, ports };
+  if (type === "server")
+    return {
+      ...base,
+      type,
+      config: {
+        ...defaultPcConfig(),
+        services: [{ id: "https", name: "HTTPS", port: 443, enabled: true }],
+        dnsService: { enabled: false, records: [], upstream: "" },
+      },
+    };
+  if (type === "proxy")
+    return {
+      ...base,
+      type,
+      config: {
+        ...defaultPcConfig(),
+        proxy: {
+          enabled: true,
+          protocol: "http",
+          port: 8080,
+          auth: "none",
+          username: "",
+          password: "",
+        },
+      },
+    };
+  if (type === "access-control")
+    return {
+      ...base,
+      type,
+      accessPolicy: { enabled: true, defaultAction: "allow", stateful: true, rules: [] },
+      config: { dnsRewrite: { enabled: false, records: [] } },
+    };
   if (type === "pc") return { ...base, type: "pc", config: defaultPcConfig() };
   if (type === "router") return { ...base, type: "router", config: defaultRouterConfig() };
   if (type === "switch") return { ...base, type: "switch", config: defaultSwitchConfig() };

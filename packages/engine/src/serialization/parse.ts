@@ -24,6 +24,7 @@ import type {
 } from "../model/topology";
 import { TOPOLOGY_VERSION } from "../model/topology";
 import { isVlanId, MAX_VLAN_ID, MIN_VLAN_ID, type PortVlan, portSupportsVlan } from "../model/vlan";
+import { readPolicy, readProxy, readRewrite, readServer, validDomain } from "./services";
 
 export interface ParseError {
   /** 出错的字段路径，如 `devices[1].ports[0].mac` */
@@ -42,6 +43,13 @@ export type ParseResult =
 
 /** 每种设备类型的端口名规范 */
 const PORT_NAME_RULES: Record<DeviceType, (names: string[]) => string | null> = {
+  server: (names) =>
+    names.length === 1 && names[0] === "eth0" ? null : "服务器需要一个 eth0 端口",
+  proxy: (names) => (names.length === 1 && names[0] === "eth0" ? null : "代理需要一个 eth0 端口"),
+  "access-control": (names) =>
+    names.length === 2 && names[0] === "port1" && names[1] === "port2"
+      ? null
+      : "访问控制需要 port1、port2",
   pc: (names) => (names.length === 1 && names[0] === "eth0" ? null : "电脑只能有一个 eth0 端口"),
   router: (names) => {
     const want = ["wan", "lan1", "lan2", "lan3", "lan4"];
@@ -77,7 +85,17 @@ const PORT_NAME_RULES: Record<DeviceType, (names: string[]) => string | null> = 
 
 const SWITCH_MIN_PORTS = 4;
 const SWITCH_MAX_PORTS = 48;
-const DEVICE_TYPES: DeviceType[] = ["pc", "router", "internet", "switch", "ap", "modem"];
+const DEVICE_TYPES: DeviceType[] = [
+  "pc",
+  "router",
+  "internet",
+  "switch",
+  "ap",
+  "modem",
+  "server",
+  "proxy",
+  "access-control",
+];
 
 const MAC_RE = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
 
@@ -207,6 +225,12 @@ function readPort(c: Collector, value: unknown, path: string): Port {
   if ("vlan" in value) {
     const vlan = readPortVlan(c, value.vlan, `${path}.vlan`);
     if (vlan) port.vlan = vlan;
+  }
+  if ("displaySide" in value) {
+    const side = value.displaySide;
+    if (side === "top" || side === "bottom" || side === "left" || side === "right") {
+      port.displaySide = side;
+    } else c.add(`${path}.displaySide`, "端口显示侧必须是 top、bottom、left 或 right");
   }
   return port;
 }
@@ -453,10 +477,19 @@ function readInternetConfig(c: Collector, value: unknown, path: string): Interne
     c.add(`${path}.targets`, "targets 必须是数组");
     return { access, targets: [] };
   }
-  return {
-    access,
-    targets: targetsRaw.map((t, i) => readTarget(c, t, `${path}.targets[${i}]`)),
-  };
+  const targets = targetsRaw.map((t, i) => readTarget(c, t, `${path}.targets[${i}]`));
+  const ids = new Set<string>();
+  const domains = new Set<string>();
+  targets.forEach((target, i) => {
+    const p = `${path}.targets[${i}]`;
+    if (!target.id.trim() || ids.has(target.id)) c.add(`${p}.id`, "目标标识不能为空或重复");
+    ids.add(target.id);
+    const domain = target.domain.toLowerCase().replace(/\.$/, "");
+    if (!validDomain(target.domain)) c.add(`${p}.domain`, "需要有效的完整域名");
+    if (domains.has(domain)) c.add(`${p}.domain`, "目标域名不能重复");
+    domains.add(domain);
+  });
+  return { access, targets };
 }
 
 function readDevice(c: Collector, value: unknown, index: number): Device | null {
@@ -487,8 +520,54 @@ function readDevice(c: Collector, value: unknown, index: number): Device | null 
       c.add(`${path}.ports[${i}].vlan`, `${port.name} 不支持 VLAN 设置`, { deviceId: id });
     }
   });
-  const base = { id, name, position, ports };
+  const report = (p: string, message: string) => c.add(p, message);
+  if ("zone" in value && typeof value.zone !== "string")
+    c.add(`${path}.zone`, "区域名称必须是文字");
+  const base = {
+    id,
+    name,
+    position,
+    ports,
+    ...(typeof value.zone === "string" ? { zone: value.zone } : {}),
+    ...("accessPolicy" in value
+      ? { accessPolicy: readPolicy(value.accessPolicy, `${path}.accessPolicy`, report) }
+      : {}),
+  };
   switch (deviceType) {
+    case "server":
+      return {
+        ...base,
+        type: "server",
+        config: {
+          ...readPcConfig(c, value.config, `${path}.config`),
+          ...readServer(value.config, `${path}.config`, report),
+        },
+      };
+    case "proxy":
+      return {
+        ...base,
+        type: "proxy",
+        config: {
+          ...readPcConfig(c, value.config, `${path}.config`),
+          proxy: readProxy(
+            isObject(value.config) ? value.config.proxy : undefined,
+            `${path}.config.proxy`,
+            report,
+          ),
+        },
+      };
+    case "access-control":
+      return {
+        ...base,
+        type: "access-control",
+        config: {
+          dnsRewrite: readRewrite(
+            isObject(value.config) ? value.config.dnsRewrite : undefined,
+            `${path}.config.dnsRewrite`,
+            report,
+          ),
+        },
+      };
     case "pc":
       return { ...base, type: "pc", config: readPcConfig(c, value.config, path) };
     case "router":
@@ -529,6 +608,22 @@ function readLink(c: Collector, value: unknown, index: number): Link {
     id: readString(c, value, "id", path),
     a: readLinkEnd(c, value.a, `${path}.a`),
     b: readLinkEnd(c, value.b, `${path}.b`),
+    ...("curve" in value
+      ? {
+          curve: {
+            source: readPosition(
+              c,
+              isObject(value.curve) ? value.curve.source : null,
+              `${path}.curve.source`,
+            ),
+            target: readPosition(
+              c,
+              isObject(value.curve) ? value.curve.target : null,
+              `${path}.curve.target`,
+            ),
+          },
+        }
+      : {}),
   };
 }
 

@@ -5,7 +5,7 @@
 
 总纲在 [../../ROADMAP.md](../../ROADMAP.md)。文档范围不能超出总纲，发现总纲缺东西写进「待定问题」，不要自行扩范围。
 
-> 2026-09-07：后续阶段先读 [方向与页面优化](../design/network-model-and-ui.md)。本文件下方 CP4 特定设备术语仅为旧文档对照，不作为新模型命名依据。CP4 旧细化文档待重写，CP5–CP7 及 UX 需先细化；CP0–CP3 历史约定中受新展示模型影响的部分须显式列出迁移，不静默覆盖。
+> 2026-09-07：当前实施依据为 [方向与页面优化](../design/network-model-and-ui.md)、[CP4](CP4-access-control.md)、[CP5 首批](CP5-proxy-services.md)。UX、CP4、CP5 首批已实现并进入整体交互验收；CP5 后续能力与 CP6 / CP7 尚未实施。旧 CP4 特定边界方案仅供历史参考，不作为现行术语或验收依据。CP0–CP3 的完成记录保留，其旧文件继续作为回归基线。
 
 ## 文件命名
 
@@ -15,6 +15,9 @@
 | CP1 | `CP1-lan-basics.md` |
 | CP2 | `CP2-switching-and-devices.md` |
 | CP3 | `CP3-trace-and-animation.md` |
+| CP4 | [CP4-access-control.md](CP4-access-control.md) |
+| CP5 首批 | [CP5-proxy-services.md](CP5-proxy-services.md) |
+| UX | [../design/network-model-and-ui.md](../design/network-model-and-ui.md) 第 5–8 节 |
 
 ## 编号
 
@@ -86,7 +89,9 @@
 | 交换机 | `switch` | `port1`…`portN`，默认 8 口 | CP2 |
 | 无线 AP | `ap` | `uplink`、`wlan1`…`wlanN`（无线客户端视为连到 `wlanN` 的有线口，始终多留一个空闲口） | CP2 |
 | 光猫 | `modem` | `wan`（上行，连互联网）、`lan1`（连路由器 WAN） | CP2 |
-| 长城防火墙 | `gfw` | `inside`（朝内网）、`outside`（朝互联网），二层透明 | CP4 |
+| 访问控制 | `access-control` | `port1`、`port2`，二层透明；不以端口名定义区域 | CP4 |
+| 服务器 | `server` | `eth0`，复用主机网络配置 | CP5 首批 |
+| 代理 | `proxy` | `eth0`，独立实体、显式选择使用 | CP5 首批 |
 
 通用词：
 - **连线**：两个端口之间的一根网线，`link`
@@ -95,6 +100,10 @@
 - **静态检查**：不跑模拟、只看配置就能发现的问题，`lint`
 - **验证**：在页面上发起 ping / 访问网站 / DNS 查询 等动作，`probe`
 - **结果面板**：页面右侧或底部显示验证结果与静态检查结果的区域
+- **区域**：设备的可命名展示标签，不参与访问判定
+- **服务 DNS 记录**：所查询服务自己的应答策略，日志记录实际应答服务；不从无关目标推测另一个“原答案”
+- **路径 DNS 改写**：真实返回路径上的设备修改已有答案，记录改写前后地址与设备
+- **首批验收**：只覆盖指定批次；不等于 CP5 后续隧道、多级转发等能力已经完成
 
 界面三块固定叫法：**左侧设备栏**、**中间画布**、**右侧面板**（配置与结果共用，按选中状态切换）。
 

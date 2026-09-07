@@ -1,185 +1,233 @@
-import { useMemo, useState } from "react";
-import { leaseOf } from "../engine";
-import type { ProbeRequest } from "../store";
-import { useTopologyStore } from "../store";
+import { Play, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { isHost } from "../engine";
+import { portValidator } from "../panels/forms/serviceValidators";
+import { ProxyOptions, type ProxySelection } from "../panels/ProxyOptions";
+import { type ProbeRequest, useTopologyStore } from "../store";
+import { useLayoutStore } from "../store/layout";
 import "./probe-dialog.css";
 
-interface Props {
-  onClose: () => void;
-}
-
-export function ProbeDialog({ onClose }: Props) {
+export function ProbeDialog({ onClose }: { onClose: () => void }) {
   const topology = useTopologyStore((s) => s.topology);
-  const runtime = useTopologyStore((s) => s.runtime);
   const runProbe = useTopologyStore((s) => s.runProbe);
-  const select = useTopologyStore((s) => s.select);
-
-  const sources = useMemo(
-    () => topology.devices.filter((d) => d.type === "pc" || d.type === "router"),
-    [topology.devices],
-  );
-  const domains = useMemo(
-    () =>
-      topology.devices
-        .flatMap((d) => (d.type === "internet" ? d.config.targets : []))
-        .map((t) => t.domain),
-    [topology.devices],
-  );
-
-  const suggestions = useMemo(() => {
-    const list: { label: string; ip: string }[] = [];
-    for (const device of topology.devices) {
-      if (device.type === "pc") {
-        const lease = leaseOf(runtime, device.id, "eth0");
-        const ip = device.config.addressMode === "dhcp" ? lease?.ip : device.config.ip;
-        if (ip) list.push({ label: `${device.name} ${ip}`, ip });
-      }
-      if (device.type === "router") {
-        list.push({
-          label: `${device.name} LAN ${device.config.lan.ip}`,
-          ip: device.config.lan.ip,
-        });
-        for (const vlan of device.config.vlans ?? []) {
-          if (vlan.ip)
-            list.push({ label: `${device.name} VLAN ${vlan.id} ${vlan.ip}`, ip: vlan.ip });
-        }
-        const wan = leaseOf(runtime, device.id, "wan");
-        if (wan?.ip) list.push({ label: `${device.name} WAN ${wan.ip}`, ip: wan.ip });
-      }
-      if (device.type === "modem" && device.config.mode === "route") {
-        list.push({
-          label: `${device.name} LAN ${device.config.lan.ip}`,
-          ip: device.config.lan.ip,
-        });
-        const wan = leaseOf(runtime, device.id, "wan");
-        if (wan?.ip) list.push({ label: `${device.name} WAN ${wan.ip}`, ip: wan.ip });
-      }
-      if (device.type === "internet") {
-        for (const target of device.config.targets) {
-          list.push({ label: `${target.domain} ${target.ip}`, ip: target.ip });
-        }
-      }
-    }
-    return list;
-  }, [topology.devices, runtime]);
-
+  const runtime = useTopologyStore((s) => s.runtime);
+  const selection = useTopologyStore((s) => s.selection);
+  const sources = topology.devices.filter((d) => isHost(d) || d.type === "router");
   const [kind, setKind] = useState<ProbeRequest["kind"]>("ping");
-  const [source, setSource] = useState(sources[0]?.id ?? "");
-  const [targetIp, setTargetIp] = useState("");
-  const [domain, setDomain] = useState(domains[0] ?? "");
-
+  const [source, setSource] = useState(
+    selection.kind === "device" && sources.some((d) => d.id === selection.id)
+      ? selection.id
+      : (sources[0]?.id ?? ""),
+  );
+  const knownTargets = topology.devices.flatMap((d) =>
+    d.type === "internet" ? d.config.targets : [],
+  );
+  const [target, setTarget] = useState(knownTargets.find((t) => t.dnsServer)?.ip ?? "8.8.8.8");
+  const [domain, setDomain] = useState(knownTargets.find((t) => !t.dnsServer)?.domain ?? "");
+  const [port, setPort] = useState("443");
+  const [proxy, setProxy] = useState<ProxySelection>();
+  const [error, setError] = useState("");
+  const root = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const domainMode = kind === "visitSite" || kind === "dnsQuery";
+  const portError = kind === "visitSite" ? portValidator(port) : null;
+  const eligible = sources.filter((d) => !domainMode || isHost(d));
+  const currentSource = eligible.some((d) => d.id === source) ? source : (eligible[0]?.id ?? "");
+  const targets = topology.devices.flatMap((d) => (d.type === "internet" ? d.config.targets : []));
+  const domains = Array.from(
+    new Set([
+      ...targets.map((t) => t.domain),
+      ...topology.devices.flatMap((d) =>
+        d.type === "server" ? d.config.dnsService.records.map((r) => r.domain) : [],
+      ),
+    ]),
+  );
+  const ips = Array.from(
+    new Set([...targets.map((t) => t.ip), ...runtime.interfaces.map((i) => i.ip).filter(Boolean)]),
+  );
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    root.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => before?.focus();
+  }, []);
   const run = () => {
-    if (!source) return;
-    runProbe(
-      kind === "visitSite"
-        ? { kind, sourceDeviceId: source, domain }
-        : { kind, sourceDeviceId: source, targetIp: targetIp.trim() },
-    );
-    select({ kind: "none" });
-    onClose();
+    if (!currentSource) {
+      setError("请先添加可发起验证的设备");
+      return;
+    }
+    if (!String(domainMode ? domain : target).trim()) {
+      setError("请填写目标");
+      return;
+    }
+    if (portError) {
+      root.current?.querySelector<HTMLInputElement>(`[id="${id}-port"]`)?.focus();
+      return;
+    }
+    try {
+      runProbe(
+        domainMode
+          ? {
+              kind,
+              sourceDeviceId: currentSource,
+              domain: domain.trim(),
+              port: Number(port),
+              proxy: proxy?.deviceId === currentSource ? undefined : proxy,
+            }
+          : { kind, sourceDeviceId: currentSource, targetIp: target.trim() },
+      );
+      useTopologyStore.getState().select({ kind: "none" });
+      useLayoutStore.getState().openInspector();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "验证失败");
+    }
   };
-
   return (
     <>
-      <button type="button" className="probe-backdrop" aria-label="关闭" onClick={onClose} />
-      <div className="probe-dialog" role="dialog" aria-label="验证">
-        <div className="field">
-          <div className="field-label">类型</div>
-          <div className="field-radios">
-            <label>
-              <input
-                type="radio"
-                name="probeKind"
-                checked={kind === "ping"}
-                onChange={() => setKind("ping")}
-              />
-              ping
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="probeKind"
-                checked={kind === "visitSite"}
-                onChange={() => setKind("visitSite")}
-              />
-              访问网站
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="probeKind"
-                checked={kind === "traceroute"}
-                onChange={() => setKind("traceroute")}
-              />
-              traceroute
-            </label>
-          </div>
+      <button type="button" className="probe-backdrop" aria-label="关闭验证" onClick={onClose} />
+      <div
+        ref={root}
+        className="probe-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="网络验证"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onClose();
+          if (event.key !== "Tab") return;
+          const controls = Array.from(
+            root.current?.querySelectorAll<HTMLElement>(
+              "button:not(:disabled), input:not(:disabled), select:not(:disabled)",
+            ) ?? [],
+          );
+          const first = controls[0];
+          const last = controls.at(-1);
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          }
+          if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }}
+      >
+        <div className="probe-dialog-heading">
+          <h2>网络验证</h2>
+          <button
+            type="button"
+            className="btn icon-btn"
+            aria-label="关闭"
+            title="关闭"
+            onClick={onClose}
+          >
+            <X size={17} />
+          </button>
         </div>
-
+        <fieldset className="probe-modes" aria-label="验证类型">
+          {(
+            [
+              ["ping", "连通性"],
+              ["traceroute", "路径"],
+              ["visitSite", "访问服务"],
+              ["dnsQuery", "DNS 查询"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              aria-pressed={kind === value}
+              onClick={() => {
+                setKind(value);
+                setError("");
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </fieldset>
         <div className="field">
-          <label className="field-label" htmlFor="probe-source">
+          <label className="field-label" htmlFor={`${id}-source`}>
             起点
           </label>
           <select
-            id="probe-source"
+            id={`${id}-source`}
             className="field-input"
-            value={source}
+            value={currentSource}
             onChange={(event) => setSource(event.target.value)}
           >
-            {sources.map((device) => (
-              <option key={device.id} value={device.id}>
-                {device.name}
+            {eligible.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
               </option>
             ))}
           </select>
         </div>
-
-        {kind !== "visitSite" ? (
-          <div className="field">
-            <label className="field-label" htmlFor="probe-target">
-              目标
-            </label>
-            <input
-              id="probe-target"
-              className="field-input"
-              value={targetIp}
-              onChange={(event) => setTargetIp(event.target.value)}
-            />
-            <div className="probe-suggestions">
-              {suggestions.map((item) => (
-                <button
-                  key={`${item.label}-${item.ip}`}
-                  type="button"
-                  className="probe-suggestion"
-                  onClick={() => setTargetIp(item.ip)}
-                >
-                  {item.label}
-                </button>
-              ))}
+        <div className="field">
+          <label className="field-label" htmlFor={`${id}-target`}>
+            {domainMode ? "目标域名或 IP" : "目标 IP"}
+          </label>
+          <input
+            id={`${id}-target`}
+            className="field-input"
+            list={`${id}-targets`}
+            value={domainMode ? domain : target}
+            onChange={(event) =>
+              domainMode ? setDomain(event.target.value) : setTarget(event.target.value)
+            }
+          />
+          <datalist id={`${id}-targets`}>
+            {(domainMode ? domains : ips).map((value) => (
+              <option key={value} value={value} />
+            ))}
+          </datalist>
+        </div>
+        {kind === "visitSite" ? (
+          <>
+            <div className="field">
+              <label className="field-label" htmlFor={`${id}-port`}>
+                目标端口
+              </label>
+              <input
+                id={`${id}-port`}
+                className={`field-input${portError ? " field-input-error" : ""}`}
+                aria-invalid={Boolean(portError)}
+                aria-describedby={portError ? `${id}-port-error` : undefined}
+                type="number"
+                min="1"
+                max="65535"
+                value={port}
+                onChange={(event) => setPort(event.target.value)}
+              />
+              {portError ? (
+                <div id={`${id}-port-error`} role="alert" className="field-error">
+                  {portError}
+                </div>
+              ) : null}
             </div>
-          </div>
-        ) : (
-          <div className="field">
-            <label className="field-label" htmlFor="probe-domain">
-              目标
-            </label>
-            <select
-              id="probe-domain"
-              className="field-input"
-              value={domain}
-              onChange={(event) => setDomain(event.target.value)}
-            >
-              {domains.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <button type="button" className="btn btn-primary probe-run" onClick={run}>
-          运行
+            <ProxyOptions
+              sourceId={currentSource}
+              value={proxy?.deviceId === currentSource ? undefined : proxy}
+              onChange={(next) => {
+                if (next?.deviceId !== proxy?.deviceId || next?.protocol !== proxy?.protocol)
+                  setPort(next?.protocol === "http" ? "80" : "443");
+                setProxy(next);
+              }}
+            />
+          </>
+        ) : null}
+        {error ? (
+          <p role="alert" className="field-error">
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="btn btn-primary probe-run"
+          disabled={Boolean(portError)}
+          onClick={run}
+        >
+          <Play size={15} />
+          运行验证
         </button>
       </div>
     </>

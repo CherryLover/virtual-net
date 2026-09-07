@@ -4,18 +4,21 @@
   z-index: 20;
   border: 0;
   padding: 0;
-  background: transparent;
+  background: rgb(24 32 39 / 16%);
   cursor: default;
 }
 
 .probe-dialog {
-  position: absolute;
-  top: 100%;
-  right: 16px;
+  position: fixed;
+  top: 72px;
+  right: 24px;
   z-index: 21;
-  width: 280px;
+  width: min(380px, calc(100vw - 32px));
+  box-sizing: border-box;
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
   margin-top: 6px;
-  padding: 12px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -23,6 +26,52 @@
   border-radius: var(--radius);
   background: #fff;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.probe-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.probe-dialog-heading h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.probe-modes {
+  display: flex;
+  margin: 0 0 8px;
+  padding: 0;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  gap: 4px;
+}
+.probe-modes button {
+  flex: 1;
+  padding: 8px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+.probe-modes button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.proxy-options {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 759px) {
+  .probe-dialog {
+    right: 16px;
+    top: 64px;
+    max-height: calc(100dvh - 80px);
+  }
 }
 
 .probe-suggestions {

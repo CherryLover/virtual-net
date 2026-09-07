@@ -19,6 +19,7 @@ import { InternetNode } from "./nodes/InternetNode";
 import { ModemNode } from "./nodes/ModemNode";
 import { PcNode } from "./nodes/PcNode";
 import { RouterNode } from "./nodes/RouterNode";
+import { ServiceNode } from "./nodes/ServiceNode";
 import { SwitchNode } from "./nodes/SwitchNode";
 import { nodeSubtitle } from "./nodes/subtitle";
 import type { DeviceNodeType } from "./nodes/types";
@@ -35,6 +36,9 @@ const nodeTypes = {
   switch: SwitchNode,
   ap: ApNode,
   modem: ModemNode,
+  server: ServiceNode,
+  proxy: ServiceNode,
+  "access-control": ServiceNode,
 };
 const edgeTypes = { device: DeviceEdge };
 
@@ -103,7 +107,7 @@ export function Canvas() {
             .join(" ") || undefined,
         data: {
           device,
-          address: nodeSubtitle(device, runtime),
+          address: [nodeSubtitle(device, runtime), device.zone].filter(Boolean).join(" · "),
           errorCount: errorCounts.get(device.id) ?? 0,
         },
       })),
@@ -139,6 +143,7 @@ export function Canvas() {
           data: {
             label: `${portName(link.a.deviceId, link.a.portId)} – ${portName(link.b.deviceId, link.b.portId)}`,
             hasError,
+            curve: link.curve,
           },
         };
       }),

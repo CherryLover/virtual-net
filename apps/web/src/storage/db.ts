@@ -1,6 +1,6 @@
 import type { DBSchema, IDBPDatabase } from "idb";
 import { openDB } from "idb";
-import type { Topology } from "../engine";
+import { parseTopology, type Topology } from "../engine";
 
 const DB_NAME = "virtual-net";
 const STORE = "topologies";
@@ -26,18 +26,24 @@ function db() {
       upgrade(database) {
         if (!database.objectStoreNames.contains(STORE)) database.createObjectStore(STORE);
       },
+      terminated() {
+        dbPromise = null;
+      },
+    }).catch((error: unknown) => {
+      dbPromise = null;
+      throw error;
     });
   }
   return dbPromise;
 }
 
 export async function load(): Promise<SavedTopology | null> {
-  try {
-    const database = await db();
-    return (await database.get(STORE, KEY)) ?? null;
-  } catch {
-    return null;
-  }
+  const database = await db();
+  const saved = await database.get(STORE, KEY);
+  if (saved === undefined) return null;
+  const parsed = parseTopology(saved?.topology);
+  if (!parsed.ok) throw new Error("本地保存的内容无法读取，原始数据已保留。");
+  return { topology: parsed.topology, savedAt: saved.savedAt };
 }
 
 export async function save(topology: Topology): Promise<void> {

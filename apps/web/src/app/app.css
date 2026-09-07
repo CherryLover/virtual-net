@@ -1,13 +1,13 @@
 :root {
-  --devicebar-w: 240px;
-  --sidepanel-w: 320px;
+  --devicebar-w: 216px;
+  --sidepanel-w: 352px;
   --border: #d8dbe0;
   --toolbar-bg: #ffffff;
   --panel-bg: #fafbfc;
   --text: #1a1d21;
   --text-dim: #6b7280;
-  --accent: #2563eb;
-  --accent-soft: #bfdbfe;
+  --accent: #087f73;
+  --accent-soft: #ccf2eb;
   --danger: #dc2626;
   --warning: #b45309;
   --ok: #16a34a;
@@ -34,25 +34,59 @@ body {
 }
 
 .app-shell {
+  position: relative;
   display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: var(--devicebar-w) 1fr var(--sidepanel-w);
+  grid-template-rows: 60px minmax(0, 1fr);
+  grid-template-columns: 0 minmax(0, 1fr) 0;
   height: 100%;
+}
+.app-shell.library-open {
+  grid-template-columns: var(--devicebar-w) minmax(0, 1fr) 0;
+}
+.app-shell.inspector-open {
+  grid-template-columns: 0 minmax(0, 1fr) var(--sidepanel-w);
+}
+.app-shell.library-open.inspector-open {
+  grid-template-columns: var(--devicebar-w) minmax(0, 1fr) var(--sidepanel-w);
+}
+* {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+.app-shell > [hidden] {
+  display: none;
+}
+button,
+input,
+select {
+  font-family: inherit;
+}
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .toolbar {
   position: relative;
+  z-index: 20;
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--toolbar-bg);
 }
 
 .toolbar-name {
-  width: 200px;
+  width: 180px;
+  min-width: 64px;
+  flex: 1;
+  max-width: 320px;
+  text-overflow: ellipsis;
   padding: 4px 6px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -71,15 +105,26 @@ body {
 .toolbar-actions {
   display: flex;
   gap: var(--gap);
+  align-items: center;
+  flex: none;
 }
 
 .toolbar-save {
   margin-left: auto;
   font-size: var(--fs-sm);
   color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
   padding: 5px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -100,10 +145,85 @@ body {
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: #066b61;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.icon-button {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+.icon-button[aria-expanded="true"] {
+  background: #eef2f2;
+}
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  font-size: 14px;
+  font-weight: 700;
+  padding-right: 12px;
+  border-right: 1px solid var(--border);
+}
+.toolbar-brand svg {
+  color: var(--accent);
+}
+.toolbar-edit {
+  display: flex;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 0 5px;
+}
+.file-menu {
+  position: relative;
+}
+.file-menu summary {
+  list-style: none;
+  cursor: pointer;
+}
+.file-menu summary::-webkit-details-marker {
+  display: none;
+}
+.file-menu-items {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 170px;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px #152b241a;
+}
+.file-menu-items button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.file-menu-items button:hover {
+  background: #edf4f2;
 }
 
 .device-bar {
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 0;
   border-right: 1px solid var(--border);
   background: var(--panel-bg);
   padding: 12px;
@@ -117,11 +237,18 @@ body {
 }
 
 .canvas {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
   min-width: 0;
   height: 100%;
 }
 
 .side-panel {
+  grid-column: 3;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border);
@@ -132,9 +259,100 @@ body {
 .side-panel-body {
   flex: 1;
   overflow: auto;
+  min-height: 0;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --devicebar-w: 188px;
+    --sidepanel-w: 328px;
+  }
+  .toolbar-brand span {
+    display: none;
+  }
+  .toolbar-save {
+    display: none;
+  }
+}
+@media (max-width: 759px) {
+  .app-shell,
+  .app-shell.library-open,
+  .app-shell.inspector-open,
+  .app-shell.library-open.inspector-open {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+  .device-bar,
+  .side-panel {
+    position: absolute;
+    top: 60px;
+    bottom: 0;
+    z-index: 15;
+    width: min(352px, calc(100vw - 48px));
+    box-shadow: 0 8px 24px #152b241a;
+  }
+  .device-bar {
+    left: 0;
+  }
+  .side-panel {
+    right: 0;
+  }
+  .toolbar {
+    gap: 3px;
+    padding: 8px 6px;
+  }
+  .toolbar-brand {
+    display: none;
+  }
+  .toolbar-actions {
+    gap: 3px;
+  }
+  .toolbar-edit {
+    padding: 0;
+    border: 0;
+  }
+  .toolbar-name {
+    min-width: 28px;
+    width: 40px;
+    padding: 4px;
+    font-size: 12px;
+  }
+  .file-menu summary {
+    width: 32px;
+    padding: 0;
+  }
+  .file-menu summary span,
+  .file-menu summary svg:last-child {
+    display: none;
+  }
+  .toolbar > .icon-button[aria-label="帮助"] {
+    display: none;
+  }
+  .toolbar-actions .btn-primary {
+    padding: 5px 8px;
+  }
 }
 
 .device-icon {
   flex: none;
   color: var(--text-dim);
+}
+
+.storage-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(250 251 252 / 97%);
+  text-align: center;
+}
+.storage-blocker h2 {
+  font-size: 18px;
+}
+.storage-blocker p {
+  max-width: 420px;
+  line-height: 1.7;
 }

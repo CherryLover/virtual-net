@@ -63,6 +63,16 @@ interface ProbeViewProps {
 export function ProbeView({ probe, focus }: ProbeViewProps) {
   const names = useTraceNames();
   const stale = useTraceStore((s) => s.stale);
+  const seek = useTraceStore((s) => s.seekSeq);
+  const connectionLabels: Record<string, string> = {
+    direct: "直接连接",
+    "client-proxy": "连接代理",
+    "proxy-auth": "代理身份验证",
+    "client-dns": "客户端解析",
+    "proxy-dns": "代理端解析",
+    "proxy-target": "代理连接目标",
+    "proxy-response": "返回客户端",
+  };
 
   return (
     <div className={`probe${stale ? " probe-stale" : ""}`}>
@@ -72,9 +82,39 @@ export function ProbeView({ probe, focus }: ProbeViewProps) {
       {probe.dns ? (
         <div className="probe-dns">
           DNS {probe.dns.server} 解析 {probe.dns.domain} → {probe.dns.ip}
+          {probe.dns.rewritten ? (
+            <div>
+              已改写 · 原始 {probe.dns.originalIp ?? "无记录"} ·{" "}
+              {probe.dns.rewrittenBy?.map(names.device).join(" → ")}
+            </div>
+          ) : null}
         </div>
       ) : null}
-      <div className="probe-path">{probe.path.map(names.device).join(" → ")}</div>
+      {!probe.connections?.some((connection) => connection.role === "client-proxy") ? (
+        <div className="probe-path">{probe.path.map(names.device).join(" → ")}</div>
+      ) : null}
+      {probe.connections?.length ? (
+        <ol className="connection-list" aria-label="连接过程">
+          {probe.connections.map((connection) => (
+            <li key={connection.id} className={`connection-${connection.verdict}`}>
+              <button
+                type="button"
+                className="btn connection-step"
+                disabled={stale}
+                onClick={() => seek(connection.startSeq)}
+              >
+                <span>{connectionLabels[connection.role] ?? connection.role}</span>
+                <span className="connection-verdict">
+                  {connection.verdict === "ok" ? "通过" : "失败"}
+                </span>
+              </button>
+              <small>
+                {names.device(connection.sourceDeviceId)} → {names.device(connection.target)}
+              </small>
+            </li>
+          ))}
+        </ol>
+      ) : null}
       {probe.fixAt || probe.stoppedAt ? (
         <button
           type="button"

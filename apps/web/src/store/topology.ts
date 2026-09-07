@@ -2,18 +2,22 @@ import { create } from "zustand";
 import type {
   Device,
   DeviceType,
+  Link,
   LintIssue,
   OpResult,
+  Port,
   Position,
   ProbeResult,
   Runtime,
   Topology,
   Viewport,
+  VisitSiteOptions,
 } from "../engine";
 import {
   buildRuntime,
   createDevice,
   createLink,
+  dnsQuery,
   emptyTopology,
   ensureSparePorts,
   lint,
@@ -29,6 +33,8 @@ export interface ProbeRequest {
   sourceDeviceId: string;
   targetIp?: string;
   domain?: string;
+  port?: number;
+  proxy?: VisitSiteOptions["proxy"];
 }
 
 /**
@@ -40,10 +46,11 @@ function structuralKey(topology: Topology): string {
     devices: topology.devices.map((d) => ({
       id: d.id,
       type: d.type,
-      ports: d.ports,
+      ports: d.ports.map(({ displaySide: _displaySide, ...port }) => port),
       config: d.config,
+      accessPolicy: d.accessPolicy,
     })),
-    links: topology.links,
+    links: topology.links.map(({ curve: _curve, ...link }) => link),
   });
 }
 
@@ -101,6 +108,8 @@ interface TopologyState extends Derived {
     b: { deviceId: string; portId: string },
   ) => void;
   removeLink: (id: string) => void;
+  setLinkCurve: (id: string, curve?: Link["curve"]) => void;
+  setPortSide: (deviceId: string, portId: string, side?: Port["displaySide"]) => void;
 
   select: (selection: Selection, field?: string | null, portId?: string | null) => void;
   setProbe: (result: ProbeResult | null) => void;
@@ -286,6 +295,34 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
       });
     },
 
+    setLinkCurve: (id, curve) => {
+      const topology = get().topology;
+      const link = topology.links.find((item) => item.id === id);
+      if (!link || JSON.stringify(link.curve) === JSON.stringify(curve)) return;
+      commit({
+        ...topology,
+        links: topology.links.map((item) => {
+          if (item.id !== id) return item;
+          const { curve: _old, ...rest } = item;
+          return curve ? { ...rest, curve } : rest;
+        }),
+      });
+    },
+
+    setPortSide: (deviceId, portId, side) => {
+      const device = get().topology.devices.find((item) => item.id === deviceId);
+      const port = device?.ports.find((item) => item.id === portId);
+      if (!port || port.displaySide === side) return;
+      get().updateDevice(deviceId, (item) => ({
+        ...item,
+        ports: item.ports.map((p) => {
+          if (p.id !== portId) return p;
+          const { displaySide: _old, ...rest } = p;
+          return side ? { ...rest, displaySide: side } : rest;
+        }),
+      }));
+    },
+
     select: (selection, field = null, portId = null) =>
       set({ selection, highlightField: field, highlightPortId: portId }),
     setProbe: (result) => set({ lastProbe: result, ...(result ? {} : { lastProbeRequest: null }) }),
@@ -295,9 +332,17 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
       if (!topology.devices.some((d) => d.id === request.sourceDeviceId)) return null;
       const source = request.sourceDeviceId;
       let result: ProbeResult;
-      if (request.kind === "visitSite") {
+      if (request.kind === "visitSite" || request.kind === "dnsQuery") {
         if (!request.domain) return null;
-        result = visitSite(topology, { sourceDeviceId: source, domain: request.domain });
+        result =
+          request.kind === "dnsQuery"
+            ? dnsQuery(topology, { sourceDeviceId: source, domain: request.domain })
+            : visitSite(topology, {
+                sourceDeviceId: source,
+                domain: request.domain,
+                port: request.port,
+                proxy: request.proxy,
+              });
       } else {
         const targetIp = (request.targetIp ?? "").trim();
         if (!targetIp) return null;
@@ -321,12 +366,14 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
         past: past.slice(0, -1),
         future: pushHistory(future, topology),
         saveState: "saving",
-        topologyRevision: get().topologyRevision + 1,
+        topologyRevision:
+          get().topologyRevision + (structuralKey(restored) !== structuralKey(topology) ? 1 : 0),
         selection: { kind: "none" },
         highlightField: null,
         highlightPortId: null,
-        lastProbe: null,
-        lastProbeRequest: null,
+        ...(structuralKey(restored) !== structuralKey(topology)
+          ? { lastProbe: null, lastProbeRequest: null }
+          : {}),
       });
     },
 
@@ -341,12 +388,14 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
         past: pushHistory(past, topology),
         future: future.slice(0, -1),
         saveState: "saving",
-        topologyRevision: get().topologyRevision + 1,
+        topologyRevision:
+          get().topologyRevision + (structuralKey(restored) !== structuralKey(topology) ? 1 : 0),
         selection: { kind: "none" },
         highlightField: null,
         highlightPortId: null,
-        lastProbe: null,
-        lastProbeRequest: null,
+        ...(structuralKey(restored) !== structuralKey(topology)
+          ? { lastProbe: null, lastProbeRequest: null }
+          : {}),
       });
     },
   };

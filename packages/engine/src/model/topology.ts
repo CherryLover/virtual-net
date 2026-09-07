@@ -5,7 +5,68 @@ import type { PortVlan } from "./vlan";
 /** 当前支持的拓扑格式版本 */
 export const TOPOLOGY_VERSION = 1;
 
-export type DeviceType = "pc" | "router" | "internet" | "switch" | "ap" | "modem";
+export type DeviceType =
+  | "pc"
+  | "router"
+  | "internet"
+  | "switch"
+  | "ap"
+  | "modem"
+  | "access-control"
+  | "server"
+  | "proxy";
+
+export interface AccessRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  action: "allow" | "deny";
+  direction: "any" | "in" | "out" | "forward";
+  protocol: "any" | "icmp" | "tcp" | "udp";
+  source: string;
+  destination: string;
+  domain: string;
+  port: number | null;
+}
+
+export interface AccessPolicy {
+  enabled: boolean;
+  defaultAction: "allow" | "deny";
+  stateful: boolean;
+  rules: AccessRule[];
+}
+
+export interface DnsRecord {
+  domain: string;
+  ip: string;
+}
+
+export interface DnsService {
+  enabled: boolean;
+  records: DnsRecord[];
+  upstream: string;
+}
+
+export interface ServerConfig extends PcConfig {
+  services: { id: string; name: string; port: number; enabled: boolean }[];
+  dnsService: DnsService;
+}
+
+export type ProxyProtocol = "http" | "connect" | "socks5";
+export interface ProxyConfig extends PcConfig {
+  proxy: {
+    enabled: boolean;
+    protocol: ProxyProtocol;
+    port: number;
+    auth: "none" | "password";
+    username: string;
+    password: string;
+  };
+}
+
+export interface AccessControlConfig {
+  dnsRewrite: { enabled: boolean; records: DnsRecord[] };
+}
 
 export interface Position {
   x: number;
@@ -19,6 +80,8 @@ export interface Viewport {
 }
 
 export interface Port {
+  /** 仅影响画布显示，不参与网络模拟。 */
+  displaySide?: "top" | "bottom" | "left" | "right";
   id: string;
   name: string;
   mac: string;
@@ -130,6 +193,21 @@ interface DeviceBase {
   name: string;
   position: Position;
   ports: Port[];
+  accessPolicy?: AccessPolicy;
+  zone?: string;
+}
+
+export interface ServerDevice extends DeviceBase {
+  type: "server";
+  config: ServerConfig;
+}
+export interface ProxyDevice extends DeviceBase {
+  type: "proxy";
+  config: ProxyConfig;
+}
+export interface AccessControlDevice extends DeviceBase {
+  type: "access-control";
+  config: AccessControlConfig;
 }
 
 export interface PcDevice extends DeviceBase {
@@ -163,12 +241,19 @@ export interface ModemDevice extends DeviceBase {
 }
 
 export type Device =
+  | ServerDevice
+  | ProxyDevice
+  | AccessControlDevice
   | PcDevice
   | RouterDevice
   | InternetDevice
   | SwitchDevice
   | ApDevice
   | ModemDevice;
+
+export function isHost(device: Device): device is PcDevice | ServerDevice | ProxyDevice {
+  return device.type === "pc" || device.type === "server" || device.type === "proxy";
+}
 
 /** 三层设备（有地址、有路由表、会做 NAT）：路由器与路由模式的光猫 */
 export function isL3Router(device: Device): device is RouterDevice | ModemDevice {
@@ -178,6 +263,7 @@ export function isL3Router(device: Device): device is RouterDevice | ModemDevice
 
 /** 二层透明设备：交换机、AP、桥接模式光猫。路由器的 LAN 网桥另算 */
 export function isTransparent(device: Device): boolean {
+  if (device.type === "access-control") return true;
   if (device.type === "switch" || device.type === "ap") return true;
   return device.type === "modem" && device.config.mode === "bridge";
 }
@@ -188,6 +274,8 @@ export interface LinkEnd {
 }
 
 export interface Link {
+  /** 两个控制点分别相对 a、b 端点保存。缺省自动布线。 */
+  curve?: { source: Position; target: Position };
   id: string;
   a: LinkEnd;
   b: LinkEnd;

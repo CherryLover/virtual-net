@@ -9,6 +9,82 @@
   text-align: center;
 }
 
+.device-node-name span,
+.device-node-address {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.edge-control-guides {
+  pointer-events: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+.edge-control,
+.edge-reset {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  pointer-events: all;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
+  z-index: 8;
+}
+.edge-control {
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+.edge-control:active {
+  cursor: grabbing;
+  background: var(--accent-soft);
+}
+.edge-reset {
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 18px;
+}
+.edge-control:focus-visible,
+.edge-reset:focus-visible {
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 3px;
+}
+.react-flow__handle.port-connected {
+  background: #159166;
+}
+.port-label.port-label-left {
+  left: -10px;
+  transform: translate(-100%, -50%);
+}
+.port-label.port-label-right {
+  right: -10px;
+  transform: translate(100%, -50%);
+}
+.vlan-badge.vlan-badge-left {
+  left: -45px;
+  transform: translate(-100%, -50%);
+}
+.vlan-badge.vlan-badge-right {
+  right: -45px;
+  transform: translate(100%, -50%);
+}
+.port-side-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 80px;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px;
+}
+
 .react-flow__node.selected .device-node {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
@@ -301,12 +377,15 @@
   margin: 0 0 12px;
   padding: 6px 10px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .playback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
   width: 26px;
   height: 26px;
@@ -359,6 +438,10 @@
   overflow: hidden;
   cursor: pointer;
   touch-action: none;
+}
+.playback-track:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .playback-band,

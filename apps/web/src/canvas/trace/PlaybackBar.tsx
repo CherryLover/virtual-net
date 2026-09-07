@@ -1,10 +1,12 @@
 /** 画布底部的播放条（CP3 3.2） */
 import { Panel } from "@xyflow/react";
+import { Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import { useRef } from "react";
 import type { PlaybackSpeed } from "../../store";
 import { useTraceStore } from "../../store";
 import { phaseLabel } from "../../trace/phaseLabel";
 import type { Segment, Timeline } from "../../trace/timeline";
+import { playbackCommand } from "./playbackKeyboard";
 import { phaseColor } from "./traceView";
 
 const SPEEDS: PlaybackSpeed[] = [0.5, 1, 2];
@@ -38,7 +40,7 @@ export function PlaybackBar({ timeline }: Props) {
   const cursorMs = useTraceStore((s) => s.cursorMs);
   const playing = useTraceStore((s) => s.playing);
   const speed = useTraceStore((s) => s.speed);
-  const dragging = useRef(false);
+  const dragging = useRef<number | null>(null);
   const total = timeline.totalMs;
   const bands = bandsOf(timeline.segments);
 
@@ -54,25 +56,28 @@ export function PlaybackBar({ timeline }: Props) {
         type="button"
         className="playback-btn"
         title="上一跳"
+        aria-label="上一跳"
         onClick={() => useTraceStore.getState().step(-1)}
       >
-        ⏮
+        <SkipBack size={15} aria-hidden="true" />
       </button>
       <button
         type="button"
         className="playback-btn playback-play"
         title={playing ? "暂停" : "播放"}
+        aria-label={playing ? "暂停" : "播放"}
         onClick={() => useTraceStore.getState().togglePlay()}
       >
-        {playing ? "⏸" : "▶"}
+        {playing ? <Pause size={15} aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
       </button>
       <button
         type="button"
         className="playback-btn"
         title="下一跳"
+        aria-label="下一跳"
         onClick={() => useTraceStore.getState().step(1)}
       >
-        ⏭
+        <SkipForward size={15} aria-hidden="true" />
       </button>
 
       <div className="playback-progress">
@@ -92,22 +97,43 @@ export function PlaybackBar({ timeline }: Props) {
         <div
           className="playback-track"
           role="slider"
-          tabIndex={-1}
+          tabIndex={0}
           aria-label="进度"
           aria-valuemin={0}
           aria-valuemax={Math.round(total)}
           aria-valuenow={Math.round(cursorMs)}
+          aria-valuetext={`${(cursorMs / 1000).toFixed(1)} / ${(total / 1000).toFixed(1)} 秒`}
+          onKeyDown={(event) => {
+            const command = playbackCommand(event.key, total);
+            if (!command) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const trace = useTraceStore.getState();
+            if (command.kind === "step") trace.step(command.delta);
+            else trace.seekMs(command.ms);
+          }}
           onPointerDown={(event) => {
-            dragging.current = true;
+            if (event.button !== 0 || !event.isPrimary) return;
+            dragging.current = event.pointerId;
+            event.currentTarget.focus();
             event.currentTarget.setPointerCapture(event.pointerId);
             seekAt(event);
           }}
           onPointerMove={(event) => {
-            if (dragging.current) seekAt(event);
+            if (dragging.current === event.pointerId) seekAt(event);
           }}
           onPointerUp={(event) => {
-            dragging.current = false;
-            event.currentTarget.releasePointerCapture(event.pointerId);
+            if (dragging.current !== event.pointerId) return;
+            seekAt(event);
+            dragging.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId))
+              event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+          onPointerCancel={(event) => {
+            if (dragging.current === event.pointerId) dragging.current = null;
+          }}
+          onLostPointerCapture={(event) => {
+            if (dragging.current === event.pointerId) dragging.current = null;
           }}
         >
           {bands.map((band) => (
@@ -158,6 +184,9 @@ export function PlaybackBar({ timeline }: Props) {
             key={value}
             type="button"
             className={`playback-speed${value === speed ? " playback-speed-on" : ""}`}
+            aria-label={`${value} 倍速`}
+            title={`${value} 倍速`}
+            aria-pressed={value === speed}
             onClick={() => useTraceStore.getState().setSpeed(value)}
           >
             {value}×
@@ -169,9 +198,10 @@ export function PlaybackBar({ timeline }: Props) {
         type="button"
         className="playback-btn"
         title="清除动画"
+        aria-label="清除动画"
         onClick={() => useTraceStore.getState().clear()}
       >
-        ✕
+        <X size={15} aria-hidden="true" />
       </button>
     </Panel>
   );

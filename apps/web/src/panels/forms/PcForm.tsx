@@ -1,16 +1,20 @@
-import type { PcDevice, Runtime } from "../../engine";
+import type { PcDevice, ProxyDevice, Runtime, ServerDevice } from "../../engine";
 import { leaseOf } from "../../engine";
 import { useTopologyStore } from "../../store";
 import { Field } from "../Field";
 import { ipValidator, maskValidator } from "../validators";
 
 interface Props {
-  device: PcDevice;
+  device: PcDevice | ProxyDevice | ServerDevice;
   runtime: Runtime;
   highlight: string | null;
 }
 
-function leaseText(runtime: Runtime, device: PcDevice, serverName: (id: string) => string): string {
+function leaseText(
+  runtime: Runtime,
+  device: PcDevice | ProxyDevice | ServerDevice,
+  serverName: (id: string) => string,
+): string {
   const lease = leaseOf(runtime, device.id, "eth0");
   if (!lease) return "未获取到地址";
   if (lease.status === "ok") {
@@ -29,9 +33,12 @@ export function PcForm({ device, runtime, highlight }: Props) {
   const dhcp = device.config.addressMode === "dhcp";
 
   const setConfig = (patch: Partial<PcDevice["config"]>) => {
-    updateDevice(device.id, (d) =>
-      d.type === "pc" ? { ...d, config: { ...d.config, ...patch } } : d,
-    );
+    updateDevice(device.id, (d) => {
+      if (d.type === "pc") return { ...d, config: { ...d.config, ...patch } };
+      if (d.type === "server") return { ...d, config: { ...d.config, ...patch } };
+      if (d.type === "proxy") return { ...d, config: { ...d.config, ...patch } };
+      return d;
+    });
   };
 
   return (

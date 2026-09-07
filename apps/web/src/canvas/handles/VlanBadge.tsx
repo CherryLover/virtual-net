@@ -10,7 +10,7 @@ export function vlanBadgeText(port: Port): string | null {
 
 interface Props {
   port: Port;
-  side: "top" | "bottom";
+  side: "top" | "bottom" | "left" | "right";
   left: string;
 }
 
@@ -18,7 +18,11 @@ export function VlanBadge({ port, side, left }: Props) {
   const text = vlanBadgeText(port);
   if (!text) return null;
   return (
-    <span className={`vlan-badge vlan-badge-${side}`} style={{ left }} data-port-vlan={port.name}>
+    <span
+      className={`vlan-badge vlan-badge-${side}`}
+      style={side === "left" || side === "right" ? { top: left } : { left }}
+      data-port-vlan={port.name}
+    >
       {text}
     </span>
   );

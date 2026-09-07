@@ -59,7 +59,8 @@ export function deliverFrame(opts: {
   phase: DecisionPhase;
   path: L2Path;
   packet: PacketSummary;
-}): L2Delivery {
+  inspect?: (device: Device, packet: PacketSummary, portIn: string) => boolean;
+}): L2Delivery | null {
   const { runtime, log, phase, path } = opts;
   let packet = opts.packet;
 
@@ -72,6 +73,7 @@ export function deliverFrame(opts: {
 
     const packetIn: PacketSummary = { ...packet, vlan: step.wireVlanIn };
     const packetOut: PacketSummary = { ...packet, vlan: step.wireVlanOut };
+    if (opts.inspect && !opts.inspect(device, packetIn, step.portIn)) return null;
 
     // 学习
     const table = tableOf(runtime, device.id, step.vlan);

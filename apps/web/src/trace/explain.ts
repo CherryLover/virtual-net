@@ -65,6 +65,9 @@ function macTitle(decision: Decision, names: TraceNames): string | null {
 
 function titleOf(decision: Decision, names: TraceNames, context: ExplainContext): string {
   if (decision.verdict === "stop") return reasonLabel(decision.reasonCode);
+  if (decision.basis.policy)
+    return decision.basis.policy.stateful ? "允许已建立连接返回" : decision.note;
+  if (decision.basis.proxy) return decision.note;
 
   const dns = decision.basis.dns;
   switch (decision.action) {
@@ -91,7 +94,7 @@ function titleOf(decision: Decision, names: TraceNames, context: ExplainContext)
       if (dns) {
         return dns.answer ? `DNS 应答：${dns.domain} = ${dns.answer}` : `DNS 应答：${dns.domain}`;
       }
-      if (decision.phase === "tcp") return "接受 TCP 443 连接";
+      if (decision.phase === "tcp") return `接受 TCP ${decision.packetIn?.l4.dstPort ?? 443} 连接`;
       return decision.note;
     }
     case "receive": {
@@ -141,6 +144,13 @@ export function explain(
   if (decision.verdict === "stop" && decision.reason) lines.push(decision.reason);
 
   const { route, arp, mac, nat, dns } = decision.basis;
+  if (decision.basis.policy) {
+    const policy = decision.basis.policy;
+    const direction = { in: "入站", out: "出站", forward: "转发" }[policy.direction];
+    lines.push(
+      `${direction}规则：${policy.action === "allow" ? "允许" : "拒绝"}，${policy.ruleId ? `命中 ${policy.ruleName ?? policy.ruleId}` : policy.stateful ? "已建立连接" : "默认动作"}`,
+    );
+  }
 
   if (route) {
     const via = route.via ? `下一跳 ${route.via}` : "直连";

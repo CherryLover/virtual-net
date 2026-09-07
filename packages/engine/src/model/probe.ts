@@ -72,6 +72,14 @@ export interface VlanBasis {
 
 /** 开放对象：CP2 加 mac / vlan，CP5 加 tunnel */
 export interface DecisionBasis {
+  policy?: {
+    action: "allow" | "deny";
+    ruleId: string | null;
+    ruleName?: string;
+    stateful: boolean;
+    direction: "in" | "out" | "forward";
+  };
+  proxy?: { deviceId: string; stage: "authentication" | "response"; protocol: string };
   route?: RouteBasis | null;
   arp?: ArpBasis | null;
   nat?: NatBasis | null;
@@ -123,14 +131,37 @@ export interface FixAt {
 }
 
 export interface ProbeResult {
-  kind: "ping" | "visitSite" | "traceroute";
+  connections?: {
+    id: string;
+    role:
+      | "direct"
+      | "client-proxy"
+      | "client-dns"
+      | "proxy-dns"
+      | "proxy-target"
+      | "proxy-response"
+      | "proxy-auth";
+    sourceDeviceId: string;
+    target: string;
+    startSeq: number;
+    endSeq: number;
+    verdict: "ok" | "fail";
+  }[];
+  kind: "ping" | "visitSite" | "traceroute" | "dnsQuery";
   verdict: "ok" | "fail";
   summary: string;
   stoppedAt: string | null;
   reasonCode: string | null;
   reason: string | null;
   fixAt: FixAt | null;
-  dns: { server: string; domain: string; ip: string } | null;
+  dns: {
+    server: string;
+    domain: string;
+    ip: string;
+    originalIp?: string;
+    rewritten?: boolean;
+    rewrittenBy?: string[];
+  } | null;
   hops: Hop[] | null;
   decisions: Decision[];
   path: string[];
@@ -138,6 +169,12 @@ export interface ProbeResult {
 
 /** 终止原因编码（2.3 节） */
 export const REASON_CODES = [
+  "ACCESS_DENIED",
+  "SERVICE_CLOSED",
+  "PROXY_UNAVAILABLE",
+  "PROXY_PROTOCOL_MISMATCH",
+  "PROXY_AUTH_FAILED",
+  "PROXY_DNS_MODE",
   "NO_IP",
   "PORT_UNLINKED",
   "NO_GATEWAY",

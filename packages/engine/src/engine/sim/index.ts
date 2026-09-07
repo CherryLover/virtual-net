@@ -1,6 +1,7 @@
 // 一次验证的完整走法与三个 probe 入口
 export * from "./arp";
 export * from "./decision";
+export * from "./dnsQuery";
 export * from "./frame";
 export * from "./l2";
 export * from "./messages";

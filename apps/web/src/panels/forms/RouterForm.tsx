@@ -18,6 +18,7 @@ interface Props {
   runtime: Runtime;
   highlight: string | null;
   highlightPortId: string | null;
+  hidePorts?: boolean;
 }
 
 const WAN_MODES: { value: RouterWanMode; label: string }[] = [
@@ -26,7 +27,7 @@ const WAN_MODES: { value: RouterWanMode; label: string }[] = [
   { value: "static", label: "手动" },
 ];
 
-export function RouterForm({ device, runtime, highlight, highlightPortId }: Props) {
+export function RouterForm({ device, runtime, highlight, highlightPortId, hidePorts }: Props) {
   const updateDevice = useTopologyStore((s) => s.updateDevice);
   const runOp = useTopologyStore((s) => s.runOp);
   const config = device.config;
@@ -206,10 +207,12 @@ export function RouterForm({ device, runtime, highlight, highlightPortId }: Prop
         ))}
       </div>
 
-      <div className="field" data-field="lanPorts">
-        <div className="field-label">LAN 口</div>
-        <PortVlanTable device={device} highlightPortId={highlightPortId} />
-      </div>
+      {hidePorts ? null : (
+        <div className="field" data-field="lanPorts">
+          <div className="field-label">LAN 口</div>
+          <PortVlanTable device={device} highlightPortId={highlightPortId} />
+        </div>
+      )}
 
       <Toggle
         label="NAT"

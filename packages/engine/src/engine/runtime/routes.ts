@@ -2,7 +2,7 @@
 
 import { formatIp, inSubnet, networkInt, parseIp, parseMask } from "../../model/address";
 import type { Topology } from "../../model/topology";
-import { isL3Router } from "../../model/topology";
+import { isHost, isL3Router } from "../../model/topology";
 import { lanInterfacesOf } from "./interfaces";
 import type { L3Interface, Lease, Route } from "./types";
 
@@ -38,7 +38,7 @@ export function buildRoutes(
     const own = interfaces.filter((i) => i.deviceId === device.id);
     const routes: Route[] = [];
 
-    if (device.type === "pc") {
+    if (isHost(device)) {
       const eth0 = own.find((i) => i.name === "eth0");
       if (eth0) {
         const direct = directRoute(eth0);

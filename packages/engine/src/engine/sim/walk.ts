@@ -13,7 +13,7 @@ import type {
   Protocol,
 } from "../../model/probe";
 import type { Device, InternetTarget, Topology } from "../../model/topology";
-import { BROADCAST_MAC, isL3Router, peerEnd } from "../../model/topology";
+import { BROADCAST_MAC, isHost, isL3Router, peerEnd } from "../../model/topology";
 import { lanInterfacesOf } from "../runtime/interfaces";
 import { lookupRoutes } from "../runtime/routes";
 import type { L2Loop, L2Path } from "../runtime/segment";
@@ -36,6 +36,7 @@ import {
 import { deliverFrame } from "./l2";
 import { leaseFailureText, type StopInfo, stopText } from "./messages";
 import { natInbound, natOutbound } from "./nat";
+import { domainMatches, PolicySessions } from "./policy";
 
 /** 一帧在路上：要送到哪台设备的哪个端口 */
 interface Hop {
@@ -65,6 +66,8 @@ export interface FlowResult {
   ok: boolean;
   /** DNS 阶段解析到的地址 */
   answerIp?: string;
+  originalIp?: string;
+  rewrittenBy?: string[];
 }
 
 export class Walk {
@@ -79,6 +82,11 @@ export class Walk {
   private originDeviceId = "";
   stopped: FlowStop | null = null;
   private answerIp = "";
+  private originalIp = "";
+  private rewrittenBy: string[] = [];
+  private readonly policies = new PolicySessions();
+  private observableDomain = "";
+  private readonly accepted = new Map<string, { hop: Hop; pending: Pending }>();
 
   constructor(private readonly runtime: Runtime) {
     this.topology = runtime.topology;
@@ -166,6 +174,59 @@ export class Walk {
     return port;
   }
 
+  private checkPolicy(
+    device: Device,
+    packet: PacketSummary,
+    direction: "in" | "out" | "forward",
+    reply: boolean,
+    portIn: string | null,
+  ): boolean {
+    const result = this.policies.evaluate(
+      device.id,
+      device.accessPolicy,
+      packet,
+      direction,
+      this.phase === "dns" ? this.domain : this.observableDomain,
+      reply,
+    );
+    if (!result) return true;
+    const note = result.stateful
+      ? "允许已建立连接的返回流量"
+      : result.ruleId
+        ? `命中规则“${result.ruleName ?? result.ruleId}”，${result.action === "allow" ? "允许" : "拒绝"}访问`
+        : `未命中规则，默认${result.action === "allow" ? "允许" : "拒绝"}`;
+    const input = {
+      phase: this.phase,
+      deviceId: device.id,
+      action:
+        direction === "out"
+          ? ("originate" as const)
+          : direction === "in"
+            ? ("receive" as const)
+            : ("forward" as const),
+      portIn,
+      packetIn: packet,
+      basis: { policy: { ...result, direction } },
+      note,
+    };
+    if (result.action === "deny") {
+      this.fail(
+        device.id,
+        { reasonCode: "ACCESS_DENIED", reason: `${device.name}：${note}` },
+        input,
+        {
+          deviceId: device.id,
+          field: result.ruleId
+            ? `accessPolicy.rules.${result.ruleId}`
+            : "accessPolicy.defaultAction",
+        },
+      );
+      return false;
+    }
+    this.log.pass(input);
+    return true;
+  }
+
   private fail(
     deviceId: string,
     stop: StopInfo,
@@ -194,6 +255,7 @@ export class Walk {
     note: (ctx: { route: Route; iface: L3Interface; nextHop: string; arpMac: string }) => string;
     /** NAT 出向改写在选好出接口后做 */
     natOut?: boolean;
+    isReply?: boolean;
   }): Hop | null {
     const { deviceId } = opts;
     const device = this.device(deviceId);
@@ -210,7 +272,7 @@ export class Walk {
     const routes = lookupRoutes(this.runtime.routes[deviceId] ?? [], opts.dstIp);
     const route = routes[0];
     if (!route) {
-      if (device.type === "pc") {
+      if (isHost(device)) {
         const eth0 = this.runtime.ifaceOf(deviceId, "eth0");
         const subnet = eth0?.ip ? subnetLabel(eth0.ip, eth0.mask) : "本机网段";
         return this.fail(
@@ -360,6 +422,24 @@ export class Walk {
 
     let srcIp = opts.srcIp ?? iface.ip;
     const l4: L4Summary = { ...opts.l4 };
+    const policyPacket = makePacket({
+      srcMac: iface.mac,
+      dstMac: arp.mac,
+      srcIp,
+      dstIp: opts.dstIp,
+      proto: opts.proto,
+      l4,
+    });
+    if (
+      !this.checkPolicy(
+        device,
+        policyPacket,
+        opts.action === "forward" ? "forward" : "out",
+        opts.isReply ?? opts.action === "answer",
+        opts.portIn,
+      )
+    )
+      return null;
     let natBasis = opts.basis?.nat ?? null;
     let natNote = "";
     if (opts.natOut && isL3Router(device) && iface.name === "wan") {
@@ -429,7 +509,7 @@ export class Walk {
       note: noteParts.join("；"),
     });
 
-    return this.crossPath(arp.path, packetOut, opts.action === "answer");
+    return this.crossPath(arp.path, packetOut, opts.isReply ?? opts.action === "answer");
   }
 
   /** 沿二层路径穿过透明设备，返回落到对端三层设备上的那一跳 */
@@ -440,8 +520,36 @@ export class Walk {
       phase: this.phase,
       path,
       packet,
+      inspect: (device, incoming, portIn) => {
+        if (!this.checkPolicy(device, incoming, "forward", isReply, portIn)) return false;
+        if (
+          isReply &&
+          this.phase === "dns" &&
+          device.type === "access-control" &&
+          device.config.dnsRewrite.enabled
+        ) {
+          const record = device.config.dnsRewrite.records.find((r) =>
+            domainMatches(r.domain, this.domain),
+          );
+          if (record) {
+            if (!this.originalIp) this.originalIp = this.answerIp;
+            this.rewrittenBy.push(device.id);
+            this.answerIp = record.ip;
+            this.log.pass({
+              phase: "dns",
+              deviceId: device.id,
+              action: "forward",
+              portIn,
+              packetIn: incoming,
+              basis: { dns: { domain: this.domain, answer: record.ip } },
+              note: `查询经过此设备，DNS 应答改写为 ${record.ip}`,
+            });
+          }
+        }
+        return true;
+      },
     });
-    if (!arrival.deviceId || !arrival.portId) return null;
+    if (!arrival?.deviceId || !arrival.portId) return null;
     return {
       deviceId: arrival.deviceId,
       portId: arrival.portId,
@@ -463,7 +571,7 @@ export class Walk {
     note?: string;
   }): Hop | null {
     const device = this.device(opts.deviceId);
-    if (device.type === "pc") {
+    if (isHost(device)) {
       const eth0 = this.runtime.ifaceOf(opts.deviceId, "eth0");
       if (!eth0?.ip) {
         const why =
@@ -514,9 +622,17 @@ export class Walk {
     proto: Protocol;
     l4?: L4Summary;
     domain?: string;
+    observableDomain?: string;
   }): FlowResult {
     this.phase = opts.phase;
     this.domain = opts.domain ?? "";
+    this.observableDomain = opts.observableDomain ?? "";
+    this.answerIp = "";
+    this.originalIp = "";
+    this.rewrittenBy = [];
+    this.pending = [];
+    this.stopped = null;
+    const startCount = this.log.count;
     this.originDeviceId = opts.originDeviceId;
     const l4: L4Summary =
       opts.l4 ??
@@ -550,7 +666,7 @@ export class Walk {
     if (top && sent) top.sent = sent;
 
     while (hop) {
-      if (this.log.count >= MAX_HOPS) {
+      if (this.log.count - startCount >= MAX_HOPS) {
         this.fail(
           hop.deviceId,
           stopText.ttlExceeded(MAX_HOPS),
@@ -570,7 +686,13 @@ export class Walk {
       if (this.stopped) break;
     }
     if (this.stopped) return { ok: false };
-    return { ok: true, answerIp: this.answerIp };
+    return {
+      ok: true,
+      answerIp: this.answerIp,
+      ...(this.rewrittenBy.length
+        ? { originalIp: this.originalIp, rewrittenBy: [...this.rewrittenBy] }
+        : {}),
+    };
   }
 
   // ---------- B 收到帧 ----------
@@ -612,7 +734,7 @@ export class Walk {
 
     // B3
     if (isL3Router(device)) return this.forward(hop);
-    if (device.type === "pc") {
+    if (isHost(device)) {
       return this.fail(
         hop.deviceId,
         stopText.notForMe(device.name),
@@ -667,6 +789,7 @@ export class Walk {
       srcIp: packetIn.srcIp,
       basis: natIn ? { nat: natIn } : undefined,
       natOut: !natIn,
+      isReply: hop.isReply,
       note: ({ route, nextHop }) =>
         natIn
           ? `NAT 还原目的地址：${natIn.before.ip} → ${natIn.after.ip}，转发到 ${route.iface}`
@@ -689,6 +812,7 @@ export class Walk {
     // 起点（或 DNS 转发器）收到自己那次请求的应答
     const top = this.pending[this.pending.length - 1];
     if (top && top.deviceId === hop.deviceId && isReplyFor(top.sent, packetIn)) {
+      if (!this.checkPolicy(device, packetIn, "in", true, hop.portId)) return null;
       this.pending.pop();
       if (top.kind === "probe") {
         this.log.pass({
@@ -720,6 +844,7 @@ export class Walk {
     }
 
     // DNS 查询
+    if (!this.checkPolicy(device, packetIn, "in", hop.isReply, hop.portId)) return null;
     if (isDnsQuery(packetIn)) return this.handleDnsQuery(hop, target);
 
     // ICMP echo request
@@ -741,6 +866,23 @@ export class Walk {
 
     // TCP：目标端应答视为连接成功
     if (packetIn.proto === "tcp") {
+      const open =
+        device.type === "server"
+          ? device.config.services.some((s) => s.enabled && s.port === packetIn.l4.dstPort)
+          : device.type === "proxy"
+            ? device.config.proxy.enabled && device.config.proxy.port === packetIn.l4.dstPort
+            : device.type === "internet" && target !== null;
+      if (!open)
+        return this.fail(
+          device.id,
+          {
+            reasonCode: "SERVICE_CLOSED",
+            reason: `${device.name} 未开放 TCP ${packetIn.l4.dstPort}`,
+          },
+          { ...base, action: "answer", note: "目标已到达，但对应服务未开启" },
+          { deviceId: device.id, field: device.type === "proxy" ? "proxy" : "services" },
+        );
+      if (top) this.accepted.set(device.id, { hop, pending: { ...top } });
       if (target && !target.reachable) {
         return this.fail(
           hop.deviceId,
@@ -778,6 +920,7 @@ export class Walk {
       deviceId: hop.deviceId,
       action: "answer",
       dstIp: packetIn.srcIp,
+      srcIp: packetIn.dstIp,
       proto: opts.proto,
       l4: opts.l4,
       ttl: INITIAL_TTL,
@@ -820,6 +963,7 @@ export class Walk {
           proto: opts.proto,
           l4: opts.l4,
         });
+        if (!this.checkPolicy(device, packetOut, "out", true, hop.portId)) return null;
         packetOut.vlan = arp.path.egressWireVlan;
         this.log.pass({
           ...base,
@@ -878,7 +1022,14 @@ export class Walk {
           { deviceId: this.originDeviceId, field: "dns" },
         );
       }
-      const hit = device.config.targets.find((t) => t.domain === this.domain);
+      if (!target.reachable)
+        return this.fail(
+          device.id,
+          stopText.targetUnreachable(target.domain),
+          { ...base, action: "answer", note: "DNS 服务器当前不可达" },
+          null,
+        );
+      const hit = device.config.targets.find((t) => domainMatches(t.domain, this.domain));
       if (!hit) {
         return this.fail(
           hop.deviceId,
@@ -896,7 +1047,7 @@ export class Walk {
       });
     }
 
-    if (device.type === "pc") {
+    if (isHost(device) && device.type !== "server") {
       return this.fail(
         hop.deviceId,
         stopText.dnsNotServer(packetIn.dstIp),
@@ -905,10 +1056,38 @@ export class Walk {
       );
     }
 
-    // 路由器 / 路由模式光猫：DNS 转发器
+    if (device.type === "server") {
+      const dns = device.config.dnsService;
+      if (!dns.enabled)
+        return this.fail(
+          device.id,
+          stopText.dnsNotServer(packetIn.dstIp),
+          { ...base, action: "answer", note: "DNS 服务未开启" },
+          { deviceId: device.id, field: "dnsService" },
+        );
+      const record = dns.records.find((r) => domainMatches(r.domain, this.domain));
+      if (record) {
+        this.answerIp = record.ip;
+        return this.answer(hop, {
+          proto: "udp",
+          l4: { srcPort: DNS_PORT, dstPort: packetIn.l4.srcPort },
+          note: `DNS 服务将 ${this.domain} 应答为 ${record.ip}`,
+          basis: { dns: { domain: this.domain, answer: record.ip } },
+        });
+      }
+      if (!dns.upstream)
+        return this.fail(
+          device.id,
+          stopText.dnsNxdomain(this.domain),
+          { ...base, action: "answer", note: "DNS 服务没有对应记录，也未配置上游" },
+          { deviceId: device.id, field: "dnsService" },
+        );
+    }
+
+    // 路由设备与启用上游的服务器共用真实 DNS 转发路径。
     const wanLease = this.runtime.leaseOf(hop.deviceId, "wan");
     const wanIface = this.runtime.ifaceOf(hop.deviceId, "wan");
-    if (wanLease?.status !== "ok" || !wanLease.dns || !wanIface?.ip) {
+    if (device.type !== "server" && (wanLease?.status !== "ok" || !wanLease.dns || !wanIface?.ip)) {
       return this.fail(
         hop.deviceId,
         stopText.dnsNoUpstream(device.name),
@@ -916,7 +1095,8 @@ export class Walk {
         { deviceId: hop.deviceId, portId: device.ports.find((p) => p.name === "wan")?.id },
       );
     }
-    const upstream = wanLease.dns;
+    const upstream =
+      device.type === "server" ? device.config.dnsService.upstream : (wanLease?.dns ?? "");
     const next = this.originate({
       deviceId: hop.deviceId,
       dstIp: upstream,
@@ -948,6 +1128,7 @@ export class Walk {
       deviceId: hop.deviceId,
       action: "answer",
       dstIp: query.srcIp,
+      srcIp: query.dstIp,
       proto: "udp",
       l4: { srcPort: DNS_PORT, dstPort: query.l4.srcPort },
       ttl: INITIAL_TTL,
@@ -959,6 +1140,34 @@ export class Walk {
   }
 
   /** 还没发包就失败（例如没配 DNS），也要留一条决策记录 */
+  returnResponse(deviceId: string): FlowResult {
+    const connection = this.accepted.get(deviceId);
+    if (!connection) return { ok: false };
+    this.phase = "tcp";
+    this.domain = "";
+    this.observableDomain = "";
+    this.originDeviceId = connection.pending.deviceId;
+    this.pending = [{ ...connection.pending }];
+    this.stopped = null;
+    const packet = connection.hop.packet;
+    let hop = this.answer(connection.hop, {
+      proto: "tcp",
+      l4: { srcPort: packet.l4.dstPort, dstPort: packet.l4.srcPort },
+      note: "代理通过已建立连接返回目标响应",
+    });
+    let hops = 0;
+    while (hop && !this.stopped && hops++ < MAX_HOPS) hop = this.deliver(hop);
+    if (hop && !this.stopped)
+      this.failAtOrigin(
+        "tcp",
+        hop.deviceId,
+        stopText.ttlExceeded(MAX_HOPS),
+        "返回路径超过上限",
+        null,
+      );
+    return { ok: !this.stopped && this.pending.length === 0 };
+  }
+
   failAtOrigin(
     phase: DecisionPhase,
     deviceId: string,
@@ -977,11 +1186,15 @@ function routeBasis(route: Route): Decision["basis"]["route"] {
 
 function isReplyFor(sent: PacketSummary, incoming: PacketSummary): boolean {
   if (sent.proto !== incoming.proto) return false;
+  if (incoming.srcIp !== sent.dstIp) return false;
   if (sent.srcIp && incoming.dstIp !== sent.srcIp) return false;
   if (sent.proto === "icmp") {
     return (
       incoming.l4.icmpType === "echo-reply" && (incoming.l4.icmpId ?? -1) === (sent.l4.icmpId ?? -2)
     );
   }
-  return (incoming.l4.dstPort ?? -1) === (sent.l4.srcPort ?? -2);
+  return (
+    (incoming.l4.dstPort ?? -1) === (sent.l4.srcPort ?? -2) &&
+    (incoming.l4.srcPort ?? -1) === (sent.l4.dstPort ?? -2)
+  );
 }

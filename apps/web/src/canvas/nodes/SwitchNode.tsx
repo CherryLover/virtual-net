@@ -1,20 +1,19 @@
-import type { NodeProps } from "@xyflow/react";
+import { type NodeProps, useUpdateNodeInternals } from "@xyflow/react";
+import { useEffect } from "react";
 import { NodeShell } from "./NodeShell";
 import { PortHandles } from "./PortHandles";
+import { PORT_SIDES, switchLayout } from "./switchLayout";
 import type { DeviceNodeType } from "./types";
-
-/** 口数 > 16 时前一半顶边、后一半底边 */
-const TWO_ROW_FROM = 17;
 
 export function SwitchNode({ data }: NodeProps<DeviceNodeType>) {
   const device = data.device;
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    if (device.ports.length) updateNodeInternals(device.id);
+  }, [device.id, device.ports, updateNodeInternals]);
   if (device.type !== "switch") return null;
   const ports = device.ports;
-  const width = Math.max(200, ports.length * 28);
-  const twoRows = ports.length >= TWO_ROW_FROM;
-  const half = Math.ceil(ports.length / 2);
-  const top = twoRows ? ports.slice(0, half) : [];
-  const bottom = twoRows ? ports.slice(half) : ports;
+  const { groups, width, height } = switchLayout(ports);
   return (
     <NodeShell
       kind="switch"
@@ -22,9 +21,18 @@ export function SwitchNode({ data }: NodeProps<DeviceNodeType>) {
       address={data.address}
       errorCount={data.errorCount}
       width={width}
+      height={height}
     >
-      {top.length > 0 ? <PortHandles ports={top} side="top" showVlan compact={twoRows} /> : null}
-      <PortHandles ports={bottom} side="bottom" showVlan compact={twoRows} />
+      {PORT_SIDES.map((side) => (
+        <PortHandles
+          key={side}
+          deviceId={device.id}
+          ports={groups[side]}
+          side={side}
+          showVlan
+          compact={ports.length > 16}
+        />
+      ))}
     </NodeShell>
   );
 }

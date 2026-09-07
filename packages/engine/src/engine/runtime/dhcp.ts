@@ -2,7 +2,7 @@
 
 import { ipRange, subnetLabel } from "../../model/address";
 import type { Device, DhcpConfig, Topology } from "../../model/topology";
-import { isL3Router } from "../../model/topology";
+import { isHost, isL3Router } from "../../model/topology";
 import { BRIDGE_LAN, staticAddressOf, subInterfaceName } from "./interfaces";
 import type { SegmentIndex } from "./segment";
 import type { DhcpConflict, L3Interface, Lease } from "./types";
@@ -130,7 +130,7 @@ export function allocateLeases(
   // 2 LAN 侧：电脑自动获取
   const order = new Map(topology.devices.map((d, i) => [d.id, i]));
   for (const device of topology.devices) {
-    if (device.type !== "pc") continue;
+    if (!isHost(device)) continue;
     if (device.config.addressMode !== "dhcp") continue;
     const eth0 = device.ports[0];
     if (!eth0) continue;

@@ -1,3 +1,4 @@
+import { Server, ShieldCheck, Waypoints } from "lucide-react";
 import type { ReactElement } from "react";
 import { ApIcon } from "./ApIcon";
 import { InternetIcon } from "./InternetIcon";
@@ -14,6 +15,9 @@ const ICONS: Record<string, (props: IconProps) => ReactElement> = {
   switch: SwitchIcon,
   ap: ApIcon,
   modem: ModemIcon,
+  server: (props) => <Server {...props} size={20} />,
+  proxy: (props) => <Waypoints {...props} size={20} />,
+  "access-control": (props) => <ShieldCheck {...props} size={20} />,
 };
 
 export function DeviceIcon({ type, className }: IconProps & { type: string }) {

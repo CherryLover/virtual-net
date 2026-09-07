@@ -3,7 +3,7 @@ import { isCgnat, leaseOf, prefixOf, vlansOfDevice } from "../../engine";
 
 /** 节点第二行文字（CP2 第 5 节的节点表） */
 export function nodeSubtitle(device: Device, runtime: Runtime): string | undefined {
-  if (device.type === "pc") {
+  if (device.type === "pc" || device.type === "proxy" || device.type === "server") {
     if (device.config.addressMode === "dhcp") {
       const lease = leaseOf(runtime, device.id, "eth0");
       return lease?.status === "ok" && lease.ip ? lease.ip : "未获取到地址";
@@ -25,6 +25,10 @@ export function nodeSubtitle(device: Device, runtime: Runtime): string | undefin
     return `${device.ports.length} 口 · VLAN ${vlansOfDevice(device).join(",")}`;
   }
   if (device.type === "ap") return device.config.ssid;
+  if (device.type === "access-control")
+    return device.accessPolicy?.enabled
+      ? `${device.accessPolicy.rules.filter((r) => r.enabled).length} 条规则`
+      : "访问规则已停用";
   if (device.type === "modem") {
     return device.config.mode === "bridge" ? "桥接" : `路由 ${device.config.lan.ip}`;
   }
