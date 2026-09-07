@@ -351,7 +351,7 @@ export function Canvas() {
         maxZoom={2}
       >
         <Background gap={GRID} />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false} fitViewOptions={{ padding: traceLive ? 0.3 : 0.1 }} />
         <TraceLayer view={view} live={traceLive} />
         {traceLive && timeline ? <PlaybackBar timeline={timeline} /> : null}
       </ReactFlow>

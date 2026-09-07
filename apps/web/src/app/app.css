@@ -82,10 +82,10 @@ select:focus-visible {
 }
 
 .toolbar-name {
-  width: 180px;
+  width: 168px;
   min-width: 64px;
-  flex: 1;
-  max-width: 320px;
+  flex: 0 1 168px;
+  max-width: 168px;
   text-overflow: ellipsis;
   padding: 4px 6px;
   border: 1px solid transparent;
@@ -312,7 +312,8 @@ select:focus-visible {
   }
   .toolbar-name {
     min-width: 28px;
-    width: 40px;
+    width: 112px;
+    flex-basis: 112px;
     padding: 4px;
     font-size: 12px;
   }
@@ -326,9 +327,6 @@ select:focus-visible {
   }
   .toolbar > .icon-button[aria-label="帮助"] {
     display: none;
-  }
-  .toolbar-actions .btn-primary {
-    padding: 5px 8px;
   }
 }
 

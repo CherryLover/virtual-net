@@ -21,17 +21,22 @@ export function VisitBadges({ view }: Props) {
             key={deviceId}
             className="trace-badge nopan nodrag"
             data-device={deviceId}
-            style={{ left: node.position.x, top: node.position.y }}
+            style={{
+              left: node.position.x,
+              top: node.position.y - 36,
+              maxWidth: node.measured?.width ?? 140,
+            }}
           >
-            {visits.map((visit, i) => (
+            {visits.map((visit) => (
               <button
                 key={visit.seq}
                 type="button"
                 className={`trace-badge-seq${visit.active ? " trace-badge-seq-on" : ""}`}
                 title={`第 ${visit.seq} 跳 · 查看包头`}
+                aria-label={`第 ${visit.seq} 跳 · 查看包头`}
+                aria-current={visit.active ? "step" : undefined}
                 onClick={() => useTraceStore.getState().openInspector(visit.seq)}
               >
-                {i > 0 ? <span className="trace-badge-dot">·</span> : null}
                 {visit.seq}
               </button>
             ))}

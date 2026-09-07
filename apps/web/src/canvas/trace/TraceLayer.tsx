@@ -14,9 +14,11 @@ export function TraceLayer({ view, live }: Props) {
   if (!live) return null;
   return (
     <ViewportPortal>
-      <VisitBadges view={view} />
-      {view.stoppedDeviceId ? <StopBubble deviceId={view.stoppedDeviceId} /> : null}
-      <PacketMarker />
+      <div className="trace-overlay">
+        <VisitBadges view={view} />
+        {view.stoppedDeviceId ? <StopBubble deviceId={view.stoppedDeviceId} /> : null}
+        <PacketMarker />
+      </div>
     </ViewportPortal>
   );
 }

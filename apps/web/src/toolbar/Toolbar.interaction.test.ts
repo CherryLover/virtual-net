@@ -44,6 +44,20 @@ async function choose(file?: File) {
 }
 
 describe("Toolbar file input component events", () => {
+  it("keeps a compact entry for choosing a probe source without selecting a node", async () => {
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="选择起点验证"]');
+    expect(trigger?.textContent).toBe("");
+    expect(trigger?.title).toBe("选择起点验证");
+    if (!trigger) throw new Error("probe trigger missing");
+    await act(async () => trigger.click());
+    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe("网络验证");
+    const source = container.querySelector<HTMLSelectElement>('[id$="-source"]');
+    expect(source?.options.length).toBeGreaterThan(0);
+    const close = container.querySelector<HTMLButtonElement>('button[aria-label="关闭"]');
+    await act(async () => close?.click());
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+  });
+
   it("imports presentation and simulated proxy credentials after confirmation; undo restores the old graph", async () => {
     const original = structuredClone(useTopologyStore.getState().topology);
     const incoming = ensureSparePorts(servicesTopology());

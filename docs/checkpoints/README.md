@@ -5,7 +5,7 @@
 
 总纲在 [../../ROADMAP.md](../../ROADMAP.md)。文档范围不能超出总纲，发现总纲缺东西写进「待定问题」，不要自行扩范围。
 
-> 2026-09-07：当前实施依据为 [方向与页面优化](../design/network-model-and-ui.md)、[CP4](CP4-access-control.md)、[CP5 首批](CP5-proxy-services.md)。UX、CP4、CP5 首批已实现并进入整体交互验收；CP5 后续能力与 CP6 / CP7 尚未实施。旧 CP4 特定边界方案仅供历史参考，不作为现行术语或验收依据。CP0–CP3 的完成记录保留，其旧文件继续作为回归基线。
+> 2026-09-07：当前实施依据为 [方向与页面优化](../design/network-model-and-ui.md)、[CP4](CP4-access-control.md)、[CP5 首批](CP5-proxy-services.md)。UX、CP4、CP5 首批已完成整体交互与真实文件导入验收；CP5 后续能力与 CP6 / CP7 尚未实施。旧 CP4 特定边界方案仅供历史参考，不作为现行术语或验收依据。CP0–CP3 的完成记录保留，其旧文件继续作为回归基线。
 
 ## 文件命名
 

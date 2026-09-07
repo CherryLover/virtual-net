@@ -245,6 +245,14 @@
 }
 
 /* 叠加层：ViewportPortal 里的东西默认不接收点击，要用的自己打开 */
+.trace-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* React Flow elevates selected nodes to 1000. Keep trace controls above them. */
+  z-index: 1002;
+}
+
 .trace-packet,
 .trace-badge,
 .trace-bubble {
@@ -301,11 +309,14 @@
 
 .trace-badge {
   display: flex;
+  width: max-content;
+  flex-wrap: wrap;
+  gap: 2px;
   align-items: center;
-  transform: translate(-40%, -60%);
-  padding: 0 3px;
+  transform: translateY(-100%);
+  padding: 2px;
   border: 1px solid var(--trace-walked);
-  border-radius: 8px;
+  border-radius: 5px;
   background: #fff;
   font-size: 10px;
   line-height: 14px;
@@ -314,7 +325,9 @@
 }
 
 .trace-badge-seq {
-  padding: 0 2px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
   border: none;
   background: none;
   color: inherit;
@@ -326,12 +339,7 @@
   font-weight: 700;
   color: #fff;
   background: var(--trace-walked);
-  border-radius: 7px;
-}
-
-.trace-badge-dot {
-  margin-right: 2px;
-  color: var(--text-dim);
+  border-radius: 3px;
 }
 
 .trace-bubble {
@@ -369,6 +377,10 @@
 }
 
 /* 播放条 */
+.canvas:has(.playback) .react-flow__controls {
+  bottom: 64px;
+}
+
 .playback {
   display: flex;
   align-items: center;

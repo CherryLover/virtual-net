@@ -180,10 +180,7 @@ export function Toolbar({ onHelp }: Props) {
             if (file) void onImport(file);
           }}
         />
-        <button type="button" className="btn btn-primary" onClick={() => setDialogOpen(true)}>
-          <Play size={14} />
-          验证
-        </button>
+        <IconButton icon={Play} label="选择起点验证" onClick={() => setDialogOpen(true)} />
       </div>
       <span className="toolbar-save" role="status">
         <Check size={13} />
