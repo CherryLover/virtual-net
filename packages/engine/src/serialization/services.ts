@@ -5,10 +5,66 @@ import type {
   DnsRecord,
   ProxyConfig,
   ServerConfig,
+  TrafficRouting,
 } from "../model/topology";
 
 type Report = (path: string, message: string) => void;
 type Obj = Record<string, unknown>;
+export function readRouting(raw: unknown, path: string, report: Report): TrafficRouting {
+  const o = object(raw, path, report);
+  const ids = new Set<string>();
+  return {
+    enabled: boolean(o.enabled, `${path}.enabled`, report),
+    rules: array(o.rules, `${path}.rules`, report).map((rawRule, i) => {
+      const p = `${path}.rules[${i}]`;
+      const r = object(rawRule, p, report);
+      const id = string(r.id, `${p}.id`, report);
+      if (!id.trim() || ids.has(id)) report(`${p}.id`, "规则标识不能为空或重复");
+      ids.add(id);
+      const match = choice(r.match, ["domain", "ip"], `${p}.match`, report);
+      const target = string(r.target, `${p}.target`, report);
+      if (match === "domain" && !validDomain(target, true))
+        report(`${p}.target`, "需要域名或 *. 子域名");
+      if (match === "ip") {
+        const [ip, bits, ...rest] = target.split("/");
+        if (
+          parseIp(ip ?? "") === null ||
+          rest.length ||
+          (bits !== undefined && (!/^\d+$/.test(bits) || Number(bits) > 32))
+        )
+          report(`${p}.target`, "需要有效 IP 或 CIDR 网段");
+      }
+      const proxy = r.proxy === null ? null : object(r.proxy, `${p}.proxy`, report);
+      return {
+        id,
+        match,
+        target,
+        name: string(r.name, `${p}.name`, report),
+        enabled: boolean(r.enabled, `${p}.enabled`, report),
+        port: r.port === null ? null : port(r.port, `${p}.port`, report),
+        proxy:
+          proxy === null
+            ? null
+            : {
+                deviceId: string(proxy.deviceId, `${p}.proxy.deviceId`, report),
+                protocol: choice(
+                  proxy.protocol,
+                  ["http", "connect", "socks5"],
+                  `${p}.proxy.protocol`,
+                  report,
+                ),
+                dnsMode: choice(proxy.dnsMode, ["client", "proxy"], `${p}.proxy.dnsMode`, report),
+                ...(proxy.username === undefined
+                  ? {}
+                  : { username: string(proxy.username, `${p}.proxy.username`, report) }),
+                ...(proxy.password === undefined
+                  ? {}
+                  : { password: string(proxy.password, `${p}.proxy.password`, report) }),
+              },
+      };
+    }),
+  };
+}
 export function validDomain(value: string, wildcard = false): boolean {
   if (wildcard && (value === "" || value === "*")) return true;
   const domain = (wildcard && value.startsWith("*.") ? value.slice(2) : value).replace(/\.$/, "");

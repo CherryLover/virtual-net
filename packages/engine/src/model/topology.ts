@@ -53,6 +53,26 @@ export interface ServerConfig extends PcConfig {
 }
 
 export type ProxyProtocol = "http" | "connect" | "socks5";
+export interface ApplicationProxy {
+  deviceId: string;
+  protocol: ProxyProtocol;
+  dnsMode: "client" | "proxy";
+  username?: string;
+  password?: string;
+}
+export interface TrafficRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  match: "domain" | "ip";
+  target: string;
+  port: number | null;
+  proxy: ApplicationProxy | null;
+}
+export interface TrafficRouting {
+  enabled: boolean;
+  rules: TrafficRule[];
+}
 export interface ProxyConfig extends PcConfig {
   proxy: {
     enabled: boolean;
@@ -93,6 +113,7 @@ export interface Port {
 }
 
 export interface PcConfig {
+  trafficRouting?: TrafficRouting;
   addressMode: "static" | "dhcp";
   ip: string;
   mask: string;

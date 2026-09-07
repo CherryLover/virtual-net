@@ -82,6 +82,7 @@ export function ProbeView({ probe, focus }: ProbeViewProps) {
     <div className={`probe${stale ? " probe-stale" : ""}`}>
       <StaleBanner />
       <div className={`probe-summary probe-${probe.verdict}`}>{probe.summary}</div>
+      {probe.routingNote ? <div className="lease-line">{probe.routingNote}</div> : null}
       {probe.reason ? <div className="probe-reason">{probe.reason}</div> : null}
       {probe.dns ? (
         <div className="probe-dns">

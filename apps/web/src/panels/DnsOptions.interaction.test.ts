@@ -6,6 +6,7 @@ import { servicesTopology } from "../engine/serviceSample";
 import { useTopologyStore } from "../store";
 import { ProbeDialog } from "../toolbar/ProbeDialog";
 import { DeviceProbe } from "./DeviceProbe";
+import { PcForm } from "./forms/PcForm";
 import { ProxyForm } from "./forms/ServiceForms";
 
 let root: Root;
@@ -52,6 +53,39 @@ function NodeProbe() {
   if (!device) throw new Error("missing source");
   return createElement(DeviceProbe, { device, runtime: state.runtime });
 }
+function PcConfig() {
+  const state = useTopologyStore();
+  const device = state.topology.devices.find((d) => d.id === sourceId);
+  if (device?.type !== "pc") throw new Error("missing source");
+  return createElement(PcForm, { device, runtime: state.runtime, highlight: null });
+}
+
+function configureRouting() {
+  useTopologyStore.getState().updateDevice(sourceId, (d) =>
+    d.type === "pc"
+      ? {
+          ...d,
+          config: {
+            ...d.config,
+            trafficRouting: {
+              enabled: true,
+              rules: [
+                {
+                  id: "route",
+                  name: "应用走代理",
+                  enabled: true,
+                  match: "domain",
+                  target: "*",
+                  port: null,
+                  proxy: { deviceId: proxyId, protocol: "socks5", dnsMode: "proxy" },
+                },
+              ],
+            },
+          },
+        }
+      : d,
+  );
+}
 function ProxyConfig() {
   const state = useTopologyStore();
   const device = state.topology.devices.find((d) => d.id === proxyId);
@@ -82,6 +116,51 @@ afterEach(async () => {
 });
 
 describe("DNS proxy controls", () => {
+  it("网站节点入口默认遵循规则，可手动直连并再次恢复自动", async () => {
+    configureRouting();
+    await act(async () => root.render(createElement(NodeProbe)));
+    await act(async () => button("打开网站").click());
+    expect(useTopologyStore.getState().lastProbe?.routingNote).toContain("应用走代理");
+    await select("连接方式", "");
+    await act(async () => button("打开网站").click());
+    expect(useTopologyStore.getState().lastProbeRequest?.proxy).toBeNull();
+    expect(useTopologyStore.getState().lastProbe?.routingNote).toBe("手动指定 · 直接连接");
+    await select("连接方式", "auto");
+    await act(async () => button("打开网站").click());
+    expect(useTopologyStore.getState().lastProbe?.routingNote).toContain("应用走代理");
+  });
+
+  it("全局网站入口同样遵循规则", async () => {
+    configureRouting();
+    await act(async () => root.render(createElement(ProbeDialog, { onClose: vi.fn() })));
+    await act(async () => button("访问服务").click());
+    await act(async () => button("运行验证").click());
+    expect(useTopologyStore.getState().lastProbe?.routingNote).toContain("应用走代理");
+  });
+
+  it("规则添加、排序、删除及撤销保留配置", async () => {
+    configureRouting();
+    await act(async () => root.render(createElement(PcConfig)));
+    await act(async () => button("添加分流规则").click());
+    const rules = () => {
+      const pc = useTopologyStore.getState().topology.devices.find((d) => d.id === sourceId);
+      if (pc?.type !== "pc") throw new Error("missing pc");
+      return pc.config.trafficRouting?.rules ?? [];
+    };
+    expect(rules()).toHaveLength(2);
+    await act(async () =>
+      (container.querySelector('[aria-label="下移规则"]') as HTMLButtonElement).click(),
+    );
+    expect(rules()[1]?.name).toBe("应用走代理");
+    await act(async () =>
+      (container.querySelector('[aria-label="删除规则"]') as HTMLButtonElement).click(),
+    );
+    expect(rules()).toHaveLength(1);
+    await act(async () => useTopologyStore.getState().undo());
+    expect(rules()).toHaveLength(2);
+    expect(rules()[1]?.name).toBe("应用走代理");
+  });
+
   it("node DNS uses its own connection and server, independent of invalid website port", async () => {
     await act(async () => root.render(createElement(NodeProbe)));
     await fill("目标端口", "0");

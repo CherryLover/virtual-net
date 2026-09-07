@@ -9,11 +9,13 @@ export function ProxyOptions({
   value,
   onChange,
   mode = "tcp",
+  allowRules = mode === "tcp",
 }: {
   sourceId: string;
   value: ProxySelection;
   onChange: (value: ProxySelection) => void;
   mode?: "tcp" | "udp";
+  allowRules?: boolean;
 }) {
   const devices = useTopologyStore((s) => s.topology.devices);
   const proxies = devices.filter(
@@ -32,16 +34,21 @@ export function ProxyOptions({
         <select
           id={`${id}-proxy`}
           className="field-input"
-          value={value?.deviceId ?? ""}
+          value={value?.deviceId ?? (value === undefined && allowRules ? "auto" : "")}
           onChange={(event) => {
+            if (event.target.value === "auto") {
+              onChange(undefined);
+              return;
+            }
             const proxy = proxies.find((d) => d.id === event.target.value);
             onChange(
               proxy?.type === "proxy"
                 ? { deviceId: proxy.id, protocol: proxy.config.proxy.protocol, dnsMode: "proxy" }
-                : undefined,
+                : null,
             );
           }}
         >
+          {allowRules ? <option value="auto">遵循设备规则</option> : null}
           <option value="">直接连接</option>
           {value && !proxies.some((proxy) => proxy.id === value.deviceId) ? (
             <option value={value.deviceId} disabled>

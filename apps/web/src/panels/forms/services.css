@@ -20,6 +20,14 @@
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
+.traffic-rule {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.traffic-rule > .field {
+  font-size: 12px;
+}
 .service-records > .btn,
 .service-fieldset > .btn {
   margin-top: 10px;

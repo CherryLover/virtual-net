@@ -11,7 +11,7 @@ export interface DnsQueryOptions {
   sourceDeviceId: string;
   domain: string;
   server?: string;
-  proxy?: DnsProxySelection;
+  proxy?: DnsProxySelection | null;
 }
 export function dnsQuery(topology: Topology, options: DnsQueryOptions): ProbeResult {
   const source = findDevice(topology, options.sourceDeviceId);

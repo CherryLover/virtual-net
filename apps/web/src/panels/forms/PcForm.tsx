@@ -3,6 +3,7 @@ import { leaseOf } from "../../engine";
 import { useTopologyStore } from "../../store";
 import { Field } from "../Field";
 import { ipValidator, maskValidator } from "../validators";
+import { TrafficRoutingForm } from "./TrafficRoutingForm";
 
 interface Props {
   device: PcDevice | ProxyDevice | ServerDevice;
@@ -108,6 +109,11 @@ export function PcForm({ device, runtime, highlight }: Props) {
       />
 
       {dhcp ? <div className="lease-line">{leaseText(runtime, device, serverName)}</div> : null}
+      <TrafficRoutingForm
+        sourceId={device.id}
+        value={device.config.trafficRouting}
+        onChange={(trafficRouting) => setConfig({ trafficRouting })}
+      />
     </div>
   );
 }

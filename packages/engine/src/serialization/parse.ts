@@ -24,7 +24,14 @@ import type {
 } from "../model/topology";
 import { TOPOLOGY_VERSION } from "../model/topology";
 import { isVlanId, MAX_VLAN_ID, MIN_VLAN_ID, type PortVlan, portSupportsVlan } from "../model/vlan";
-import { readPolicy, readProxy, readRewrite, readServer, validDomain } from "./services";
+import {
+  readPolicy,
+  readProxy,
+  readRewrite,
+  readRouting,
+  readServer,
+  validDomain,
+} from "./services";
 
 export interface ParseError {
   /** 出错的字段路径，如 `devices[1].ports[0].mac` */
@@ -246,6 +253,15 @@ function readPcConfig(c: Collector, value: unknown, path: string): PcConfig {
   }
   return {
     addressMode: mode === "static" ? "static" : "dhcp",
+    ...(value.trafficRouting === undefined
+      ? {}
+      : {
+          trafficRouting: readRouting(
+            value.trafficRouting,
+            `${path}.trafficRouting`,
+            (p, message) => c.add(p, message),
+          ),
+        }),
     ip: readString(c, value, "ip", path),
     mask: readString(c, value, "mask", path),
     gateway: readString(c, value, "gateway", path),

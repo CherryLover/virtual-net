@@ -1,10 +1,11 @@
 /** 显式应用代理：入口连接、验证、解析、独立出口连接与响应。 */
 import { parseIp } from "../../model/address";
 import type { ProbeResult, ReasonCode } from "../../model/probe";
-import type { ProxyProtocol, Topology } from "../../model/topology";
+import type { ApplicationProxy, Topology } from "../../model/topology";
 import { findDevice, isHost } from "../../model/topology";
 import { buildRuntime } from "../runtime";
 import { stopText } from "./messages";
+import { addressMatches, domainMatches } from "./policy";
 import { toProbeResult } from "./result";
 import { Walk } from "./walk";
 
@@ -12,18 +13,39 @@ export interface VisitSiteOptions {
   sourceDeviceId: string;
   domain: string;
   port?: number;
-  proxy?: {
-    deviceId: string;
-    protocol: ProxyProtocol;
-    dnsMode: "client" | "proxy";
-    username?: string;
-    password?: string;
-  };
+  /** undefined follows device rules; null explicitly selects direct access. */
+  proxy?: ApplicationProxy | null;
 }
 
 export function visitSite(topology: Topology, options: VisitSiteOptions): ProbeResult {
   const source = findDevice(topology, options.sourceDeviceId);
   if (!source || !isHost(source)) throw new Error("访问网站的起点需要是电脑、服务器或代理");
+  const routing = source.config.trafficRouting;
+  const requestedPort = options.port ?? (options.proxy?.protocol === "http" ? 80 : 443);
+  const rule =
+    options.proxy === undefined && routing?.enabled
+      ? routing.rules.find(
+          (r) =>
+            r.enabled &&
+            (r.port === null || r.port === requestedPort) &&
+            (r.match === "ip"
+              ? parseIp(options.domain) !== null && addressMatches(r.target, options.domain)
+              : parseIp(options.domain) === null && domainMatches(r.target, options.domain)),
+        )
+      : undefined;
+  const selection =
+    options.proxy !== undefined
+      ? "手动指定"
+      : rule
+        ? `规则：${rule.name || `第 ${(routing?.rules.indexOf(rule) ?? 0) + 1} 条`}`
+        : "未命中规则，默认直连";
+  options = {
+    ...options,
+    port: requestedPort,
+    proxy: options.proxy === undefined ? rule?.proxy : options.proxy,
+  };
+  const selectedProxy = options.proxy ? findDevice(topology, options.proxy.deviceId) : undefined;
+  const routingNote = `${selection} · ${options.proxy ? (selectedProxy?.name ?? "所选代理不可用") : "直接连接"}`;
   const runtime = buildRuntime(topology);
   const walk = new Walk(runtime);
   const connections: NonNullable<ProbeResult["connections"]> = [];
@@ -39,6 +61,7 @@ export function visitSite(topology: Topology, options: VisitSiteOptions): ProbeR
       dns,
     }),
     connections,
+    routingNote,
   });
   const segment = (
     role: NonNullable<ProbeResult["connections"]>[number]["role"],

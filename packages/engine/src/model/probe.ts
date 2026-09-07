@@ -135,6 +135,7 @@ export interface FixAt {
 }
 
 export interface ProbeResult {
+  routingNote?: string;
   connections?: {
     id: string;
     role:
