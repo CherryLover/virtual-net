@@ -44,6 +44,20 @@ async function choose(file?: File) {
 }
 
 describe("Toolbar file input component events", () => {
+  it("places fixed editing commands before the network name and its save status", () => {
+    const header = container.querySelector(".toolbar");
+    if (!header) throw new Error("toolbar missing");
+    const children = Array.from(header.children);
+    const actions = header.querySelector(".toolbar-actions");
+    const name = header.querySelector(".toolbar-name");
+    const status = header.querySelector('[role="status"]');
+    if (!actions || !name || !status) throw new Error("toolbar controls missing");
+    expect(children.indexOf(actions)).toBeLessThan(children.indexOf(name));
+    expect(name.nextElementSibling).toBe(status);
+    expect(actions.querySelector('[aria-label="撤销"]')).not.toBeNull();
+    expect(actions.querySelector('[aria-label="重做"]')).not.toBeNull();
+  });
+
   it("keeps a compact entry for choosing a probe source without selecting a node", async () => {
     const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="选择起点验证"]');
     expect(trigger?.textContent).toBe("");

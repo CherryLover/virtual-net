@@ -82,11 +82,13 @@ select:focus-visible {
 }
 
 .toolbar-name {
+  margin-left: auto;
   width: 168px;
   min-width: 64px;
   flex: 0 1 168px;
   max-width: 168px;
   text-overflow: ellipsis;
+  text-align: right;
   padding: 4px 6px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -110,7 +112,6 @@ select:focus-visible {
 }
 
 .toolbar-save {
-  margin-left: auto;
   font-size: var(--fs-sm);
   color: var(--text-dim);
   display: flex;

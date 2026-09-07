@@ -104,22 +104,6 @@ export function Toolbar({ onHelp }: Props) {
         aria-expanded={layout.libraryOpen}
         onClick={layout.toggleLibrary}
       />
-      <input
-        className="toolbar-name"
-        aria-label="网络名称"
-        title={name}
-        value={editing ? draft : name}
-        onFocus={() => {
-          setDraft(name);
-          setEditing(true);
-        }}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          setEditing(false);
-          const value = draft.trim();
-          if (value && value !== name) rename(value);
-        }}
-      />
       <div className="toolbar-actions">
         <details ref={menu} className="file-menu">
           <summary className="btn" title="文件操作">
@@ -182,6 +166,22 @@ export function Toolbar({ onHelp }: Props) {
         />
         <IconButton icon={Play} label="选择起点验证" onClick={() => setDialogOpen(true)} />
       </div>
+      <input
+        className="toolbar-name"
+        aria-label="网络名称"
+        title={name}
+        value={editing ? draft : name}
+        onFocus={() => {
+          setDraft(name);
+          setEditing(true);
+        }}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          setEditing(false);
+          const value = draft.trim();
+          if (value && value !== name) rename(value);
+        }}
+      />
       <span className="toolbar-save" role="status">
         <Check size={13} />
         {storage.phase === "save-error"
