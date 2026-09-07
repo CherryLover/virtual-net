@@ -61,6 +61,8 @@ export interface ProxyConfig extends PcConfig {
     auth: "none" | "password";
     username: string;
     password: string;
+    /** 缺省关闭；仅 SOCKS5 使用，TCP 控制端口与 UDP 中继端口独立。 */
+    udp?: { enabled: boolean; port: number };
   };
 }
 

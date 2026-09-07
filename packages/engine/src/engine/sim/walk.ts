@@ -86,6 +86,7 @@ export class Walk {
   private rewrittenBy: string[] = [];
   private readonly policies = new PolicySessions();
   private observableDomain = "";
+  private udpRelayDeviceId = "";
   private readonly accepted = new Map<string, { hop: Hop; pending: Pending }>();
 
   constructor(private readonly runtime: Runtime) {
@@ -623,10 +624,13 @@ export class Walk {
     l4?: L4Summary;
     domain?: string;
     observableDomain?: string;
+    /** 仅在本次验证完成 SOCKS5 关联后，允许中继接收单向数据。 */
+    udpRelayDeviceId?: string;
   }): FlowResult {
     this.phase = opts.phase;
     this.domain = opts.domain ?? "";
     this.observableDomain = opts.observableDomain ?? "";
+    this.udpRelayDeviceId = opts.udpRelayDeviceId ?? "";
     this.answerIp = "";
     this.originalIp = "";
     this.rewrittenBy = [];
@@ -845,6 +849,32 @@ export class Walk {
 
     // DNS 查询
     if (!this.checkPolicy(device, packetIn, "in", hop.isReply, hop.portId)) return null;
+    if (this.phase === "udp" && device.id === this.udpRelayDeviceId) {
+      const cfg = device.type === "proxy" ? device.config.proxy : null;
+      if (
+        !cfg?.enabled ||
+        cfg.protocol !== "socks5" ||
+        !cfg.udp?.enabled ||
+        packetIn.proto !== "udp" ||
+        packetIn.l4.dstPort !== cfg.udp.port ||
+        !top
+      )
+        return this.fail(
+          device.id,
+          { reasonCode: "PROXY_UDP_UNAVAILABLE", reason: "SOCKS5 UDP 中继不可用" },
+          { ...base, action: "receive", note: "没有可接收数据的 UDP 关联" },
+          { deviceId: device.id, field: "proxy.udp" },
+        );
+      this.accepted.set(`udp:${device.id}`, { hop, pending: { ...top } });
+      this.pending.pop();
+      this.log.pass({
+        ...base,
+        action: "receive",
+        basis: { proxy: { deviceId: device.id, stage: "udp-relay", protocol: "socks5" } },
+        note: "SOCKS5 中继收到 UDP 数据，等待目标 DNS 应答后返回",
+      });
+      return null;
+    }
     if (isDnsQuery(packetIn)) return this.handleDnsQuery(hop, target);
 
     // ICMP echo request
@@ -882,7 +912,7 @@ export class Walk {
           { ...base, action: "answer", note: "目标已到达，但对应服务未开启" },
           { deviceId: device.id, field: device.type === "proxy" ? "proxy" : "services" },
         );
-      if (top) this.accepted.set(device.id, { hop, pending: { ...top } });
+      if (top) this.accepted.set(`tcp:${device.id}`, { hop, pending: { ...top } });
       if (target && !target.reachable) {
         return this.fail(
           hop.deviceId,
@@ -1139,11 +1169,20 @@ export class Walk {
     });
   }
 
-  /** 还没发包就失败（例如没配 DNS），也要留一条决策记录 */
-  returnResponse(deviceId: string): FlowResult {
-    const connection = this.accepted.get(deviceId);
-    if (!connection) return { ok: false };
-    this.phase = "tcp";
+  /** 复用入口的地址与端口返回目标响应，TCP 控制与 UDP 数据分别保留。 */
+  returnResponse(deviceId: string, protocol: "tcp" | "udp" = "tcp", note?: string): FlowResult {
+    const connection = this.accepted.get(`${protocol}:${deviceId}`);
+    if (!connection) {
+      this.failAtOrigin(
+        protocol,
+        deviceId,
+        { reasonCode: "PROXY_UNAVAILABLE", reason: "没有可返回响应的代理连接" },
+        "代理连接不存在",
+        { deviceId, field: "proxy" },
+      );
+      return { ok: false };
+    }
+    this.phase = protocol;
     this.domain = "";
     this.observableDomain = "";
     this.originDeviceId = connection.pending.deviceId;
@@ -1151,15 +1190,22 @@ export class Walk {
     this.stopped = null;
     const packet = connection.hop.packet;
     let hop = this.answer(connection.hop, {
-      proto: "tcp",
+      proto: protocol,
       l4: { srcPort: packet.l4.dstPort, dstPort: packet.l4.srcPort },
-      note: "代理通过已建立连接返回目标响应",
+      note:
+        note ??
+        (protocol === "udp"
+          ? "SOCKS5 中继通过 UDP 关联返回 DNS 应答"
+          : "代理通过已建立连接返回目标响应"),
+      basis: {
+        proxy: { deviceId, stage: "response", protocol: protocol === "udp" ? "socks5" : "tcp" },
+      },
     });
     let hops = 0;
     while (hop && !this.stopped && hops++ < MAX_HOPS) hop = this.deliver(hop);
     if (hop && !this.stopped)
       this.failAtOrigin(
-        "tcp",
+        protocol,
         hop.deviceId,
         stopText.ttlExceeded(MAX_HOPS),
         "返回路径超过上限",

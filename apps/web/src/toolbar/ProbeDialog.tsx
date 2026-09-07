@@ -1,6 +1,7 @@
 import { Play, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { isHost } from "../engine";
+import { DnsOptions, type DnsSelection, dnsServerError } from "../panels/DnsOptions";
 import { portValidator } from "../panels/forms/serviceValidators";
 import { ProxyOptions, type ProxySelection } from "../panels/ProxyOptions";
 import { type ProbeRequest, useTopologyStore } from "../store";
@@ -26,11 +27,13 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
   const [domain, setDomain] = useState(knownTargets.find((t) => !t.dnsServer)?.domain ?? "");
   const [port, setPort] = useState("443");
   const [proxy, setProxy] = useState<ProxySelection>();
+  const [dns, setDns] = useState<DnsSelection>({ server: "" });
   const [error, setError] = useState("");
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
   const domainMode = kind === "visitSite" || kind === "dnsQuery";
   const portError = kind === "visitSite" ? portValidator(port) : null;
+  const dnsError = kind === "dnsQuery" ? dnsServerError(dns.server) : null;
   const eligible = sources.filter((d) => !domainMode || isHost(d));
   const currentSource = eligible.some((d) => d.id === source) ? source : (eligible[0]?.id ?? "");
   const targets = topology.devices.flatMap((d) => (d.type === "internet" ? d.config.targets : []));
@@ -63,6 +66,7 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
       root.current?.querySelector<HTMLInputElement>(`[id="${id}-port"]`)?.focus();
       return;
     }
+    if (dnsError) return;
     try {
       runProbe(
         domainMode
@@ -71,7 +75,15 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
               sourceDeviceId: currentSource,
               domain: domain.trim(),
               port: Number(port),
-              proxy: proxy?.deviceId === currentSource ? undefined : proxy,
+              server: kind === "dnsQuery" ? dns.server.trim() || undefined : undefined,
+              proxy:
+                kind === "dnsQuery"
+                  ? dns.proxy?.deviceId === currentSource
+                    ? undefined
+                    : dns.proxy
+                  : proxy?.deviceId === currentSource
+                    ? undefined
+                    : proxy,
             }
           : { kind, sourceDeviceId: currentSource, targetIp: target.trim() },
       );
@@ -164,7 +176,7 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
         </div>
         <div className="field">
           <label className="field-label" htmlFor={`${id}-target`}>
-            {domainMode ? "目标域名或 IP" : "目标 IP"}
+            {kind === "dnsQuery" ? "查询域名" : domainMode ? "目标域名或 IP" : "目标 IP"}
           </label>
           <input
             id={`${id}-target`}
@@ -220,10 +232,17 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
             {error}
           </p>
         ) : null}
+        {kind === "dnsQuery" ? (
+          <DnsOptions
+            sourceId={currentSource}
+            value={{ ...dns, proxy: dns.proxy?.deviceId === currentSource ? undefined : dns.proxy }}
+            onChange={setDns}
+          />
+        ) : null}
         <button
           type="button"
           className="btn btn-primary probe-run"
-          disabled={Boolean(portError)}
+          disabled={Boolean(portError || dnsError)}
           onClick={run}
         >
           <Play size={15} />

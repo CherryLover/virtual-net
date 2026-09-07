@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { Device, Runtime } from "../engine";
 import { leaseOf } from "../engine";
 import { useTopologyStore } from "../store";
+import { DnsOptions, type DnsSelection, dnsServerError } from "./DnsOptions";
 import { portValidator } from "./forms/serviceValidators";
 import { ProxyOptions, type ProxySelection } from "./ProxyOptions";
 
@@ -51,6 +52,7 @@ export function DeviceProbe({ device, runtime }: Props) {
   const [targetIp, setTargetIp] = useState("");
   const [proxy, setProxy] = useState<ProxySelection>();
   const [port, setPort] = useState("443");
+  const [dns, setDns] = useState<DnsSelection>({ server: "" });
   const portError = portValidator(port);
   const publicIp =
     topology.devices
@@ -161,12 +163,21 @@ export function DeviceProbe({ device, runtime }: Props) {
                 <option key={item} value={item} />
               ))}
             </datalist>
+          </div>
+          <DnsOptions sourceId={device.id} value={dns} onChange={setDns} />
+          <div className="device-probe-actions">
             <button
               type="button"
               className="btn"
-              disabled={!chosenDomain}
+              disabled={!chosenDomain || Boolean(dnsServerError(dns.server))}
               onClick={() =>
-                runProbe({ kind: "dnsQuery", sourceDeviceId: device.id, domain: chosenDomain })
+                runProbe({
+                  kind: "dnsQuery",
+                  sourceDeviceId: device.id,
+                  domain: chosenDomain,
+                  server: dns.server.trim() || undefined,
+                  proxy: dns.proxy,
+                })
               }
             >
               DNS 查询

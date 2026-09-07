@@ -72,6 +72,10 @@ export function ProbeView({ probe, focus }: ProbeViewProps) {
     "proxy-dns": "代理端解析",
     "proxy-target": "代理连接目标",
     "proxy-response": "返回客户端",
+    "proxy-associate": "建立 UDP 关联",
+    "client-relay": "发送到 UDP 中继",
+    "relay-dns": "中继查询 DNS",
+    "relay-response": "UDP 返回客户端",
   };
 
   return (

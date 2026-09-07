@@ -452,6 +452,28 @@ export function ProxyForm({
             />
           </>
         ) : null}
+        {config.protocol === "socks5" ? (
+          <div
+            data-field="proxy.udp"
+            className={highlight?.startsWith("proxy.udp") ? "field-highlight" : undefined}
+          >
+            <Toggle
+              label="启用 UDP 中继"
+              field="proxy.udp.enabled"
+              checked={config.udp?.enabled ?? false}
+              onChange={(enabled) => commit({ udp: { enabled, port: config.udp?.port ?? 1081 } })}
+            />
+            {config.udp?.enabled ? (
+              <Field
+                label="UDP 中继端口"
+                field="proxy.udp.port"
+                value={String(config.udp.port)}
+                validate={portValidator}
+                onCommit={(value) => commit({ udp: { enabled: true, port: Number(value) } })}
+              />
+            ) : null}
+          </div>
+        ) : null}
       </section>
     </>
   );

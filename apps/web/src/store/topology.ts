@@ -34,6 +34,7 @@ export interface ProbeRequest {
   targetIp?: string;
   domain?: string;
   port?: number;
+  server?: string;
   proxy?: VisitSiteOptions["proxy"];
 }
 
@@ -336,7 +337,12 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
         if (!request.domain) return null;
         result =
           request.kind === "dnsQuery"
-            ? dnsQuery(topology, { sourceDeviceId: source, domain: request.domain })
+            ? dnsQuery(topology, {
+                sourceDeviceId: source,
+                domain: request.domain,
+                server: request.server,
+                proxy: request.proxy,
+              })
             : visitSite(topology, {
                 sourceDeviceId: source,
                 domain: request.domain,

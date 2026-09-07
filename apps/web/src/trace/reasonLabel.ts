@@ -14,6 +14,7 @@ export const REASON_LABELS: Record<string, string> = {
   PROXY_PROTOCOL_MISMATCH: "代理协议不匹配",
   PROXY_AUTH_FAILED: "代理认证失败",
   PROXY_DNS_MODE: "解析方式不支持",
+  PROXY_UDP_UNAVAILABLE: "UDP 中继不可用",
   // CP1
   NO_IP: "没有地址",
   PORT_UNLINKED: "端口未连线",

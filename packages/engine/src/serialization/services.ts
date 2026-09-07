@@ -116,6 +116,7 @@ export function readPolicy(raw: unknown, path: string, report: Report): AccessPo
 }
 export function readProxy(raw: unknown, path: string, report: Report): ProxyConfig["proxy"] {
   const o = object(raw, path, report);
+  const udp = o.udp === undefined ? undefined : object(o.udp, `${path}.udp`, report);
   return {
     enabled: boolean(o.enabled, `${path}.enabled`, report),
     protocol: choice(o.protocol, ["http", "connect", "socks5"], `${path}.protocol`, report),
@@ -123,6 +124,14 @@ export function readProxy(raw: unknown, path: string, report: Report): ProxyConf
     auth: choice(o.auth, ["none", "password"], `${path}.auth`, report),
     username: string(o.username, `${path}.username`, report),
     password: string(o.password, `${path}.password`, report),
+    ...(udp
+      ? {
+          udp: {
+            enabled: boolean(udp.enabled, `${path}.udp.enabled`, report),
+            port: port(udp.port, `${path}.udp.port`, report),
+          },
+        }
+      : {}),
   };
 }
 export function readServer(

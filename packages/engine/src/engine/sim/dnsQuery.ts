@@ -4,12 +4,14 @@ import { findDevice, isHost } from "../../model/topology";
 import { buildRuntime } from "../runtime";
 import { stopText } from "./messages";
 import { toProbeResult } from "./result";
+import { type DnsProxySelection, socksDns } from "./socksDns";
 import { Walk } from "./walk";
 
 export interface DnsQueryOptions {
   sourceDeviceId: string;
   domain: string;
   server?: string;
+  proxy?: DnsProxySelection;
 }
 export function dnsQuery(topology: Topology, options: DnsQueryOptions): ProbeResult {
   const source = findDevice(topology, options.sourceDeviceId);
@@ -21,6 +23,8 @@ export function dnsQuery(topology: Topology, options: DnsQueryOptions): ProbeRes
     (source.config.addressMode === "static"
       ? source.config.dns
       : (runtime.leaseOf(source.id, "eth0")?.dns ?? ""));
+  if (options.proxy)
+    return socksDns(topology, runtime, { ...options, server, proxy: options.proxy });
   let dns: ProbeResult["dns"] = null;
   if (!server)
     walk.failAtOrigin(

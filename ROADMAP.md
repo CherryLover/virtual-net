@@ -10,6 +10,8 @@
 
 > 2026-09-07 实施更新：UX、CP4 与 CP5 首批已完成，实际文件导入验收已补齐。详见 [通用网络模型与页面优化](docs/design/network-model-and-ui.md)、[CP4](docs/checkpoints/CP4-access-control.md)、[CP5 首批](docs/checkpoints/CP5-proxy-services.md)。CP4 旧细化文档与旧验收用例仅供历史参考。CP5 后续转发能力、CP6、CP7 不在本轮范围。
 
+> 最新增量：CP5 第二批 [SOCKS5 UDP DNS 查询](docs/checkpoints/CP5-udp-dns.md) 已完成本地验收，尚未部署；其他后续能力仍未实施。
+
 ## 面向谁
 
 - 家里喜欢折腾网络的人
@@ -42,7 +44,7 @@
 - [x] **CP2 交换机与多设备** — 交换机、VLAN、光猫、无线 AP、多台电脑 · [细化文档](docs/checkpoints/CP2-switching-and-devices.md)
 - [x] **CP3 路径追踪与动画** — 逐跳显示数据包怎么走、在哪停、为什么 · [细化文档](docs/checkpoints/CP3-trace-and-animation.md)
 - [x] **CP4 网络区域与访问控制** — 通用区域、访问规则、目标服务、DNS 应答处理；整体验收通过 · [细化文档](docs/checkpoints/CP4-access-control.md)
-- [ ] **CP5 服务器、代理与转发** — 首批服务器与 HTTP / CONNECT / SOCKS5 TCP 代理已完成；隧道、多级转发等仍属后续，整个 CP5 尚未完成 · [首批细化文档](docs/checkpoints/CP5-proxy-services.md)
+- [ ] **CP5 服务器、代理与转发** — 首批服务器与 HTTP / CONNECT / SOCKS5 TCP 代理、第二批 SOCKS5 UDP DNS 查询已完成；隧道、多级转发等仍属后续，整个 CP5 尚未完成 · [首批](docs/checkpoints/CP5-proxy-services.md) · [第二批](docs/checkpoints/CP5-udp-dns.md)
 - [ ] **CP6 虚拟网络与网关组合** — 虚拟化主机、网桥、虚拟设备与网关职责
 - [ ] **CP7 从外面进来** — 端口转发、公网 IP 判断、从外部访问家里的 NAS
 - [x] **UX 页面与连线优化** — 保留主画布，外围布局、右侧面板、可拖拽曲线与端口位置已完成；文件往返及交互验收通过 · [设计与决定](docs/design/network-model-and-ui.md)
@@ -193,8 +195,11 @@
 - [x] 单次访问显式选代理；HTTP 由代理解析，CONNECT / SOCKS5 可选客户端或代理解析；失败不自动直连
 - [x] 分段追踪与原因：入口不可达、认证失败、解析失败、出口不可达分别定位
 
+**第二批：已完成**
+- [x] [SOCKS5 UDP 与 DNS 查询](docs/checkpoints/CP5-udp-dns.md)：独立控制与 UDP 中继、DNS 出口及返回路径、两个验证入口、配置保存及失败定位。
+
 **后续：尚未实施，不属于本轮交付**
-- [ ] UDP 代理、设备级分流、加密传输与网络隧道
+- [ ] UDP 的其他应用、设备级分流、加密传输与网络隧道
 - [ ] 多级代理、中转与 IP 轮换，需另行细化验收，不把所有代理等同于隧道
 
 **首批验收场景**
@@ -308,6 +313,8 @@ virtual-net/
 - 改路线图要记变更记录
 
 ## 变更记录
+
+- 2026-09-07 需求文档先提交为 ea60e29，随后按 CP5 顺序细化并完成 SOCKS5 UDP DNS 查询批次；282 项自动测试、构建、桌面/窄屏及实际文件往返通过。仅该批次完成，CP5 整体仍未完成，未部署或提前启动文末后续需求。
 
 - 2026-09-07 在文末追加后续需求讨论：面向网络工程师与企业运维的服务协议、诊断与故障演练方向，以及节点复制和持久分组；明确 MCP 暂不加入。随后补充画布导出 SVG、PNG、PDF 的需求。仅完善需求，不启动实现、不改变当前检查点状态和执行顺序。
 

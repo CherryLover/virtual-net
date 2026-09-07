@@ -4,6 +4,7 @@ const PHASE_LABELS: Record<string, string> = {
   icmp: "ping",
   dns: "DNS",
   tcp: "连接",
+  udp: "UDP 中继",
 };
 
 export function phaseLabel(phase: string): string {

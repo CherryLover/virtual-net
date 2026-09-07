@@ -23,7 +23,7 @@ export interface PacketSummary {
   vlan: number | null;
 }
 
-export type DecisionPhase = "icmp" | "dns" | "tcp";
+export type DecisionPhase = "icmp" | "dns" | "tcp" | "udp";
 
 export type DecisionAction = "originate" | "forward" | "answer" | "receive";
 
@@ -79,7 +79,11 @@ export interface DecisionBasis {
     stateful: boolean;
     direction: "in" | "out" | "forward";
   };
-  proxy?: { deviceId: string; stage: "authentication" | "response"; protocol: string };
+  proxy?: {
+    deviceId: string;
+    stage: "authentication" | "response" | "udp-associate" | "udp-relay";
+    protocol: string;
+  };
   route?: RouteBasis | null;
   arp?: ArpBasis | null;
   nat?: NatBasis | null;
@@ -140,7 +144,11 @@ export interface ProbeResult {
       | "proxy-dns"
       | "proxy-target"
       | "proxy-response"
-      | "proxy-auth";
+      | "proxy-auth"
+      | "proxy-associate"
+      | "client-relay"
+      | "relay-dns"
+      | "relay-response";
     sourceDeviceId: string;
     target: string;
     startSeq: number;
@@ -175,6 +183,7 @@ export const REASON_CODES = [
   "PROXY_PROTOCOL_MISMATCH",
   "PROXY_AUTH_FAILED",
   "PROXY_DNS_MODE",
+  "PROXY_UDP_UNAVAILABLE",
   "NO_IP",
   "PORT_UNLINKED",
   "NO_GATEWAY",
