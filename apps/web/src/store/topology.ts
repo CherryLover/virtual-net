@@ -23,6 +23,7 @@ import {
   lint,
   ping,
   traceroute,
+  udpEcho,
   visitSite,
 } from "../engine";
 import { keepViewport, pushHistory } from "./history";
@@ -35,6 +36,7 @@ export interface ProbeRequest {
   domain?: string;
   port?: number;
   server?: string;
+  payload?: string;
   proxy?: VisitSiteOptions["proxy"];
 }
 
@@ -333,7 +335,15 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
       if (!topology.devices.some((d) => d.id === request.sourceDeviceId)) return null;
       const source = request.sourceDeviceId;
       let result: ProbeResult;
-      if (request.kind === "visitSite" || request.kind === "dnsQuery") {
+      if (request.kind === "udpEcho") {
+        result = udpEcho(topology, {
+          sourceDeviceId: source,
+          targetIp: (request.targetIp ?? "").trim(),
+          port: request.port ?? 7,
+          payload: request.payload ?? "hello",
+          proxy: request.proxy,
+        });
+      } else if (request.kind === "visitSite" || request.kind === "dnsQuery") {
         if (!request.domain) return null;
         result =
           request.kind === "dnsQuery"

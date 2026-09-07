@@ -505,6 +505,52 @@ export function ServerForm({
         <h4>服务端口</h4>
         {services.map((service) => (
           <div className="service-record" key={service.id}>
+            <label className="field">
+              服务类型
+              <select
+                className="field-input"
+                value={service.protocol ?? "tcp"}
+                onChange={(event) => {
+                  const protocol = event.target.value as "tcp" | "udp";
+                  if (
+                    (protocol === "udp" && service.port === 53) ||
+                    services.some(
+                      (s) =>
+                        s.id !== service.id &&
+                        s.port === service.port &&
+                        (s.protocol ?? "tcp") === protocol,
+                    )
+                  )
+                    return;
+                  commit({
+                    services: services.map((s) => (s.id === service.id ? { ...s, protocol } : s)),
+                  });
+                }}
+              >
+                <option
+                  value="tcp"
+                  disabled={services.some(
+                    (s) =>
+                      s.id !== service.id &&
+                      s.port === service.port &&
+                      (s.protocol ?? "tcp") === "tcp",
+                  )}
+                >
+                  TCP 连接
+                </option>
+                <option
+                  value="udp"
+                  disabled={
+                    service.port === 53 ||
+                    services.some(
+                      (s) => s.id !== service.id && s.port === service.port && s.protocol === "udp",
+                    )
+                  }
+                >
+                  UDP 回显
+                </option>
+              </select>
+            </label>
             <Field
               label="服务名称"
               field={`services.${service.id}.name`}
@@ -523,7 +569,15 @@ export function ServerForm({
               value={String(service.port)}
               validate={(value) =>
                 portValidator(value) ??
-                (services.some((s) => s.id !== service.id && s.port === Number(value))
+                (service.protocol === "udp" && Number(value) === 53
+                  ? "UDP 53 保留给 DNS 服务"
+                  : null) ??
+                (services.some(
+                  (s) =>
+                    s.id !== service.id &&
+                    s.port === Number(value) &&
+                    (s.protocol ?? "tcp") === (service.protocol ?? "tcp"),
+                )
                   ? "端口已存在"
                   : null)
               }

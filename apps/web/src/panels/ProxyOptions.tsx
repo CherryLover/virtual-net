@@ -10,12 +10,14 @@ export function ProxyOptions({
   onChange,
   mode = "tcp",
   allowRules = mode === "tcp",
+  label,
 }: {
   sourceId: string;
   value: ProxySelection;
   onChange: (value: ProxySelection) => void;
   mode?: "tcp" | "udp";
   allowRules?: boolean;
+  label?: string;
 }) {
   const devices = useTopologyStore((s) => s.topology.devices);
   const proxies = devices.filter(
@@ -29,7 +31,7 @@ export function ProxyOptions({
     <div className="proxy-options">
       <div className="field">
         <label className="field-label" htmlFor={`${id}-proxy`}>
-          {mode === "udp" ? "DNS 连接方式" : "连接方式"}
+          {label ?? (mode === "udp" ? "DNS 连接方式" : "连接方式")}
         </label>
         <select
           id={`${id}-proxy`}

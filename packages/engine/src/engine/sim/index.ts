@@ -9,5 +9,6 @@ export * from "./nat";
 export * from "./ping";
 export * from "./result";
 export * from "./traceroute";
+export * from "./udpEcho";
 export * from "./visitSite";
 export * from "./walk";

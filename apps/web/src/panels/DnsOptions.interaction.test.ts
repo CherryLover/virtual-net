@@ -7,7 +7,8 @@ import { useTopologyStore } from "../store";
 import { ProbeDialog } from "../toolbar/ProbeDialog";
 import { DeviceProbe } from "./DeviceProbe";
 import { PcForm } from "./forms/PcForm";
-import { ProxyForm } from "./forms/ServiceForms";
+import { ProxyForm, ServerForm } from "./forms/ServiceForms";
+import { ProbeView } from "./ProbeView";
 
 let root: Root;
 let container: HTMLDivElement;
@@ -58,6 +59,12 @@ function PcConfig() {
   const device = state.topology.devices.find((d) => d.id === sourceId);
   if (device?.type !== "pc") throw new Error("missing source");
   return createElement(PcForm, { device, runtime: state.runtime, highlight: null });
+}
+function EchoServerConfig() {
+  const state = useTopologyStore();
+  const device = state.topology.devices.find((d) => d.type === "server");
+  if (!device) throw new Error("missing server");
+  return createElement(ServerForm, { device, runtime: state.runtime, highlight: null });
 }
 
 function configureRouting() {
@@ -116,6 +123,113 @@ afterEach(async () => {
 });
 
 describe("DNS proxy controls", () => {
+  it("节点 UDP 验证独立于网站与 DNS，完整保留文本并可重新验证", async () => {
+    await act(async () => root.render(createElement(NodeProbe)));
+    await fill("目标端口", "0");
+    await fill("DNS 服务器", "invalid");
+    const payload = "<b>echo</b> 网络";
+    await fill("测试内容", payload);
+    await select("UDP 连接方式", proxyId);
+    expect(button("发送 UDP 回显").disabled).toBe(false);
+    await act(async () => button("发送 UDP 回显").click());
+    const state = useTopologyStore.getState();
+    expect(state.lastProbe?.udpEcho?.received).toBe(payload);
+    expect(state.lastProbe?.connections?.at(-1)?.role).toBe("relay-response");
+    const request = state.lastProbeRequest;
+    if (!request) throw new Error("missing request");
+    await act(async () => useTopologyStore.getState().runProbe(request));
+    expect(useTopologyStore.getState().lastProbe?.udpEcho?.received).toBe(payload);
+    await select("UDP 连接方式", "");
+    await act(async () => button("发送 UDP 回显").click());
+    const probe = useTopologyStore.getState().lastProbe;
+    if (!probe) throw new Error("missing result");
+    expect(probe.connections).toBeUndefined();
+    await act(async () => root.render(createElement(ProbeView, { probe, focus: vi.fn() })));
+    expect(container.querySelectorAll(".probe-echo pre")).toHaveLength(2);
+    expect(container.querySelector(".probe-echo pre")?.textContent).toBe(payload);
+    expect(container.querySelector(".probe-echo b")).toBeNull();
+  });
+
+  it("全局 UDP 入口验证参数，模式切换保留独立值", async () => {
+    await act(async () => root.render(createElement(ProbeDialog, { onClose: vi.fn() })));
+    await act(async () => button("UDP 回显").click());
+    await fill("UDP 目标端口", "53");
+    expect(button("运行验证").disabled).toBe(true);
+    await fill("UDP 目标端口", "7");
+    await fill("测试内容", "中".repeat(342));
+    expect(button("运行验证").disabled).toBe(true);
+    await fill("测试内容", "hello again");
+    await fill("UDP 目标 IP", "bad");
+    expect(button("运行验证").disabled).toBe(true);
+    await fill("UDP 目标 IP", "192.168.1.30");
+    await select("UDP 连接方式", proxyId);
+    await act(async () => button("DNS 查询").click());
+    await fill("DNS 服务器", "bad");
+    await act(async () => button("UDP 回显").click());
+    expect(button("运行验证").disabled).toBe(false);
+    await act(async () => button("运行验证").click());
+    expect(useTopologyStore.getState().lastProbe?.udpEcho?.received).toBe("hello again");
+  });
+
+  it("失效代理选择不会默默直连", async () => {
+    await act(async () => root.render(createElement(NodeProbe)));
+    await select("UDP 连接方式", proxyId);
+    await act(async () =>
+      useTopologyStore
+        .getState()
+        .updateDevice(proxyId, (d) =>
+          d.type === "proxy"
+            ? { ...d, config: { ...d.config, proxy: { ...d.config.proxy, protocol: "http" } } }
+            : d,
+        ),
+    );
+    expect(field<HTMLSelectElement>("UDP 连接方式").selectedOptions[0]?.textContent).toContain(
+      "不可用",
+    );
+    await act(async () => button("发送 UDP 回显").click());
+    expect(useTopologyStore.getState().lastProbe?.reasonCode).toBe("PROXY_PROTOCOL_MISMATCH");
+    expect(useTopologyStore.getState().lastProbe?.udpEcho?.received).toBeNull();
+  });
+
+  it("服务器传输类型修改可撤销，冲突类型不可选", async () => {
+    await act(async () => root.render(createElement(EchoServerConfig)));
+    const selectors = () =>
+      container.querySelectorAll<HTMLSelectElement>('[data-field="services"] select');
+    const selector = selectors()[1];
+    if (!selector) throw new Error("missing UDP selector");
+    expect(selector.value).toBe("udp");
+    await act(async () => {
+      selector.value = "tcp";
+      selector.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const server = () =>
+      useTopologyStore.getState().topology.devices.find((d) => d.type === "server");
+    expect(server()?.config.services[1]?.protocol).toBe("tcp");
+    await act(async () => useTopologyStore.getState().undo());
+    expect(server()?.config.services[1]?.protocol).toBe("udp");
+    const current = server();
+    if (!current) throw new Error("missing server");
+    await act(async () =>
+      useTopologyStore.getState().updateDevice(current.id, (d) =>
+        d.type === "server"
+          ? {
+              ...d,
+              config: {
+                ...d.config,
+                services: [
+                  ...d.config.services,
+                  { id: "tcp-7", name: "TCP", port: 7, enabled: true },
+                ],
+              },
+            }
+          : d,
+      ),
+    );
+    expect(selectors()[1]?.querySelector<HTMLOptionElement>('option[value="tcp"]')?.disabled).toBe(
+      true,
+    );
+  });
+
   it("网站节点入口默认遵循规则，可手动直连并再次恢复自动", async () => {
     configureRouting();
     await act(async () => root.render(createElement(NodeProbe)));

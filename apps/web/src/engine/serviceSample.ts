@@ -74,7 +74,10 @@ export function servicesTopology(): Topology {
     upstream: "192.0.2.53",
     records: [{ domain: "service.example", ip: server.config.ip }],
   };
-  server.config.services = [{ id: "internal-https", name: "内部应用", port: 443, enabled: true }];
+  server.config.services = [
+    { id: "internal-https", name: "内部应用", port: 443, enabled: true },
+    { id: "udp-echo", name: "UDP 回显", port: 7, enabled: true, protocol: "udp" },
+  ];
   proxy.config.proxy = {
     enabled: true,
     protocol: "socks5",

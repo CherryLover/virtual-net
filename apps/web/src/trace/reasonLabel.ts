@@ -8,6 +8,7 @@
 export const UNKNOWN_REASON_LABEL = "验证终止";
 
 export const REASON_LABELS: Record<string, string> = {
+  INVALID_PROBE_INPUT: "验证参数无效",
   ACCESS_DENIED: "规则拒绝",
   SERVICE_CLOSED: "服务端口未开放",
   PROXY_UNAVAILABLE: "代理不可用",

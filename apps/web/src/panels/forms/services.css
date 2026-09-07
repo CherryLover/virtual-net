@@ -3,6 +3,34 @@
   border-top: 1px solid var(--border);
   min-width: 0;
 }
+.udp-echo-options {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.udp-probe {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+}
+.udp-probe summary {
+  cursor: pointer;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.udp-probe > button {
+  margin-top: 10px;
+}
+.probe-echo {
+  font-size: 12px;
+  margin: 12px 0;
+}
+.probe-echo pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 8px 0;
+  margin: 0;
+  font-size: 12px;
+}
 .service-section h4 {
   margin: 0 0 12px;
   font-size: 13px;

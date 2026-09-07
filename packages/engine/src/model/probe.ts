@@ -135,6 +135,7 @@ export interface FixAt {
 }
 
 export interface ProbeResult {
+  udpEcho?: { targetIp: string; port: number; sent: string; received: string | null };
   routingNote?: string;
   connections?: {
     id: string;
@@ -149,6 +150,7 @@ export interface ProbeResult {
       | "proxy-associate"
       | "client-relay"
       | "relay-dns"
+      | "relay-target"
       | "relay-response";
     sourceDeviceId: string;
     target: string;
@@ -156,7 +158,7 @@ export interface ProbeResult {
     endSeq: number;
     verdict: "ok" | "fail";
   }[];
-  kind: "ping" | "visitSite" | "traceroute" | "dnsQuery";
+  kind: "ping" | "visitSite" | "traceroute" | "dnsQuery" | "udpEcho";
   verdict: "ok" | "fail";
   summary: string;
   stoppedAt: string | null;
@@ -178,6 +180,7 @@ export interface ProbeResult {
 
 /** 终止原因编码（2.3 节） */
 export const REASON_CODES = [
+  "INVALID_PROBE_INPUT",
   "ACCESS_DENIED",
   "SERVICE_CLOSED",
   "PROXY_UNAVAILABLE",

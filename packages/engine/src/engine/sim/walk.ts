@@ -4,6 +4,7 @@
  */
 
 import { inSubnet, isPrivate, subnetLabel } from "../../model/address";
+import { utf8ByteLength } from "../../model/payload";
 import type {
   Decision,
   DecisionPhase,
@@ -68,6 +69,7 @@ export interface FlowResult {
   answerIp?: string;
   originalIp?: string;
   rewrittenBy?: string[];
+  echo?: string;
 }
 
 export class Walk {
@@ -87,6 +89,8 @@ export class Walk {
   private readonly policies = new PolicySessions();
   private observableDomain = "";
   private udpRelayDeviceId = "";
+  private echoPayload: string | undefined;
+  private echo: string | undefined;
   private readonly accepted = new Map<string, { hop: Hop; pending: Pending }>();
 
   constructor(private readonly runtime: Runtime) {
@@ -626,11 +630,14 @@ export class Walk {
     observableDomain?: string;
     /** 仅在本次验证完成 SOCKS5 关联后，允许中继接收单向数据。 */
     udpRelayDeviceId?: string;
+    echoPayload?: string;
   }): FlowResult {
     this.phase = opts.phase;
     this.domain = opts.domain ?? "";
     this.observableDomain = opts.observableDomain ?? "";
     this.udpRelayDeviceId = opts.udpRelayDeviceId ?? "";
+    this.echoPayload = opts.echoPayload;
+    this.echo = undefined;
     this.answerIp = "";
     this.originalIp = "";
     this.rewrittenBy = [];
@@ -692,6 +699,7 @@ export class Walk {
     if (this.stopped) return { ok: false };
     return {
       ok: true,
+      ...(this.echo === undefined ? {} : { echo: this.echo }),
       answerIp: this.answerIp,
       ...(this.rewrittenBy.length
         ? { originalIp: this.originalIp, rewrittenBy: [...this.rewrittenBy] }
@@ -871,11 +879,39 @@ export class Walk {
         ...base,
         action: "receive",
         basis: { proxy: { deviceId: device.id, stage: "udp-relay", protocol: "socks5" } },
-        note: "SOCKS5 中继收到 UDP 数据，等待目标 DNS 应答后返回",
+        note: "SOCKS5 中继收到 UDP 数据，等待目标应答后返回",
       });
       return null;
     }
-    if (isDnsQuery(packetIn)) return this.handleDnsQuery(hop, target);
+    if (this.phase === "udp" && packetIn.proto === "udp") {
+      const service =
+        device.type === "server"
+          ? device.config.services.find(
+              (s) =>
+                s.enabled &&
+                s.protocol === "udp" &&
+                s.port === packetIn.l4.dstPort &&
+                s.port !== 53,
+            )
+          : undefined;
+      if (!service || this.echoPayload === undefined)
+        return this.fail(
+          device.id,
+          {
+            reasonCode: "SERVICE_CLOSED",
+            reason: `${device.name} 未开放 UDP ${packetIn.l4.dstPort} 回显服务`,
+          },
+          { ...base, action: "answer", note: "目标已到达，但没有对应的 UDP 回显服务" },
+          { deviceId: device.id, field: "services" },
+        );
+      this.echo = this.echoPayload;
+      return this.answer(hop, {
+        proto: "udp",
+        l4: { srcPort: packetIn.l4.dstPort, dstPort: packetIn.l4.srcPort },
+        note: `UDP ${service.port} 回显 ${utf8ByteLength(this.echo)} 字节`,
+      });
+    }
+    if (this.phase === "dns" && isDnsQuery(packetIn)) return this.handleDnsQuery(hop, target);
 
     // ICMP echo request
     if (isEchoRequest(packetIn)) {
@@ -898,7 +934,9 @@ export class Walk {
     if (packetIn.proto === "tcp") {
       const open =
         device.type === "server"
-          ? device.config.services.some((s) => s.enabled && s.port === packetIn.l4.dstPort)
+          ? device.config.services.some(
+              (s) => s.enabled && (s.protocol ?? "tcp") === "tcp" && s.port === packetIn.l4.dstPort,
+            )
           : device.type === "proxy"
             ? device.config.proxy.enabled && device.config.proxy.port === packetIn.l4.dstPort
             : device.type === "internet" && target !== null;

@@ -28,11 +28,13 @@ export function toProbeResult(opts: {
   const ok = stopped === null;
   const source = deviceName(topology, sourceDeviceId);
   const summary =
-    kind === "dnsQuery"
-      ? `${source} 查询 ${opts.label} ${ok ? "成功" : "失败"}`
-      : kind === "visitSite"
-        ? `${source} 打开 ${opts.label} ${ok ? "成功" : "失败"}`
-        : `${source} → ${opts.label} ${ok ? "通" : "不通"}`;
+    kind === "udpEcho"
+      ? `${source} UDP 回显 ${opts.label} ${ok ? "成功" : "失败"}`
+      : kind === "dnsQuery"
+        ? `${source} 查询 ${opts.label} ${ok ? "成功" : "失败"}`
+        : kind === "visitSite"
+          ? `${source} 打开 ${opts.label} ${ok ? "成功" : "失败"}`
+          : `${source} → ${opts.label} ${ok ? "通" : "不通"}`;
 
   return {
     kind,

@@ -195,6 +195,8 @@ ROADMAP 是范围总纲；本文与 [CP4 细化](../checkpoints/CP4-access-contr
 
 后续增量：2026-09-07 已完成 [CP5 第二批 SOCKS5 UDP DNS 查询](../checkpoints/CP5-udp-dns.md)。本文以下保留首批范围和历史证据，UDP 增量规则及当前验收以第二批文档为准，不能把首批中的 UDP 待定描述理解为该增量尚未实现。
 
+另已完成 [第三批网站访问分流](../checkpoints/CP5-routing.md) 与 [第四批 UDP 回显服务](../checkpoints/CP5-udp-echo.md)。主机可保存网站分流规则；服务器服务新增可选 TCP / UDP 类型，缺省 TCP，UDP 本批仅做回显。两个验证入口支持独立的 UDP 参数与 SOCKS5 选择，不隐式跟随网站规则。当前实现与验收以批次文档为准，下面的首批限制保留为历史记录。
+
 保留 CP0–CP3 和历史编号。本轮只实施独立 UX 工作包、CP4 网络区域与访问控制，以及 CP5 的服务器 / HTTP / CONNECT / SOCKS5 TCP 首批。CP5 的 UDP、分流、隧道与多级中转未实施，CP6 虚拟网络与网关组合、CP7 外部访问仍为后续，不能顺手扩大本轮交付范围。
 
 页面优化作为独立 UX 工作包，不以等完全部网络功能为前提。其存储与动画相关变化仍须回归已完成阶段。

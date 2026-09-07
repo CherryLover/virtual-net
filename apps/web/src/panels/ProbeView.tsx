@@ -75,6 +75,7 @@ export function ProbeView({ probe, focus }: ProbeViewProps) {
     "proxy-associate": "建立 UDP 关联",
     "client-relay": "发送到 UDP 中继",
     "relay-dns": "中继查询 DNS",
+    "relay-target": "中继请求 UDP 服务",
     "relay-response": "UDP 返回客户端",
   };
 
@@ -84,6 +85,16 @@ export function ProbeView({ probe, focus }: ProbeViewProps) {
       <div className={`probe-summary probe-${probe.verdict}`}>{probe.summary}</div>
       {probe.routingNote ? <div className="lease-line">{probe.routingNote}</div> : null}
       {probe.reason ? <div className="probe-reason">{probe.reason}</div> : null}
+      {probe.udpEcho ? (
+        <div className="probe-echo">
+          <div>
+            发送内容<pre>{probe.udpEcho.sent}</pre>
+          </div>
+          <div>
+            收到内容<pre>{probe.udpEcho.received ?? "未收到回显"}</pre>
+          </div>
+        </div>
+      ) : null}
       {probe.dns ? (
         <div className="probe-dns">
           DNS {probe.dns.server} 解析 {probe.dns.domain} → {probe.dns.ip}

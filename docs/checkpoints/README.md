@@ -19,6 +19,7 @@
 | CP5 首批 | [CP5-proxy-services.md](CP5-proxy-services.md) |
 | CP5 第二批 | [CP5-udp-dns.md](CP5-udp-dns.md)，SOCKS5 UDP DNS 查询已完成 |
 | CP5 第三批 | [CP5-routing.md](CP5-routing.md)，设备级网站访问分流已完成 |
+| CP5 第四批 | [CP5-udp-echo.md](CP5-udp-echo.md)，UDP 回显服务已完成 |
 | UX | [../design/network-model-and-ui.md](../design/network-model-and-ui.md) 第 5–8 节 |
 
 ## 编号

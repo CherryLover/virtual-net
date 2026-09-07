@@ -4,6 +4,12 @@ import { isHost } from "../engine";
 import { DnsOptions, type DnsSelection, dnsServerError } from "../panels/DnsOptions";
 import { portValidator } from "../panels/forms/serviceValidators";
 import { ProxyOptions, type ProxySelection } from "../panels/ProxyOptions";
+import {
+  defaultUdpSelection,
+  UdpEchoOptions,
+  type UdpEchoSelection,
+  udpSelectionError,
+} from "../panels/UdpEchoOptions";
 import { type ProbeRequest, useTopologyStore } from "../store";
 import { useLayoutStore } from "../store/layout";
 import "./probe-dialog.css";
@@ -28,13 +34,17 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
   const [port, setPort] = useState("443");
   const [proxy, setProxy] = useState<ProxySelection>();
   const [dns, setDns] = useState<DnsSelection>({ server: "" });
+  const [udp, setUdp] = useState<UdpEchoSelection>(() =>
+    defaultUdpSelection(topology, runtime, source),
+  );
   const [error, setError] = useState("");
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
   const domainMode = kind === "visitSite" || kind === "dnsQuery";
   const portError = kind === "visitSite" ? portValidator(port) : null;
   const dnsError = kind === "dnsQuery" ? dnsServerError(dns.server) : null;
-  const eligible = sources.filter((d) => !domainMode || isHost(d));
+  const udpError = kind === "udpEcho" ? udpSelectionError(udp) : null;
+  const eligible = sources.filter((d) => !(domainMode || kind === "udpEcho") || isHost(d));
   const currentSource = eligible.some((d) => d.id === source) ? source : (eligible[0]?.id ?? "");
   const targets = topology.devices.flatMap((d) => (d.type === "internet" ? d.config.targets : []));
   const domains = Array.from(
@@ -58,7 +68,7 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
       setError("请先添加可发起验证的设备");
       return;
     }
-    if (!String(domainMode ? domain : target).trim()) {
+    if (kind !== "udpEcho" && !String(domainMode ? domain : target).trim()) {
       setError("请填写目标");
       return;
     }
@@ -66,26 +76,35 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
       root.current?.querySelector<HTMLInputElement>(`[id="${id}-port"]`)?.focus();
       return;
     }
-    if (dnsError) return;
+    if (dnsError || udpError) return;
     try {
       runProbe(
-        domainMode
+        kind === "udpEcho"
           ? {
               kind,
               sourceDeviceId: currentSource,
-              domain: domain.trim(),
-              port: Number(port),
-              server: kind === "dnsQuery" ? dns.server.trim() || undefined : undefined,
-              proxy:
-                kind === "dnsQuery"
-                  ? dns.proxy?.deviceId === currentSource
-                    ? undefined
-                    : dns.proxy
-                  : proxy?.deviceId === currentSource
-                    ? undefined
-                    : proxy,
+              targetIp: udp.targetIp.trim(),
+              port: Number(udp.port),
+              payload: udp.payload,
+              proxy: udp.proxy,
             }
-          : { kind, sourceDeviceId: currentSource, targetIp: target.trim() },
+          : domainMode
+            ? {
+                kind,
+                sourceDeviceId: currentSource,
+                domain: domain.trim(),
+                port: Number(port),
+                server: kind === "dnsQuery" ? dns.server.trim() || undefined : undefined,
+                proxy:
+                  kind === "dnsQuery"
+                    ? dns.proxy?.deviceId === currentSource
+                      ? undefined
+                      : dns.proxy
+                    : proxy?.deviceId === currentSource
+                      ? undefined
+                      : proxy,
+              }
+            : { kind, sourceDeviceId: currentSource, targetIp: target.trim() },
       );
       useTopologyStore.getState().select({ kind: "none" });
       useLayoutStore.getState().openInspector();
@@ -142,6 +161,7 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
               ["traceroute", "路径"],
               ["visitSite", "访问服务"],
               ["dnsQuery", "DNS 查询"],
+              ["udpEcho", "UDP 回显"],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -174,25 +194,29 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
             ))}
           </select>
         </div>
-        <div className="field">
-          <label className="field-label" htmlFor={`${id}-target`}>
-            {kind === "dnsQuery" ? "查询域名" : domainMode ? "目标域名或 IP" : "目标 IP"}
-          </label>
-          <input
-            id={`${id}-target`}
-            className="field-input"
-            list={`${id}-targets`}
-            value={domainMode ? domain : target}
-            onChange={(event) =>
-              domainMode ? setDomain(event.target.value) : setTarget(event.target.value)
-            }
-          />
-          <datalist id={`${id}-targets`}>
-            {(domainMode ? domains : ips).map((value) => (
-              <option key={value} value={value} />
-            ))}
-          </datalist>
-        </div>
+        {kind !== "udpEcho" ? (
+          <div className="field">
+            <label className="field-label" htmlFor={`${id}-target`}>
+              {kind === "dnsQuery" ? "查询域名" : domainMode ? "目标域名或 IP" : "目标 IP"}
+            </label>
+            <input
+              id={`${id}-target`}
+              className="field-input"
+              list={`${id}-targets`}
+              value={domainMode ? domain : target}
+              onChange={(event) =>
+                domainMode ? setDomain(event.target.value) : setTarget(event.target.value)
+              }
+            />
+            <datalist id={`${id}-targets`}>
+              {(domainMode ? domains : ips).map((value) => (
+                <option key={value} value={value} />
+              ))}
+            </datalist>
+          </div>
+        ) : (
+          <UdpEchoOptions sourceId={currentSource} value={udp} onChange={setUdp} />
+        )}
         {kind === "visitSite" ? (
           <>
             <div className="field">
@@ -242,7 +266,7 @@ export function ProbeDialog({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           className="btn btn-primary probe-run"
-          disabled={Boolean(portError || dnsError)}
+          disabled={Boolean(portError || dnsError || udpError)}
           onClick={run}
         >
           <Play size={15} />

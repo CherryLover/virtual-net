@@ -48,7 +48,13 @@ export interface DnsService {
 }
 
 export interface ServerConfig extends PcConfig {
-  services: { id: string; name: string; port: number; enabled: boolean }[];
+  services: {
+    id: string;
+    name: string;
+    port: number;
+    enabled: boolean;
+    protocol?: "tcp" | "udp";
+  }[];
   dnsService: DnsService;
 }
 

@@ -5,6 +5,12 @@ import { useTopologyStore } from "../store";
 import { DnsOptions, type DnsSelection, dnsServerError } from "./DnsOptions";
 import { portValidator } from "./forms/serviceValidators";
 import { ProxyOptions, type ProxySelection } from "./ProxyOptions";
+import {
+  defaultUdpSelection,
+  UdpEchoOptions,
+  type UdpEchoSelection,
+  udpSelectionError,
+} from "./UdpEchoOptions";
 
 const DEFAULT_DOMAIN = "www.google.com";
 const PUBLIC_IP = "8.8.8.8";
@@ -53,6 +59,9 @@ export function DeviceProbe({ device, runtime }: Props) {
   const [proxy, setProxy] = useState<ProxySelection>();
   const [port, setPort] = useState("443");
   const [dns, setDns] = useState<DnsSelection>({ server: "" });
+  const [udp, setUdp] = useState<UdpEchoSelection>(() =>
+    defaultUdpSelection(topology, runtime, device.id),
+  );
   const portError = portValidator(port);
   const publicIp =
     topology.devices
@@ -183,6 +192,27 @@ export function DeviceProbe({ device, runtime }: Props) {
               DNS 查询
             </button>
           </div>
+          <details className="udp-probe">
+            <summary>UDP 回显</summary>
+            <UdpEchoOptions sourceId={device.id} value={udp} onChange={setUdp} />
+            <button
+              type="button"
+              className="btn"
+              disabled={Boolean(udpSelectionError(udp))}
+              onClick={() =>
+                runProbe({
+                  kind: "udpEcho",
+                  sourceDeviceId: device.id,
+                  targetIp: udp.targetIp.trim(),
+                  port: Number(udp.port),
+                  payload: udp.payload,
+                  proxy: udp.proxy,
+                })
+              }
+            >
+              发送 UDP 回显
+            </button>
+          </details>
         </>
       ) : null}
 

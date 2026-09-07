@@ -198,19 +198,26 @@ export function readServer(
   const o = object(raw, path, report);
   const dns = object(o.dnsService, `${path}.dnsService`, report);
   const ids = new Set<string>();
-  const ports = new Set<number>();
+  const ports = new Set<string>();
   const services = array(o.services, `${path}.services`, report).map((v, i) => {
     const p = `${path}.services[${i}]`;
     const s = object(v, p, report);
     const id = string(s.id, `${p}.id`, report);
     const servicePort = port(s.port, `${p}.port`, report);
+    const protocol =
+      s.protocol === undefined
+        ? "tcp"
+        : choice(s.protocol, ["tcp", "udp"], `${p}.protocol`, report);
+    const endpoint = `${protocol}:${servicePort}`;
     if (!id.trim() || ids.has(id)) report(`${p}.id`, "服务标识不能为空或重复");
-    if (ports.has(servicePort)) report(`${p}.port`, "监听端口不能重复");
+    if (ports.has(endpoint)) report(`${p}.port`, "同协议监听端口不能重复");
+    if (protocol === "udp" && servicePort === 53) report(`${p}.port`, "UDP 53 保留给 DNS 服务");
     ids.add(id);
-    ports.add(servicePort);
+    ports.add(endpoint);
     return {
       id,
       name: string(s.name, `${p}.name`, report),
+      ...(s.protocol === undefined ? {} : { protocol }),
       port: servicePort,
       enabled: boolean(s.enabled, `${p}.enabled`, report),
     };
