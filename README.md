@@ -6,13 +6,13 @@
 
 配色只改变工作台的整体强调色，画布和节点保持白灰底色；不再提供深色、背景和设备填充设置。强调色随网络图保存及导入导出，支持撤销和重做；旧配色字段仍可读取，但不会恢复旧的填充效果。
 
-本轮 415 项测试、代码检查、构建及类型检查通过，桌面与手机实际全流程通过，无页面异常；尚未部署。
+当前工作台已通过 420 项测试、代码检查、构建及类型检查，桌面与手机实际操作验证通过。线上发布与 GitHub 检查分开进行，见下方部署说明。
 
 - 路线图与阶段目标：[ROADMAP.md](ROADMAP.md)
 - 检查点细化文档：`docs/checkpoints/`
 - 设计文档：`docs/design/`
 - 网络模型与已完成页面优化：[2026-09-07 修订](docs/design/network-model-and-ui.md)
-- 新增工作台交互：[复制与分组](docs/checkpoints/UX-groups.md)、[配色](docs/checkpoints/UX-appearance.md)、[导出与分享](docs/checkpoints/UX-export.md)、[导入检查](docs/checkpoints/UX-import.md)；本地进度和验收以各文档为准，未部署。
+- 新增工作台交互：[复制与分组](docs/checkpoints/UX-groups.md)、[配色](docs/checkpoints/UX-appearance.md)、[导出与分享](docs/checkpoints/UX-export.md)、[导入检查](docs/checkpoints/UX-import.md)；各检查点保留当时的本地验收记录。
 
 ## 环境要求
 
@@ -24,7 +24,7 @@
 ```bash
 pnpm install   # 装依赖
 pnpm dev       # 固定 http://127.0.0.1:5180/，已启动时复用，端口占用不自动换号
-pnpm test      # 跑引擎测试
+pnpm test      # 跑引擎和网页测试
 ```
 
 ## 其他命令
@@ -44,12 +44,20 @@ pnpm build       # 类型检查后打包，产出 apps/web/dist
 一条命令完成打包和发布：
 
 ```bash
-pnpm deploy    # 等价于 pnpm build && wrangler deploy
+pnpm run deploy    # 等价于 pnpm build && wrangler deploy
 ```
 
 站点跑在 Cloudflare Workers 的静态资源托管上，配置在仓库根的 `wrangler.jsonc`：
 访问未命中的路径统一回落到 `index.html`（前端路由需要），`apps/web/public/_headers`
 给带 hash 的构建产物加了长缓存。首次在新机器上部署要先 `npx wrangler login` 登录 Cloudflare。
+
+## GitHub 自动检查
+
+推送到 `main`、提交 Pull Request 或手动运行 Actions 时，执行固定版本依赖安装、代码检查、全部测试及包含类型检查的构建。配置位于 `.github/workflows/ci.yml`。
+
+GitHub Actions **不部署**，只有仓库只读权限，不需要 Cloudflare Token。线上更新始终在本机通过 `pnpm run deploy` 完成。
+
+配置中的 Cloudflare `account_id` 和域名是部署目标标识，不是访问凭据。其他人部署到自己的账户时需要修改这些值并自行登录。不要将 `.env`、`.dev.vars` 或真实设备账号密码提交到仓库；沙盘里的账号密码仅用于模拟，保存和 JSON 导出会保留原值。
 
 ## 目录结构
 
