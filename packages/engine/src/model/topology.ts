@@ -1,5 +1,6 @@
 /** 拓扑数据模型：设备、端口、连线（CP1 定稿，后续检查点只允许扩展） */
 
+import type { TopologyAppearance } from "./appearance";
 import type { PortVlan } from "./vlan";
 
 /** 当前支持的拓扑格式版本 */
@@ -310,7 +311,15 @@ export interface Link {
   b: LinkEnd;
 }
 
+export interface TopologyGroup {
+  id: string;
+  name: string;
+  deviceIds: string[];
+}
+
 export interface Topology {
+  groups?: TopologyGroup[];
+  appearance?: TopologyAppearance;
   version: number;
   name: string;
   viewport: Viewport;

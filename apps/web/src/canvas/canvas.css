@@ -95,11 +95,11 @@
 }
 
 .device-node-router {
-  border-left: 3px solid #16a34a;
+  border-left: 3px solid var(--accent);
 }
 
 .device-node-internet {
-  border-left: 3px solid #6b7280;
+  border-left: 3px solid var(--accent);
 }
 
 .device-node-name {
@@ -114,7 +114,7 @@
 .device-node-address {
   margin-top: 2px;
   font-size: var(--fs-sm);
-  color: var(--text-dim);
+  color: var(--accent);
 }
 
 .device-node-badge {
@@ -135,7 +135,7 @@
   position: absolute;
   transform: translateX(-50%);
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--network-text, var(--text-dim));
   white-space: nowrap;
   pointer-events: none;
 }
@@ -156,7 +156,7 @@
 }
 
 .device-edge {
-  stroke: #94a3b8;
+  stroke: var(--link-color, #94a3b8);
   stroke-width: 1.5;
 }
 
@@ -168,29 +168,38 @@
 .device-edge-error {
   stroke: var(--danger);
   stroke-width: 2;
+  stroke-dasharray: 6 3;
+  filter: drop-shadow(0 0 1px #ffffff) drop-shadow(0 0 1px #000000);
 }
 
 .device-edge-label {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 1px 5px;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: #fff;
   font-size: 10px;
-  color: var(--text-dim);
+  color: #4b5563;
   pointer-events: none;
 }
 
+.device-node .device-icon {
+  color: var(--accent);
+}
+
 .device-node-switch {
-  border-left: 3px solid #0891b2;
+  border-left: 3px solid var(--accent);
 }
 
 .device-node-ap {
-  border-left: 3px solid #7c3aed;
+  border-left: 3px solid var(--accent);
 }
 
 .device-node-modem {
-  border-left: 3px solid #ea580c;
+  border-left: 3px solid var(--accent);
 }
 
 .device-node-switch .device-node-name {

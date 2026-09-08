@@ -13,6 +13,7 @@ import { PortVlanTable } from "./forms/PortVlanTable";
 import { RouterForm } from "./forms/RouterForm";
 import { AccessControlForm, AccessPolicyForm, ProxyForm, ServerForm } from "./forms/ServiceForms";
 import { SwitchForm } from "./forms/SwitchForm";
+import { GroupActions } from "./GroupActions";
 import { diagnosticTab, type InspectorTab } from "./inspectorTab";
 import { ResultsPanel } from "./ResultsPanel";
 
@@ -234,6 +235,7 @@ export function DevicePanel({ device, runtime, highlight, highlightPortId }: Pro
               <AccessPolicyForm device={device} highlight={highlight} />
             ) : null}
             <div className="panel-danger-zone">
+              <GroupActions ids={[device.id]} />
               <button
                 type="button"
                 className="btn btn-danger"

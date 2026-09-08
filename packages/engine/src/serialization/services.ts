@@ -8,7 +8,7 @@ import type {
   TrafficRouting,
 } from "../model/topology";
 
-type Report = (path: string, message: string) => void;
+type Report = (path: string, message: string, severity?: "warning") => void;
 type Obj = Record<string, unknown>;
 export function readRouting(raw: unknown, path: string, report: Report): TrafficRouting {
   const o = object(raw, path, report);
@@ -24,7 +24,7 @@ export function readRouting(raw: unknown, path: string, report: Report): Traffic
       const match = choice(r.match, ["domain", "ip"], `${p}.match`, report);
       const target = string(r.target, `${p}.target`, report);
       if (match === "domain" && !validDomain(target, true))
-        report(`${p}.target`, "需要域名或 *. 子域名");
+        report(`${p}.target`, "需要域名或 *. 子域名", "warning");
       if (match === "ip") {
         const [ip, bits, ...rest] = target.split("/");
         if (
@@ -32,7 +32,7 @@ export function readRouting(raw: unknown, path: string, report: Report): Traffic
           rest.length ||
           (bits !== undefined && (!/^\d+$/.test(bits) || Number(bits) > 32))
         )
-          report(`${p}.target`, "需要有效 IP 或 CIDR 网段");
+          report(`${p}.target`, "需要有效 IP 或 CIDR 网段", "warning");
       }
       const proxy = r.proxy === null ? null : object(r.proxy, `${p}.proxy`, report);
       return {
@@ -103,8 +103,12 @@ function choice<T extends string>(
 }
 function port(raw: unknown, path: string, report: Report): number {
   if (typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= 65535) return raw;
-  report(path, "端口必须是 1–65535 的整数");
-  return 443;
+  report(
+    path,
+    "端口必须是 1–65535 的整数",
+    typeof raw === "number" && Number.isFinite(raw) ? "warning" : undefined,
+  );
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : 443;
 }
 function array(raw: unknown, path: string, report: Report): unknown[] {
   if (Array.isArray(raw)) return raw;
@@ -118,11 +122,11 @@ export function readRecords(raw: unknown, path: string, report: Report): DnsReco
     const o = object(v, p, report);
     const domain = string(o.domain, `${p}.domain`, report);
     const ip = string(o.ip, `${p}.ip`, report);
-    if (!validDomain(domain)) report(`${p}.domain`, "需要有效的完整域名，不支持通配符");
+    if (!validDomain(domain)) report(`${p}.domain`, "需要有效的完整域名，不支持通配符", "warning");
     const canonical = domain.toLowerCase().replace(/\.$/, "");
-    if (domains.has(canonical)) report(`${p}.domain`, "域名不能重复");
+    if (domains.has(canonical)) report(`${p}.domain`, "域名不能重复", "warning");
     domains.add(canonical);
-    if (parseIp(ip) === null) report(`${p}.ip`, "需要有效的 IPv4 地址");
+    if (parseIp(ip) === null) report(`${p}.ip`, "需要有效的 IPv4 地址", "warning");
     return { domain, ip };
   });
 }
@@ -136,7 +140,8 @@ export function readPolicy(raw: unknown, path: string, report: Report): AccessPo
     if (!id || ids.has(id)) report(`${p}.id`, "规则标识不能为空或重复");
     ids.add(id);
     const domain = string(r.domain, `${p}.domain`, report);
-    if (!validDomain(domain, true)) report(`${p}.domain`, "需要有效的域名，可使用 *. 子域名匹配");
+    if (!validDomain(domain, true))
+      report(`${p}.domain`, "需要有效的域名，可使用 *. 子域名匹配", "warning");
     const address = (key: string) => {
       const s = string(r[key], `${p}.${key}`, report);
       if (s && s !== "*") {
@@ -146,7 +151,7 @@ export function readPolicy(raw: unknown, path: string, report: Report): AccessPo
           parts.length > 2 ||
           (parts.length === 2 && (!/^\d+$/.test(parts[1] ?? "") || Number(parts[1]) > 32))
         )
-          report(`${p}.${key}`, "需要 IP 或 CIDR 网段");
+          report(`${p}.${key}`, "需要 IP 或 CIDR 网段", "warning");
       }
       return s;
     };
@@ -210,8 +215,9 @@ export function readServer(
         : choice(s.protocol, ["tcp", "udp"], `${p}.protocol`, report);
     const endpoint = `${protocol}:${servicePort}`;
     if (!id.trim() || ids.has(id)) report(`${p}.id`, "服务标识不能为空或重复");
-    if (ports.has(endpoint)) report(`${p}.port`, "同协议监听端口不能重复");
-    if (protocol === "udp" && servicePort === 53) report(`${p}.port`, "UDP 53 保留给 DNS 服务");
+    if (ports.has(endpoint)) report(`${p}.port`, "同协议监听端口不能重复", "warning");
+    if (protocol === "udp" && servicePort === 53)
+      report(`${p}.port`, "UDP 53 保留给 DNS 服务", "warning");
     ids.add(id);
     ports.add(endpoint);
     return {
@@ -224,7 +230,7 @@ export function readServer(
   });
   const upstream = string(dns.upstream, `${path}.dnsService.upstream`, report);
   if (upstream && parseIp(upstream) === null)
-    report(`${path}.dnsService.upstream`, "需要有效的 IPv4 地址");
+    report(`${path}.dnsService.upstream`, "需要有效的 IPv4 地址", "warning");
   return {
     services,
     dnsService: {

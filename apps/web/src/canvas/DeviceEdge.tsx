@@ -1,7 +1,8 @@
 import type { Edge, EdgeProps } from "@xyflow/react";
 import { BaseEdge, EdgeLabelRenderer, useReactFlow } from "@xyflow/react";
-import { RotateCcw } from "lucide-react";
-import { useRef, useState } from "react";
+import { RotateCcw, TriangleAlert } from "lucide-react";
+import { type CSSProperties, useRef, useState } from "react";
+import { linkColor } from "../appearance/colors";
 import type { Link } from "../engine";
 import { useTopologyStore } from "../store";
 import { automaticControl, curveGeometry } from "./curve";
@@ -25,6 +26,7 @@ export function DeviceEdge({
   data,
   selected,
 }: EdgeProps<DeviceEdgeType>) {
+  const appearance = useTopologyStore((s) => s.topology.appearance);
   const { screenToFlowPosition } = useReactFlow();
   const [draft, setDraft] = useState<Link["curve"]>();
   const drag = useRef<{
@@ -49,7 +51,12 @@ export function DeviceEdge({
     .join(" ");
   return (
     <>
-      <BaseEdge id={id} path={path} className={className} />
+      <BaseEdge
+        id={id}
+        path={path}
+        className={className}
+        style={{ "--link-color": linkColor(appearance, id) } as CSSProperties}
+      />
       {selected ? (
         <g className="edge-control-guides">
           <line x1={sourceX} y1={sourceY} x2={a.x} y2={a.y} />
@@ -59,8 +66,10 @@ export function DeviceEdge({
       <EdgeLabelRenderer>
         <span
           className="device-edge-label"
+          title={data?.hasError ? "连线配置错误" : undefined}
           style={{ transform: `translate(-50%, -50%) translate(${label.x}px, ${label.y}px)` }}
         >
+          {data?.hasError ? <TriangleAlert size={12} role="img" aria-label="连线配置错误" /> : null}
           {data?.label}
         </span>
         {selected

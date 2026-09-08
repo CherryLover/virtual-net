@@ -1,0 +1,61 @@
+.canvas-tools {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-menu);
+}
+.canvas-modes,
+.canvas-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.canvas-modes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--border);
+}
+.canvas-modes button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.canvas-selection-actions span {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  min-width: 72px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.canvas-context-menu {
+  position: fixed;
+  z-index: 100;
+  width: 180px;
+  max-width: calc(100vw - 16px);
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-menu);
+  background: #fff;
+  color: var(--text);
+}
+.canvas-context-menu button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.canvas-context-menu svg {
+  color: var(--accent);
+}

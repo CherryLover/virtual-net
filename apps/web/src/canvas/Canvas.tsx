@@ -5,15 +5,21 @@ import {
   ConnectionMode,
   Controls,
   ReactFlow,
+  SelectionMode,
   useStore as useFlowStore,
   useReactFlow,
 } from "@xyflow/react";
+import { Hand, Scan, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { canvasAppearanceStyle } from "../appearance/colors";
 import type { DeviceType } from "../engine";
 import { DEVICE_TYPES } from "../engine";
 import { useTopologyStore, useTraceStore } from "../store";
+import { IconButton } from "../ui/IconButton";
 import type { DeviceEdgeType } from "./DeviceEdge";
 import { DeviceEdge } from "./DeviceEdge";
+import { GroupLayer } from "./GroupLayer";
+import { canvasKeyboardBlocked } from "./keyboard";
 import { ApNode } from "./nodes/ApNode";
 import { InternetNode } from "./nodes/InternetNode";
 import { ModemNode } from "./nodes/ModemNode";
@@ -23,6 +29,7 @@ import { ServiceNode } from "./nodes/ServiceNode";
 import { SwitchNode } from "./nodes/SwitchNode";
 import { nodeSubtitle } from "./nodes/subtitle";
 import type { DeviceNodeType } from "./nodes/types";
+import { SelectionActions } from "./SelectionActions";
 import { PlaybackBar } from "./trace/PlaybackBar";
 import { TraceLayer } from "./trace/TraceLayer";
 import { segmentIndexAt, traceView } from "./trace/traceView";
@@ -51,10 +58,38 @@ export function Canvas() {
   const issues = useTopologyStore((s) => s.issues);
   const selection = useTopologyStore((s) => s.selection);
   const loaded = useTopologyStore((s) => s.loaded);
+  const copyNotice = useTopologyStore((s) => s.copyNotice);
   const { screenToFlowPosition, setViewport } = useReactFlow();
   const wrapper = useRef<HTMLDivElement>(null);
   const restored = useRef(false);
   const domNode = useFlowStore((s) => s.domNode);
+  const [panMode, setPanMode] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number }>();
+  const closeMenu = useCallback(() => {
+    setContextMenu(undefined);
+  }, []);
+  const openMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent, nodeId?: string, groupId?: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const store = useTopologyStore.getState();
+      const current = store.selection;
+      if (groupId) store.select({ kind: "group", id: groupId });
+      else if (
+        nodeId &&
+        !(current.kind === "devices" && current.ids.includes(nodeId)) &&
+        !(
+          current.kind === "group" &&
+          store.topology.groups
+            ?.find((group) => group.id === current.id)
+            ?.deviceIds.includes(nodeId)
+        )
+      )
+        store.select({ kind: "device", id: nodeId });
+      setContextMenu({ x: event.clientX, y: event.clientY });
+    },
+    [],
+  );
 
   // CP3：播放时钟只在这里跑一份，画面全部由 cursorMs 派生
   usePlayback();
@@ -184,9 +219,11 @@ export function Canvas() {
       store.select({ kind: "devices", ids });
       return;
     }
-    // 单选与取消由点击处理，这里只负责从多选切回去
-    if (current.kind !== "devices") return;
-    store.select(ids.length === 1 ? { kind: "device", id: ids[0] as string } : { kind: "none" });
+    if (ids.length === 1) {
+      if (current.kind !== "device" || current.id !== ids[0])
+        store.select({ kind: "device", id: ids[0] as string });
+    } else if (current.kind === "devices" || current.kind === "device")
+      store.select({ kind: "none" });
   }, []);
 
   const isValidConnection = useCallback((connection: Connection | DeviceEdgeType) => {
@@ -260,8 +297,23 @@ export function Canvas() {
       return el?.tagName === "BUTTON" || el?.tagName === "A";
     };
     const onKeyDown = (event: KeyboardEvent) => {
+      if (canvasKeyboardBlocked(event.target)) return;
       const store = useTopologyStore.getState();
       const meta = event.metaKey || event.ctrlKey;
+      if (meta && event.key.toLowerCase() === "d" && !inForm(event.target)) {
+        event.preventDefault();
+        const s = store.selection;
+        const ids =
+          s.kind === "device"
+            ? [s.id]
+            : s.kind === "devices"
+              ? s.ids
+              : s.kind === "group"
+                ? (store.topology.groups?.find((g) => g.id === s.id)?.deviceIds ?? [])
+                : [];
+        store.copyDevices(ids);
+        return;
+      }
       if (meta && event.key.toLowerCase() === "z") {
         if (typing(event.target)) return;
         event.preventDefault();
@@ -314,6 +366,9 @@ export function Canvas() {
         } else if (selection.kind === "link") {
           event.preventDefault();
           store.removeLink(selection.id);
+        } else if (selection.kind === "group") {
+          event.preventDefault();
+          store.ungroup(selection.id);
         }
       }
     };
@@ -322,7 +377,13 @@ export function Canvas() {
   }, []);
 
   return (
-    <main className="canvas" ref={wrapper} onDrop={onDrop} onDragOver={onDragOver}>
+    <main
+      className="canvas"
+      style={canvasAppearanceStyle(topology.appearance)}
+      ref={wrapper}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -332,29 +393,77 @@ export function Canvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onSelectionChange={onSelectionChange}
-        onNodeClick={(_, node) =>
-          useTopologyStore.getState().select({ kind: "device", id: node.id })
-        }
+        onNodeClick={closeMenu}
+        onNodeContextMenu={(event, node) => openMenu(event, node.id)}
+        onSelectionContextMenu={(event) => openMenu(event)}
+        onPaneContextMenu={(event) => openMenu(event)}
+        onSelectionStart={closeMenu}
+        onMoveStart={closeMenu}
         onEdgeClick={(_, edge) => useTopologyStore.getState().select({ kind: "link", id: edge.id })}
-        onPaneClick={() => useTopologyStore.getState().select({ kind: "none" })}
+        onPaneClick={() => {
+          closeMenu();
+          useTopologyStore.getState().select({ kind: "none" });
+        }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onMoveEnd={(_, viewport) => useTopologyStore.getState().setViewport(viewport)}
         deleteKeyCode={null}
         selectionKeyCode="Shift"
-        multiSelectionKeyCode={["Meta", "Control"]}
-        selectionOnDrag={false}
+        multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+        selectionOnDrag={!panMode}
+        selectionMode={SelectionMode.Partial}
+        panActivationKeyCode={null}
         snapToGrid
         snapGrid={[GRID, GRID]}
-        panOnDrag
+        panOnDrag={panMode ? [0, 1] : [1]}
         minZoom={0.2}
         maxZoom={2}
       >
-        <Background gap={GRID} />
+        <Background gap={GRID} color="#c5c5c5" />
+        <GroupLayer
+          onContextMenu={(event, id) => openMenu(event, undefined, id)}
+          nodes={nodes}
+          preview={(moves) =>
+            setNodes((current) =>
+              current.map((node) => {
+                const move = moves.find((m) => m.id === node.id);
+                return move ? { ...node, position: move.position } : node;
+              }),
+            )
+          }
+        />
         <Controls showInteractive={false} fitViewOptions={{ padding: traceLive ? 0.3 : 0.1 }} />
         <TraceLayer view={view} live={traceLive} />
         {traceLive && timeline ? <PlaybackBar timeline={timeline} /> : null}
       </ReactFlow>
+      <div className="canvas-tools">
+        <fieldset className="canvas-modes" aria-label="画布操作">
+          <IconButton
+            icon={Scan}
+            label="框选设备"
+            aria-pressed={!panMode}
+            onClick={() => setPanMode(false)}
+          />
+          <IconButton
+            icon={Hand}
+            label="平移画布"
+            aria-pressed={panMode}
+            onClick={() => setPanMode(true)}
+          />
+        </fieldset>
+        <SelectionActions />
+      </div>
+      {contextMenu && <SelectionActions menu={contextMenu} onClose={closeMenu} />}
+      {copyNotice && (
+        <div role="status" className="copy-notice">
+          <span>{copyNotice}</span>
+          <IconButton
+            icon={X}
+            label="关闭复制提示"
+            onClick={() => useTopologyStore.getState().dismissCopyNotice()}
+          />
+        </div>
+      )}
     </main>
   );
 }

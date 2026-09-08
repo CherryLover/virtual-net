@@ -458,16 +458,11 @@
   gap: 6px;
 }
 
-/* 左右顶底一行，两个等距一行 */
 .align-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 10px;
-}
-
-.align-buttons .btn[data-align="spread-x"],
-.align-buttons .btn[data-align="spread-y"] {
-  grid-column: span 2;
+  gap: 4px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 /* ── CP3 逐跳时间线、跳数表、包头 ─────────────────────── */

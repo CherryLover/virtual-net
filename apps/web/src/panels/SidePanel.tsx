@@ -4,6 +4,7 @@ import { useTopologyStore } from "../store";
 import { useLayoutStore } from "../store/layout";
 import { IconButton } from "../ui/IconButton";
 import { DevicePanel } from "./DevicePanel";
+import { GroupPanel } from "./GroupPanel";
 import { ResultsPanel } from "./ResultsPanel";
 import { SelectionPanel } from "./SelectionPanel";
 import "./panels.css";
@@ -18,6 +19,8 @@ export function SidePanel() {
   const open = useLayoutStore((s) => s.inspectorOpen);
   const close = useLayoutStore((s) => s.closeInspector);
   const links = useTopologyStore((s) => s.topology.links);
+  const groups = useTopologyStore((s) => s.topology.groups);
+  const group = selection.kind === "group" ? groups?.find((g) => g.id === selection.id) : null;
   const link = selection.kind === "link" ? links.find((l) => l.id === selection.id) : null;
   useEffect(() => {
     if (selection.kind !== "none") useLayoutStore.getState().openInspector();
@@ -37,7 +40,9 @@ export function SidePanel() {
         </div>
       </div>
       <div className="side-panel-body">
-        {selection.kind === "devices" ? (
+        {group ? (
+          <GroupPanel key={group.id} group={group} />
+        ) : selection.kind === "devices" ? (
           <SelectionPanel ids={selection.ids} />
         ) : device ? (
           <DevicePanel

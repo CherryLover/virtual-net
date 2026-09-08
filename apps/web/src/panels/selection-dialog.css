@@ -1,0 +1,35 @@
+.selection-dialog {
+  width: min(440px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+}
+.selection-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.selection-dialog-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px;
+  flex: none;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+}
+.selection-dialog-tools span {
+  flex: 1;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.selection-dialog-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px 16px;
+}
+.selection-dialog-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 24px 0;
+}

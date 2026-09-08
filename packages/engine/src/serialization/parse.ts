@@ -45,7 +45,7 @@ export interface ParseError {
 }
 
 export type ParseResult =
-  | { ok: true; topology: Topology; errors: [] }
+  | { ok: true; topology: Topology; errors: []; warnings: ParseError[] }
   | { ok: false; topology: null; errors: ParseError[] };
 
 /** 每种设备类型的端口名规范 */
@@ -112,6 +112,12 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 class Collector {
   readonly errors: ParseError[] = [];
+  readonly warnings: ParseError[] = [];
+  constructor(readonly allowInvalidConfig = false) {}
+  config(path: string, message: string, severity?: "warning"): void {
+    if (severity === "warning" && this.allowInvalidConfig) this.warnings.push({ path, message });
+    else this.add(path, message);
+  }
   add(path: string, message: string, extra?: { linkId?: string; deviceId?: string }): void {
     this.errors.push({ path, message, ...extra });
   }
@@ -165,10 +171,12 @@ function readViewport(c: Collector, value: unknown): Viewport {
     c.add("viewport", "viewport 必须是对象");
     return { x: 0, y: 0, zoom: 1 };
   }
+  const zoom = readNumber(c, value, "zoom", "viewport");
+  if (zoom <= 0) c.add("viewport.zoom", "视口缩放必须大于零");
   return {
     x: readNumber(c, value, "x", "viewport"),
     y: readNumber(c, value, "y", "viewport"),
-    zoom: readNumber(c, value, "zoom", "viewport"),
+    zoom,
   };
 }
 
@@ -259,7 +267,7 @@ function readPcConfig(c: Collector, value: unknown, path: string): PcConfig {
           trafficRouting: readRouting(
             value.trafficRouting,
             `${path}.trafficRouting`,
-            (p, message) => c.add(p, message),
+            (p, message, severity) => c.config(p, message, severity),
           ),
         }),
     ip: readString(c, value, "ip", path),
@@ -501,8 +509,8 @@ function readInternetConfig(c: Collector, value: unknown, path: string): Interne
     if (!target.id.trim() || ids.has(target.id)) c.add(`${p}.id`, "目标标识不能为空或重复");
     ids.add(target.id);
     const domain = target.domain.toLowerCase().replace(/\.$/, "");
-    if (!validDomain(target.domain)) c.add(`${p}.domain`, "需要有效的完整域名");
-    if (domains.has(domain)) c.add(`${p}.domain`, "目标域名不能重复");
+    if (!validDomain(target.domain)) c.config(`${p}.domain`, "需要有效的完整域名", "warning");
+    if (domains.has(domain)) c.config(`${p}.domain`, "目标域名不能重复", "warning");
     domains.add(domain);
   });
   return { access, targets };
@@ -516,7 +524,7 @@ function readDevice(c: Collector, value: unknown, index: number): Device | null 
   }
   const type = value.type;
   if (typeof type !== "string" || !DEVICE_TYPES.includes(type as DeviceType)) {
-    c.add(`${path}.type`, `设备类型 "${String(type)}" 不认识`);
+    c.add(`${path}.type`, "设备类型不受支持，请使用兼容版本导出");
     return null;
   }
   const deviceType = type as DeviceType;
@@ -536,7 +544,8 @@ function readDevice(c: Collector, value: unknown, index: number): Device | null 
       c.add(`${path}.ports[${i}].vlan`, `${port.name} 不支持 VLAN 设置`, { deviceId: id });
     }
   });
-  const report = (p: string, message: string) => c.add(p, message);
+  const report = (p: string, message: string, severity?: "warning") =>
+    c.config(p, message, severity);
   if ("zone" in value && typeof value.zone !== "string")
     c.add(`${path}.zone`, "区域名称必须是文字");
   const base = {
@@ -585,21 +594,29 @@ function readDevice(c: Collector, value: unknown, index: number): Device | null 
         },
       };
     case "pc":
-      return { ...base, type: "pc", config: readPcConfig(c, value.config, path) };
+      return { ...base, type: "pc", config: readPcConfig(c, value.config, `${path}.config`) };
     case "router":
-      return { ...base, type: "router", config: readRouterConfig(c, value.config, path) };
+      return {
+        ...base,
+        type: "router",
+        config: readRouterConfig(c, value.config, `${path}.config`),
+      };
     case "switch":
       return {
         ...base,
         type: "switch",
-        config: readSwitchConfig(c, value.config, path, ports.length),
+        config: readSwitchConfig(c, value.config, `${path}.config`, ports.length),
       };
     case "ap":
-      return { ...base, type: "ap", config: readApConfig(c, value.config, path) };
+      return { ...base, type: "ap", config: readApConfig(c, value.config, `${path}.config`) };
     case "modem":
-      return { ...base, type: "modem", config: readModemConfig(c, value.config, path) };
+      return { ...base, type: "modem", config: readModemConfig(c, value.config, `${path}.config`) };
     default:
-      return { ...base, type: "internet", config: readInternetConfig(c, value.config, path) };
+      return {
+        ...base,
+        type: "internet",
+        config: readInternetConfig(c, value.config, `${path}.config`),
+      };
   }
 }
 
@@ -648,9 +665,11 @@ function checkReferences(c: Collector, devices: Device[], links: Link[]): void {
   const portOwner = new Map<string, string>();
   const macs = new Map<string, string>();
   devices.forEach((device, i) => {
+    if (!device.id.trim()) c.add(`devices[${i}].id`, "设备标识不能为空");
     if (deviceIds.has(device.id)) c.add(`devices[${i}].id`, `设备 id "${device.id}" 重复`);
     deviceIds.add(device.id);
     device.ports.forEach((port, j) => {
+      if (!port.id.trim()) c.add(`devices[${i}].ports[${j}].id`, "端口标识不能为空");
       if (portOwner.has(port.id))
         c.add(`devices[${i}].ports[${j}].id`, `端口 id "${port.id}" 重复`);
       portOwner.set(port.id, device.id);
@@ -661,8 +680,22 @@ function checkReferences(c: Collector, devices: Device[], links: Link[]): void {
   });
 
   const linkIds = new Set<string>();
+  devices.forEach((device, i) => {
+    if (device.type !== "pc" && device.type !== "server" && device.type !== "proxy") return;
+    device.config.trafficRouting?.rules.forEach((rule, j) => {
+      if (!rule.proxy) return;
+      const proxy = devices.find((item) => item.id === rule.proxy?.deviceId);
+      if (proxy?.type !== "proxy")
+        c.add(
+          `devices[${i}].config.trafficRouting.rules[${j}].proxy.deviceId`,
+          "转发规则必须引用存在的代理设备",
+          { deviceId: device.id },
+        );
+    });
+  });
   for (const [i, link] of links.entries()) {
     const path = `links[${i}]`;
+    if (!link.id.trim()) c.add(`${path}.id`, "连线标识不能为空");
     if (linkIds.has(link.id)) c.add(`${path}.id`, `连线 id "${link.id}" 重复`, { linkId: link.id });
     linkIds.add(link.id);
     if (link.a.portId === link.b.portId) {
@@ -710,15 +743,120 @@ function checkReferences(c: Collector, devices: Device[], links: Link[]): void {
           deviceId: device.id,
         });
       }
+      if (port.linkId !== null && linkIds.has(port.linkId)) {
+        const link = links.find((item) => item.id === port.linkId);
+        if (
+          link &&
+          ![link.a, link.b].some((end) => end.deviceId === device.id && end.portId === port.id)
+        )
+          c.add(`devices[${i}].ports[${j}].linkId`, "端口并非所引用连线的端点", {
+            deviceId: device.id,
+          });
+      }
     }
   }
+}
+
+function readPresentation(
+  c: Collector,
+  raw: Record<string, unknown>,
+  devices: Device[],
+  links: Link[],
+): Partial<Topology> {
+  const result: Partial<Topology> = {};
+  const deviceIds = new Set(devices.map((device) => device.id));
+  if (raw.groups !== undefined) {
+    if (!Array.isArray(raw.groups)) c.add("groups", "分组必须是数组");
+    else {
+      const ids = new Set<string>();
+      const members = new Set<string>();
+      result.groups = raw.groups.flatMap((group, i) => {
+        const path = `groups[${i}]`;
+        if (!isObject(group)) {
+          c.add(path, "分组必须是对象");
+          return [];
+        }
+        const id = readString(c, group, "id", path);
+        const name = readString(c, group, "name", path);
+        if (!id.trim() || ids.has(id)) c.add(`${path}.id`, "分组标识不能为空或重复");
+        ids.add(id);
+        if (!name.trim()) c.add(`${path}.name`, "分组名称不能为空");
+        if (!Array.isArray(group.deviceIds) || !group.deviceIds.length) {
+          c.add(`${path}.deviceIds`, "分组必须至少包含一个设备");
+          return [];
+        }
+        const memberIds: string[] = [];
+        group.deviceIds.forEach((member, j) => {
+          if (typeof member !== "string" || !deviceIds.has(member))
+            c.add(`${path}.deviceIds[${j}]`, "分组引用不存在的设备");
+          else {
+            if (members.has(member)) c.add(`${path}.deviceIds[${j}]`, "同一设备不能重复分组");
+            members.add(member);
+            memberIds.push(member);
+          }
+        });
+        return [{ id, name, deviceIds: memberIds }];
+      });
+    }
+  }
+  if (raw.appearance !== undefined) {
+    if (!isObject(raw.appearance)) c.add("appearance", "配色必须是对象");
+    else {
+      const appearance: NonNullable<Topology["appearance"]> = {};
+      const color = (value: unknown, path: string): value is string => {
+        if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) return true;
+        c.add(path, "颜色必须是 #RRGGBB 格式");
+        return false;
+      };
+      for (const key of Object.keys(raw.appearance)) {
+        const value = raw.appearance[key];
+        const path = `appearance.${key}`;
+        if (
+          key === "accent" ||
+          key === "background" ||
+          key === "nodeColor" ||
+          key === "linkColor"
+        ) {
+          if (color(value, path)) appearance[key] = value;
+        } else if (key === "nodeTypes" || key === "devices" || key === "links") {
+          if (!isObject(value)) {
+            c.add(path, "配色映射必须是对象");
+            continue;
+          }
+          const map: Record<string, string> = {};
+          for (const [id, item] of Object.entries(value)) {
+            const exists =
+              key === "nodeTypes"
+                ? DEVICE_TYPES.includes(id as DeviceType)
+                : key === "devices"
+                  ? deviceIds.has(id)
+                  : links.some((link) => link.id === id);
+            if (!exists) c.add(`${path}.${id}`, "配色引用不存在的设备类型、设备或连线");
+            if (color(item, `${path}.${id}`))
+              Object.defineProperty(map, id, {
+                value: item,
+                enumerable: true,
+                configurable: true,
+                writable: true,
+              });
+          }
+          appearance[key] = map;
+        } else c.add(path, "不支持的配色字段，请使用兼容版本导出");
+      }
+      result.appearance = appearance;
+    }
+  }
+  return result;
 }
 
 /**
  * 校验并规整一份拓扑 JSON。
  * 入参可以是对象，也可以是 JSON 文本。
  */
-export function parseTopology(input: unknown): ParseResult {
+export function parseTopology(
+  input: unknown,
+  options?: { allowInvalidConfig?: boolean },
+): ParseResult {
   let raw: unknown = input;
   if (typeof input === "string") {
     try {
@@ -727,12 +865,14 @@ export function parseTopology(input: unknown): ParseResult {
       return { ok: false, topology: null, errors: [{ path: "", message: "不是合法的 JSON 文本" }] };
     }
   }
-  const c = new Collector();
+  const c = new Collector(options?.allowInvalidConfig);
   if (!isObject(raw)) {
     return { ok: false, topology: null, errors: [{ path: "", message: "拓扑必须是一个对象" }] };
   }
 
   const version = raw.version;
+  if (typeof version === "number" && version < 1)
+    c.add("version", "不支持该旧版本，请使用版本 1 的网络图文件");
   if (typeof version !== "number" || !Number.isInteger(version)) {
     c.add("version", "version 必须是整数");
   } else if (version > TOPOLOGY_VERSION) {
@@ -769,11 +909,13 @@ export function parseTopology(input: unknown): ParseResult {
   const links = linksRaw.map((l, i) => readLink(c, l, i));
 
   if (devices.length === devicesRaw.length) checkReferences(c, devices, links);
+  const presentation = readPresentation(c, raw, devices, links);
 
   if (!c.ok) return { ok: false, topology: null, errors: c.errors };
   return {
     ok: true,
-    topology: { version: TOPOLOGY_VERSION, name, viewport, devices, links },
+    topology: { version: TOPOLOGY_VERSION, name, viewport, devices, links, ...presentation },
     errors: [],
+    warnings: c.warnings,
   };
 }

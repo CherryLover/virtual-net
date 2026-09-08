@@ -15,13 +15,16 @@ import type {
 } from "../engine";
 import {
   buildRuntime,
+  cleanGroups,
   createDevice,
   createLink,
   dnsQuery,
+  duplicateDevices,
   emptyTopology,
   ensureSparePorts,
   lint,
   ping,
+  setGroupMembers,
   traceroute,
   udpEcho,
   visitSite,
@@ -58,6 +61,7 @@ function structuralKey(topology: Topology): string {
 }
 
 export type Selection =
+  | { kind: "group"; id: string }
   | { kind: "device"; id: string }
   | { kind: "devices"; ids: string[] }
   | { kind: "link"; id: string }
@@ -85,6 +89,8 @@ interface TopologyState extends Derived {
   topologyRevision: number;
   saveState: SaveState;
   loaded: boolean;
+  copyNotice: string | null;
+  dismissCopyNotice: () => void;
   past: Topology[];
   future: Topology[];
 
@@ -98,6 +104,11 @@ interface TopologyState extends Derived {
   setViewport: (viewport: Viewport) => void;
 
   addDevice: (type: DeviceType, position: Position) => void;
+  copyDevices: (ids: string[]) => void;
+  createGroup: (ids: string[], name?: string) => void;
+  renameGroup: (id: string, name: string) => void;
+  updateGroupMembers: (id: string, ids: string[]) => void;
+  ungroup: (id: string) => void;
   moveDevice: (id: string, position: Position) => void;
   moveDevices: (moves: { id: string; position: Position }[]) => void;
   updateDevice: (id: string, updater: (device: Device) => Device) => void;
@@ -138,7 +149,7 @@ function withLinkId(topology: Topology, portId: string, linkId: string | null): 
 }
 
 function normalize(topology: Topology): Topology {
-  return ensureSparePorts(topology);
+  return cleanGroups(ensureSparePorts(topology));
 }
 
 /** 删掉一批设备与连线：连带删掉挂在这些设备上的连线，并把对端端口的 linkId 清空 */
@@ -156,6 +167,21 @@ function dropElements(topology: Topology, deviceIds: string[], linkIds: string[]
     next = withLinkId(next, link.a.portId, null);
     next = withLinkId(next, link.b.portId, null);
   }
+  if (next.appearance)
+    next = {
+      ...next,
+      appearance: {
+        ...next.appearance,
+        devices: Object.fromEntries(
+          Object.entries(next.appearance.devices ?? {}).filter(([id]) => !devices.has(id)),
+        ),
+        links: Object.fromEntries(
+          Object.entries(next.appearance.links ?? {}).filter(
+            ([id]) => !doomed.some((l) => l.id === id),
+          ),
+        ),
+      },
+    };
   return next;
 }
 
@@ -188,6 +214,8 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
     topologyRevision: 0,
     saveState: "saved",
     loaded: false,
+    copyNotice: null,
+    dismissCopyNotice: () => set({ copyNotice: null }),
     past: [],
     future: [],
 
@@ -217,6 +245,52 @@ export const useTopologyStore = create<TopologyState>((set, get) => {
       const topology = get().topology;
       const device = createDevice(type, position, topology);
       commit({ ...topology, devices: [...topology.devices, device] });
+    },
+
+    copyDevices: (ids) => {
+      const result = duplicateDevices(get().topology, ids);
+      const firstId = result.ids[0];
+      if (!firstId) return;
+      commit(result.topology, {
+        copyNotice: "已复制。手动地址保持原样，请检查地址冲突。",
+        selection:
+          result.ids.length === 1
+            ? { kind: "device", id: firstId }
+            : { kind: "devices", ids: result.ids },
+      });
+    },
+    createGroup: (ids, name = "新分组") => {
+      const topology = get().topology;
+      const members = [...new Set(ids)].filter((id) => topology.devices.some((d) => d.id === id));
+      if (members.length < 2 || !name.trim()) return;
+      const id = crypto.randomUUID();
+      const next = {
+        ...topology,
+        groups: [...(topology.groups ?? []), { id, name: name.trim(), deviceIds: [] }],
+      };
+      commit(setGroupMembers(next, id, members), { selection: { kind: "group", id } });
+    },
+    renameGroup: (id, name) => {
+      const topology = get().topology;
+      const group = topology.groups?.find((g) => g.id === id);
+      if (!group || !name.trim() || group.name === name.trim()) return;
+      commit({
+        ...topology,
+        groups: topology.groups?.map((g) => (g.id === id ? { ...g, name: name.trim() } : g)),
+      });
+    },
+    updateGroupMembers: (id, ids) => {
+      if (!get().topology.groups?.some((g) => g.id === id)) return;
+      const next = setGroupMembers(get().topology, id, ids);
+      commit(next, next.groups?.some((g) => g.id === id) ? {} : { selection: { kind: "none" } });
+    },
+    ungroup: (id) => {
+      const topology = get().topology;
+      if (!topology.groups?.some((g) => g.id === id)) return;
+      commit(
+        { ...topology, groups: topology.groups.filter((g) => g.id !== id) },
+        { selection: { kind: "none" } },
+      );
     },
 
     moveDevice: (id, position) => {

@@ -21,6 +21,10 @@
 | CP5 第三批 | [CP5-routing.md](CP5-routing.md)，设备级网站访问分流已完成 |
 | CP5 第四批 | [CP5-udp-echo.md](CP5-udp-echo.md)，UDP 回显服务已完成 |
 | UX | [../design/network-model-and-ui.md](../design/network-model-and-ui.md) 第 5–8 节 |
+| UX2 复制与固定分组 | [UX-groups.md](UX-groups.md)，含手机勾选设备入口 |
+| UX2 配色 | [UX-appearance.md](UX-appearance.md)，网络图配色与独立页面主题 |
+| UX2 导出与分享 | [UX-export.md](UX-export.md)，SVG / PNG / PDF 与品牌分享卡片 |
+| UX2 导入检查 | [UX-import.md](UX-import.md)，逐步检查、提醒及原图保护 |
 
 ## 编号
 

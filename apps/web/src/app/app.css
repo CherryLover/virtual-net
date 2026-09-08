@@ -6,8 +6,8 @@
   --panel-bg: #fafbfc;
   --text: #1a1d21;
   --text-dim: #6b7280;
-  --accent: #087f73;
-  --accent-soft: #ccf2eb;
+  --accent: #027864;
+  --accent-soft: #ddf9f2;
   --danger: #dc2626;
   --warning: #b45309;
   --ok: #16a34a;
@@ -17,6 +17,10 @@
   --fs-sm: 12px;
   --fs-base: 13px;
   --fs-lg: 14px;
+  --surface-hover: #f3f4f6;
+  --shadow-menu: 0 8px 24px #152b241a;
+  --shadow-dialog: 0 12px 40px rgb(24 32 39 / 18%);
+  --backdrop: rgb(24 32 39 / 24%);
 }
 
 html,
@@ -135,22 +139,29 @@ select:focus-visible {
   cursor: pointer;
 }
 
-.btn:hover {
-  background: #f3f4f6;
+.btn:not(:disabled):hover {
+  background: var(--surface-hover);
 }
 
 .btn-primary {
   border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-fill, var(--accent));
+  color: var(--accent-on-fill, #fff);
 }
 
-.btn-primary:hover {
-  background: #066b61;
+.btn-primary:enabled:hover {
+  background: var(--accent-fill-hover, var(--accent-hover, #066b61));
 }
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+.btn-danger {
+  color: var(--danger);
+}
+.btn-danger:enabled:hover {
+  background: color-mix(in srgb, var(--danger) 8%, #fff);
+  border-color: var(--danger);
 }
 .icon-button {
   width: 32px;
@@ -161,7 +172,8 @@ select:focus-visible {
   background: transparent;
 }
 .icon-button[aria-expanded="true"] {
-  background: #eef2f2;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .toolbar-brand {
   display: flex;
@@ -201,9 +213,10 @@ select:focus-visible {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 8px 24px #152b241a;
+  box-shadow: var(--shadow-menu);
 }
-.file-menu-items button {
+.file-menu-items button,
+.canvas-context-menu button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -214,11 +227,14 @@ select:focus-visible {
   background: transparent;
   text-align: left;
   font-size: 13px;
+  color: var(--text);
   cursor: pointer;
   border-radius: 4px;
 }
-.file-menu-items button:hover {
-  background: #edf4f2;
+.file-menu-items button:enabled:hover,
+.canvas-context-menu button:enabled:hover,
+.canvas-context-menu button:focus-visible {
+  background: var(--accent-soft);
 }
 
 .device-bar {

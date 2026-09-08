@@ -1,0 +1,103 @@
+.topology-group {
+  position: absolute;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.topology-group.is-selected {
+  border: 2px solid var(--accent);
+}
+.topology-group-name {
+  position: absolute;
+  top: 5px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--network-background, #fff);
+  color: var(--network-text, #334155);
+  border: 0;
+  padding: 2px 5px;
+  font-size: 12px;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+.topology-group-edge {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.topology-group-edge-top,
+.topology-group-edge-bottom {
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.topology-group-edge-top {
+  top: -4px;
+}
+.topology-group-edge-bottom {
+  bottom: -4px;
+}
+.topology-group-edge-left,
+.topology-group-edge-right {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+}
+.topology-group-edge-left {
+  left: -4px;
+}
+.topology-group-edge-right {
+  right: -4px;
+}
+.group-members {
+  display: grid;
+}
+.group-name-form {
+  margin-bottom: 12px;
+}
+.group-members-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  margin: 20px 0 8px;
+}
+.group-members-title span {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.group-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.group-actions .ui-select {
+  flex: 1;
+  min-width: 112px;
+}
+.copy-notice {
+  position: absolute;
+  bottom: 60px;
+  left: 16px;
+  right: 16px;
+  z-index: 8;
+  max-width: 460px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff8d9;
+  color: #58420b;
+  border: 1px solid #dbbe62;
+  padding: 10px;
+  font-size: 13px;
+  border-radius: 4px;
+}

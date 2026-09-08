@@ -37,4 +37,17 @@ describe("local database recovery", () => {
     await expect(load()).resolves.toEqual(record);
     expect(mocks.put).not.toHaveBeenCalled();
   });
+  it("writes and restores the import backup without changing the current record", async () => {
+    const record = { topology: emptyTopology(), savedAt: 3 };
+    const { backupBeforeImport, loadImportBackup } = await import("./db");
+    await backupBeforeImport(record.topology);
+    expect(mocks.put).toHaveBeenCalledWith(
+      "topologies",
+      expect.objectContaining({ topology: record.topology }),
+      "before-import",
+    );
+    mocks.get.mockResolvedValueOnce(record);
+    await expect(loadImportBackup()).resolves.toEqual(record);
+    expect(mocks.get).toHaveBeenCalledWith("topologies", "before-import");
+  });
 });

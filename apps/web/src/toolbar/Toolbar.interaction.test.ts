@@ -8,6 +8,11 @@ import { useStorageStatus } from "../storage";
 import { useTopologyStore } from "../store";
 import { Toolbar } from "./Toolbar";
 
+vi.mock("../storage/db", () => ({
+  backupBeforeImport: vi.fn(async () => {}),
+  loadImportBackup: vi.fn(async () => null),
+}));
+
 let root: Root;
 let container: HTMLDivElement;
 
@@ -33,6 +38,12 @@ afterEach(async () => {
 });
 
 async function choose(file?: File) {
+  if (!container.querySelector(".import-dialog")) {
+    const trigger = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find((b) =>
+      b.textContent?.includes("导入文件"),
+    );
+    await act(async () => trigger?.click());
+  }
   const input = container.querySelector<HTMLInputElement>('input[type="file"]');
   if (!input) throw new Error("file input missing");
   Object.defineProperty(input, "files", { configurable: true, value: file ? [file] : [] });
@@ -41,6 +52,14 @@ async function choose(file?: File) {
     await Promise.resolve();
   });
   return input;
+}
+
+async function confirmImport() {
+  const button = Array.from(
+    container.querySelectorAll<HTMLButtonElement>(".import-dialog footer button"),
+  ).find((b) => /确认导入|仍然导入/.test(b.textContent ?? ""));
+  if (!button || button.disabled) throw new Error("import confirmation missing or disabled");
+  await act(async () => button.click());
 }
 
 describe("Toolbar file input component events", () => {
@@ -87,7 +106,10 @@ describe("Toolbar file input component events", () => {
     const input = await choose(
       new File([JSON.stringify(incoming)], "network.json", { type: "application/json" }),
     );
-    expect(window.confirm).toHaveBeenCalledWith("替换当前画布？");
+    expect(useTopologyStore.getState().topology).toEqual(original);
+    expect(container.querySelector(".import-dialog")).not.toBeNull();
+    await confirmImport();
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
     expect(useTopologyStore.getState().topology).toEqual(incoming);
     expect(useTopologyStore.getState().past).toHaveLength(1);
@@ -103,7 +125,8 @@ describe("Toolbar file input component events", () => {
   it("keeps the original graph on malformed JSON", async () => {
     const before = useTopologyStore.getState().topology;
     await choose(new File(["{broken"], "broken.json"));
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("文件格式不对"));
+    expect(container.textContent).toContain("内容不是有效 JSON");
+    expect(window.alert).not.toHaveBeenCalled();
     expect(window.confirm).not.toHaveBeenCalled();
     expect(useTopologyStore.getState().topology).toBe(before);
     expect(useTopologyStore.getState().past).toHaveLength(0);
@@ -113,18 +136,21 @@ describe("Toolbar file input component events", () => {
     const file = new File(["unused"], "unreadable.json");
     vi.spyOn(file, "text").mockRejectedValue(new Error("read denied"));
     await choose(file);
-    expect(window.alert).toHaveBeenCalledWith("无法读取文件，请重新选择。");
+    expect(container.textContent).toContain("无法读取文件");
+    expect(window.alert).not.toHaveBeenCalled();
     expect(useTopologyStore.getState().topology).toBe(before);
     expect(useTopologyStore.getState().past).toHaveLength(0);
   });
   it("does not replace the graph when the user declines confirmation or cancels file selection", async () => {
     const before = useTopologyStore.getState().topology;
-    vi.mocked(window.confirm).mockReturnValue(false);
     await choose(new File([JSON.stringify(servicesTopology())], "valid.json"));
-    expect(window.confirm).toHaveBeenCalledTimes(1);
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[aria-label="关闭导入"]')?.click(),
+    );
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(useTopologyStore.getState().topology).toBe(before);
     await choose();
-    expect(window.confirm).toHaveBeenCalledTimes(1);
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
     expect(useTopologyStore.getState().past).toHaveLength(0);
   });

@@ -1,0 +1,186 @@
+.appearance-dialog {
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  overflow: hidden;
+}
+.appearance-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.appearance-presets {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.appearance-presets legend {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.appearance-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.appearance-presets button {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.appearance-preset-swatches {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  height: 32px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.appearance-preset-swatches svg {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+.appearance-preset-name {
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.appearance-presets button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.appearance-presets button:enabled:hover {
+  background: var(--surface-hover);
+}
+.appearance-preview {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #fff;
+  color: #1a1d21;
+}
+.appearance-preview svg {
+  color: var(--accent);
+  flex: none;
+}
+.appearance-preview-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.appearance-preview-nav span {
+  flex: 1;
+  font-weight: 600;
+}
+.appearance-preview-nav .appearance-preview-action {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 24px;
+  border-radius: 3px;
+  background: var(--accent-fill);
+}
+.appearance-preview-action svg {
+  color: var(--accent-on-fill);
+}
+.appearance-preview-workspace {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 60px;
+  height: 112px;
+}
+.appearance-preview-library {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-right: 1px solid var(--border);
+}
+.appearance-preview-canvas {
+  display: grid;
+  place-items: center;
+  background: #f8f8f8;
+}
+.appearance-preview-device {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+.appearance-preview-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-left: 1px solid var(--border);
+}
+.appearance-preview-inspector span {
+  height: 3px;
+  background: #d8dbe0;
+}
+.appearance-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.appearance-color-row label {
+  flex: 1;
+}
+.appearance-color-row input[type="color"] {
+  width: 48px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  background: var(--toolbar-bg);
+  cursor: pointer;
+}
+.appearance-color-row input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.appearance-color-row input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 3px;
+}
+.appearance-color-row input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 3px;
+}
+.appearance-footer > :first-child {
+  margin-right: auto;
+}
+.canvas {
+  position: relative;
+  --text: #1a1d21;
+  --text-dim: #6b7280;
+  --border: #d8dbe0;
+  --toolbar-bg: #ffffff;
+  --panel-bg: #fafbfc;
+  color: #1a1d21;
+}
+.toolbar-brand svg,
+.file-menu summary svg,
+.file-menu-items button svg,
+.toolbar .icon-button svg,
+.device-bar .device-icon,
+.side-panel .device-icon {
+  color: var(--accent);
+}

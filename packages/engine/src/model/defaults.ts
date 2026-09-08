@@ -23,7 +23,7 @@ const FIRST_MAC_VALUE = 1;
 
 let idCounter = 0;
 
-function makeId(prefix: string): string {
+export function makeId(prefix: string): string {
   idCounter += 1;
   const random = Math.random().toString(36).slice(2, 8);
   return `${prefix}${idCounter.toString(36)}${random}`;

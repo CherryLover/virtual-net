@@ -1,15 +1,27 @@
 import { useReactFlow } from "@xyflow/react";
+import {
+  AlignHorizontalDistributeCenter,
+  AlignHorizontalJustifyEnd,
+  AlignHorizontalJustifyStart,
+  AlignVerticalDistributeCenter,
+  AlignVerticalJustifyEnd,
+  AlignVerticalJustifyStart,
+  type LucideIcon,
+  Trash2,
+} from "lucide-react";
 import { useTopologyStore } from "../store";
+import { IconButton } from "../ui/IconButton";
+import { GroupActions } from "./GroupActions";
 
 type Align = "left" | "right" | "top" | "bottom" | "spread-x" | "spread-y";
 
-const BUTTONS: { mode: Align; label: string }[] = [
-  { mode: "left", label: "左" },
-  { mode: "right", label: "右" },
-  { mode: "top", label: "顶" },
-  { mode: "bottom", label: "底" },
-  { mode: "spread-x", label: "横向等距" },
-  { mode: "spread-y", label: "纵向等距" },
+const BUTTONS: { mode: Align; label: string; icon: LucideIcon }[] = [
+  { mode: "left", label: "左对齐", icon: AlignHorizontalJustifyStart },
+  { mode: "right", label: "右对齐", icon: AlignHorizontalJustifyEnd },
+  { mode: "top", label: "顶部对齐", icon: AlignVerticalJustifyStart },
+  { mode: "bottom", label: "底部对齐", icon: AlignVerticalJustifyEnd },
+  { mode: "spread-x", label: "横向等距", icon: AlignHorizontalDistributeCenter },
+  { mode: "spread-y", label: "纵向等距", icon: AlignVerticalDistributeCenter },
 ];
 
 interface Box {
@@ -90,21 +102,21 @@ export function SelectionPanel({ ids }: Props) {
   return (
     <div className="panel-section">
       <h3 className="panel-title">已选 {ids.length} 项</h3>
-      <div className="align-buttons">
+      <GroupActions ids={ids} />
+      <div className="align-buttons" role="toolbar" aria-label="设备对齐">
         {BUTTONS.map((item) => (
-          <button
+          <IconButton
             key={item.mode}
-            type="button"
-            className="btn"
+            icon={item.icon}
+            label={item.label}
             data-align={item.mode}
             onClick={() => apply(item.mode)}
-          >
-            {item.label}
-          </button>
+          />
         ))}
       </div>
       <div className="align-actions">
-        <button type="button" className="btn" onClick={() => removeElements(ids, [])}>
+        <button type="button" className="btn btn-danger" onClick={() => removeElements(ids, [])}>
+          <Trash2 size={15} />
           删除
         </button>
       </div>
