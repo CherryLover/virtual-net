@@ -23,7 +23,7 @@ const drag = async (x, y, dx, dy) => {
 };
 try {
   await mkdir(out, { recursive: true });
-  await page.goto(process.env.APP_URL || "http://127.0.0.1:5181/");
+  await page.goto(process.env.APP_URL || "http://127.0.0.1:5180/");
   await page.getByRole("button", { name: "开始", exact: true }).click();
   await node("电脑1").waitFor();
   await page.evaluate(async () => {

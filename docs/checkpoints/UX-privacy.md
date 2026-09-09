@@ -17,4 +17,4 @@
 - `scripts/selection-smoke.mjs`：原有框选、右键、按钮成组、拆组、平移和小屏流程回归。
 - 全量测试 432 项通过（224 引擎、208 网页），包含类型检查的构建通过。截图与导出证据：`/tmp/virtual-net-shortcuts-privacy/`。
 
-重跑浏览器检查：设置 `PLAYWRIGHT_MODULE` 指向本机 Playwright 模块，`APP_URL` 指向本地开发页面后执行上述脚本。此次独立开发页面为 `http://127.0.0.1:5181/`，保留原有 5180 服务。
+重跑浏览器检查：设置 `PLAYWRIGHT_MODULE` 指向本机 Playwright 模块后执行上述脚本，默认复用 `http://127.0.0.1:5180/`。本项目本地服务固定使用 5180，不额外启用其他端口，见根目录 `AGENTS.md`。
