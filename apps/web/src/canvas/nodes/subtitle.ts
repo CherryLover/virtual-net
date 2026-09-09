@@ -1,5 +1,5 @@
 import type { Device, Runtime } from "../../engine";
-import { isCgnat, leaseOf, prefixOf, vlansOfDevice } from "../../engine";
+import { isCgnat, leaseOf, parseMask, vlansOfDevice } from "../../engine";
 
 /** 节点第二行文字（CP2 第 5 节的节点表） */
 export function nodeSubtitle(device: Device, runtime: Runtime): string | undefined {
@@ -16,7 +16,8 @@ export function nodeSubtitle(device: Device, runtime: Runtime): string | undefin
   }
   if (device.type === "internet") {
     const access = device.config.access;
-    let line = `${access.ip}/${prefixOf(access.mask)}`;
+    const prefix = parseMask(access.mask);
+    let line = access.ip ? `${access.ip}${prefix === null ? "" : `/${prefix}`}` : "地址未知";
     if (access.mode === "pppoe") line += " · 拨号";
     if (isCgnat(access.ip)) line += " · 内网";
     return line;
