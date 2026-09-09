@@ -171,7 +171,8 @@ select:focus-visible {
   border-color: transparent;
   background: transparent;
 }
-.icon-button[aria-expanded="true"] {
+.icon-button[aria-expanded="true"],
+.toolbar .icon-button[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -235,6 +236,10 @@ select:focus-visible {
 .canvas-context-menu button:enabled:hover,
 .canvas-context-menu button:focus-visible {
   background: var(--accent-soft);
+}
+.file-menu-items button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .device-bar {

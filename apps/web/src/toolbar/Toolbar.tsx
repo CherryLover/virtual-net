@@ -2,6 +2,8 @@ import {
   Check,
   ChevronDown,
   Download,
+  Eye,
+  EyeOff,
   FilePlus2,
   FolderOpen,
   HelpCircle,
@@ -23,6 +25,7 @@ import { servicesTopology } from "../engine/serviceSample";
 import { ExportDialog } from "../export/ExportDialog";
 import { ImportDialog } from "../import/ImportDialog";
 import { SelectionDialog } from "../panels/SelectionDialog";
+import { useDisplayText, usePrivacyStore } from "../privacy/display";
 import { exportTopology, useStorageStatus } from "../storage";
 import { useTopologyStore } from "../store";
 import { useLayoutStore } from "../store/layout";
@@ -34,6 +37,9 @@ interface Props {
 }
 
 export function Toolbar({ onHelp }: Props) {
+  const hidden = usePrivacyStore((s) => s.hidden);
+  const togglePrivacy = usePrivacyStore((s) => s.toggle);
+  const display = useDisplayText();
   const name = useTopologyStore((s) => s.topology.name);
   const saveState = useTopologyStore((s) => s.saveState);
   const rename = useTopologyStore((s) => s.rename);
@@ -129,13 +135,23 @@ export function Toolbar({ onHelp }: Props) {
               <Network size={16} />
               服务与代理示例
             </button>
-            <button type="button" onClick={() => command(() => setImportOpen(true))}>
+            <button
+              type="button"
+              disabled={hidden}
+              onClick={() => command(() => setImportOpen(true))}
+            >
               <Upload size={16} />
               导入文件
             </button>
             <button
               type="button"
-              onClick={() => command(() => exportTopology(useTopologyStore.getState().topology))}
+              onClick={() =>
+                command(() => {
+                  if (hidden && !window.confirm("原始项目文件仍包含真实 IP 和配置。确定导出？"))
+                    return;
+                  exportTopology(useTopologyStore.getState().topology);
+                })
+              }
             >
               <Download size={16} />
               导出文件
@@ -158,20 +174,39 @@ export function Toolbar({ onHelp }: Props) {
           <IconButton icon={Undo2} label="撤销" disabled={!canUndo} onClick={undo} />
           <IconButton icon={Redo2} label="重做" disabled={!canRedo} onClick={redo} />
         </div>
-        <IconButton icon={Play} label="选择起点验证" onClick={() => setDialogOpen(true)} />
+        <IconButton
+          icon={Play}
+          label="选择起点验证"
+          disabled={hidden}
+          onClick={() => setDialogOpen(true)}
+        />
+        <IconButton
+          icon={hidden ? EyeOff : Eye}
+          label={hidden ? "显示 IP" : "隐藏 IP"}
+          title={hidden ? "显示 IP (当前已隐藏)" : "隐藏 IP"}
+          aria-pressed={hidden}
+          onClick={() => {
+            setDialogOpen(false);
+            setImportOpen(false);
+            togglePrivacy();
+          }}
+        />
         <IconButton icon={Share2} label="分享图片" onClick={() => setExportMode("share")} />
       </div>
       <input
         className="toolbar-name"
         aria-label="网络名称"
-        title={name}
-        value={editing ? draft : name}
+        title={display(name)}
+        value={display(editing ? draft : name)}
+        readOnly={hidden}
         onFocus={() => {
+          if (hidden) return;
           setDraft(name);
           setEditing(true);
         }}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={() => {
+          if (hidden) return;
           setEditing(false);
           const value = draft.trim();
           if (value && value !== name) rename(value);
@@ -202,14 +237,15 @@ export function Toolbar({ onHelp }: Props) {
       <IconButton icon={HelpCircle} label="帮助" onClick={onHelp} />
       <IconButton
         icon={PanelRight}
+        disabled={hidden}
         label={layout.inspectorOpen ? "收起操作面板" : "展开操作面板"}
-        aria-expanded={layout.inspectorOpen}
+        aria-expanded={layout.inspectorOpen && !hidden}
         onClick={layout.toggleInspector}
       />
-      {dialogOpen ? <ProbeDialog onClose={() => setDialogOpen(false)} /> : null}
+      {dialogOpen && !hidden ? <ProbeDialog onClose={() => setDialogOpen(false)} /> : null}
       {appearanceOpen ? <AppearanceDialog onClose={() => setAppearanceOpen(false)} /> : null}
       {selectionOpen ? <SelectionDialog onClose={() => setSelectionOpen(false)} /> : null}
-      {importOpen ? <ImportDialog onClose={() => setImportOpen(false)} /> : null}
+      {importOpen && !hidden ? <ImportDialog onClose={() => setImportOpen(false)} /> : null}
       {exportMode ? <ExportDialog mode={exportMode} onClose={() => setExportMode(null)} /> : null}
     </header>
   );

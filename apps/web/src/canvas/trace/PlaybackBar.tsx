@@ -104,6 +104,12 @@ export function PlaybackBar({ timeline }: Props) {
           aria-valuenow={Math.round(cursorMs)}
           aria-valuetext={`${(cursorMs / 1000).toFixed(1)} / ${(total / 1000).toFixed(1)} 秒`}
           onKeyDown={(event) => {
+            if (event.key === " ") {
+              event.preventDefault();
+              event.stopPropagation();
+              if (!event.repeat) useTraceStore.getState().togglePlay();
+              return;
+            }
             const command = playbackCommand(event.key, total);
             if (!command) return;
             event.preventDefault();

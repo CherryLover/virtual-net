@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { DeviceIcon } from "../../icons";
+import { useDisplayText } from "../../privacy/display";
 
 interface Props {
   kind: string;
@@ -12,10 +13,11 @@ interface Props {
 }
 
 export function NodeShell({ kind, name, address, errorCount, width, height, children }: Props) {
+  const display = useDisplayText();
   return (
     <div
       className={`device-node device-node-${kind}`}
-      data-device-name={name}
+      data-device-name={display(name)}
       style={{ width, minHeight: height }}
     >
       {errorCount > 0 ? (
@@ -25,9 +27,9 @@ export function NodeShell({ kind, name, address, errorCount, width, height, chil
       ) : null}
       <div className="device-node-name">
         <DeviceIcon type={kind} className="device-icon" />
-        <span>{name}</span>
+        <span>{display(name)}</span>
       </div>
-      {address !== undefined ? <div className="device-node-address">{address}</div> : null}
+      {address !== undefined ? <div className="device-node-address">{display(address)}</div> : null}
       {children}
     </div>
   );

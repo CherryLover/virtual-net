@@ -1,6 +1,7 @@
 import { useReactFlow, ViewportPortal } from "@xyflow/react";
 import { useRef } from "react";
 import type { Position } from "../engine";
+import { useDisplayText } from "../privacy/display";
 import { useTopologyStore } from "../store";
 import type { DeviceNodeType } from "./nodes/types";
 import "./groups.css";
@@ -14,6 +15,7 @@ export function GroupLayer({
   preview: (moves: { id: string; position: Position }[]) => void;
   onContextMenu: (event: React.MouseEvent, id: string) => void;
 }) {
+  const display = useDisplayText();
   const groups = useTopologyStore((s) => s.topology.groups);
   const selection = useTopologyStore((s) => s.selection);
   const { screenToFlowPosition } = useReactFlow();
@@ -85,11 +87,11 @@ export function GroupLayer({
             <button
               type="button"
               className="topology-group-name nodrag nopan"
-              aria-label={`选择分组 ${group.name}`}
-              title={group.name}
+              aria-label={`选择分组 ${display(group.name)}`}
+              title={display(group.name)}
               {...events}
             >
-              {group.name}
+              {display(group.name)}
             </button>
             {["top", "right", "bottom", "left"].map((side) => (
               <div

@@ -3,12 +3,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DEVICE_LABELS } from "../engine";
 import { DeviceIcon } from "../icons";
+import { useDisplayText } from "../privacy/display";
 import { useTopologyStore } from "../store";
 import { useLayoutStore } from "../store/layout";
 import { IconButton } from "../ui/IconButton";
 import "./selection-dialog.css";
 
 export function SelectionDialog({ onClose }: { onClose: () => void }) {
+  const display = useDisplayText();
   const devices = useTopologyStore((s) => s.topology.devices);
   const [ids, setIds] = useState<string[]>(() => {
     const { selection, topology } = useTopologyStore.getState();
@@ -88,7 +90,7 @@ export function SelectionDialog({ onClose }: { onClose: () => void }) {
             />
             <DeviceIcon type={device.type} className="device-icon" />
             <span className="selection-dialog-device-text ui-device-choice-text">
-              <span>{device.name}</span>
+              <span>{display(device.name)}</span>
               <small>{DEVICE_LABELS[device.type]}</small>
             </span>
           </label>

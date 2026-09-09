@@ -15,9 +15,12 @@ const node = (name) => page.locator(`[data-device-name="${name}"]`);
 const menu = () => page.getByRole("menu", { name: "画布右键菜单" });
 try {
   await mkdir("/tmp/virtual-net-selection", { recursive: true });
-  await page.goto("http://127.0.0.1:5180/");
+  await page.goto(process.env.APP_URL || "http://127.0.0.1:5180/");
   await page.getByRole("button", { name: "开始", exact: true }).click();
   await node("电脑1").waitFor();
+  await page.evaluate(async () => {
+    window.__store = (await import("/src/store/index.ts")).useTopologyStore;
+  });
   const original = (await state()).graph;
   // macOS reserves Control-click for its native context menu.
   for (const modifier of ["Shift", "Meta"]) {

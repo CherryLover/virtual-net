@@ -1,5 +1,13 @@
 # 测试表
 
+## 空格平移、成组快捷键与隐私显示（2026-09-09）
+
+详见 [成组快捷键](checkpoints/UX-groups.md) 与 [IP 隐私显示](checkpoints/UX-privacy.md)。全量 432 项测试（224 引擎、208 网页）与构建通过；`scripts/shortcuts-privacy-smoke.mjs` 和原有 `scripts/selection-smoke.mjs` 在 Chrome 实测通过。
+
+覆盖按住空格临时平移、选中项保留及框选恢复、输入/弹窗保护、Command/Ctrl 成组/拆组和撤销重做、播放焦点、隐藏画布及提示 IP、SVG 地址检查、真实 PNG 下载、原始文件导出提醒，以及 390/320px 顶部布局。隐私状态不改变原始配置。
+
+T-CP3-027 的旧“画布空格播放”预期由本轮取代：画布空格用于临时平移；播放按钮和进度条获得焦点时空格才控制播放/暂停。
+
 ## UX2 工作台新交互（2026-09-08）
 
 UI 一致性验收依据：[工作台控件规范](design/ui-controls.md)。新增控件统一复用现有按钮、表单与菜单；`scripts/ui-consistency-smoke.mjs` 覆盖五类弹窗在桌面/手机的实际样式和操作，截图 `/tmp/virtual-net-ui-consistency/`。前次功能测试数字保留为历史。

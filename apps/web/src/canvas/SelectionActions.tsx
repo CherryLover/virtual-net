@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTopologyStore } from "../store";
 import { IconButton } from "../ui/IconButton";
+import { groupSelection, ungroupSelection } from "./selectionCommands";
 import "./selection-actions.css";
 
 export function SelectionActions({
@@ -46,30 +47,23 @@ export function SelectionActions({
     action();
     onClose?.();
   };
-  const split = () => {
-    const groupIds = new Set(selectedGroups.map((group) => group.id));
-    useTopologyStore.getState().runOp((graph) => {
-      graph.groups = graph.groups?.filter((group) => !groupIds.has(group.id));
-      return { ok: true };
-    });
-    useTopologyStore
-      .getState()
-      .select(
-        ids.length > 1
-          ? { kind: "devices", ids }
-          : ids[0]
-            ? { kind: "device", id: ids[0] }
-            : { kind: "none" },
-      );
-  };
   const actions = [
     {
       icon: Group,
       label: "成组",
       disabled: ids.length < 2 || selection.kind === "group",
-      action: () => useTopologyStore.getState().createGroup(ids),
+      action: groupSelection,
+      shortcut: "Meta+g Control+g",
+      hint: "Command / Ctrl + G",
     },
-    { icon: Ungroup, label: "拆分成组", disabled: selectedGroups.length === 0, action: split },
+    {
+      icon: Ungroup,
+      label: "拆分成组",
+      disabled: selectedGroups.length === 0,
+      action: ungroupSelection,
+      shortcut: "Meta+Shift+g Control+Shift+g",
+      hint: "Command / Ctrl + Shift + G",
+    },
     {
       icon: Copy,
       label: "复制所选设备",
@@ -86,6 +80,8 @@ export function SelectionActions({
             key={action.label}
             icon={action.icon}
             label={action.label}
+            title={`${action.label} (${action.hint})`}
+            aria-keyshortcuts={action.shortcut}
             disabled={action.disabled}
             onClick={() => act(action.action)}
           />
@@ -128,6 +124,8 @@ export function SelectionActions({
           key={action.label}
           type="button"
           role="menuitem"
+          title={action.hint ? `${action.label} (${action.hint})` : action.label}
+          aria-keyshortcuts={action.shortcut}
           disabled={action.disabled}
           onClick={() => act(action.action)}
         >

@@ -30,10 +30,12 @@ import { SwitchNode } from "./nodes/SwitchNode";
 import { nodeSubtitle } from "./nodes/subtitle";
 import type { DeviceNodeType } from "./nodes/types";
 import { SelectionActions } from "./SelectionActions";
+import { groupSelection, ungroupSelection } from "./selectionCommands";
 import { PlaybackBar } from "./trace/PlaybackBar";
 import { TraceLayer } from "./trace/TraceLayer";
 import { segmentIndexAt, traceView } from "./trace/traceView";
 import { usePlayback } from "./trace/usePlayback";
+import { useSpacePan } from "./useSpacePan";
 import "./canvas.css";
 
 const nodeTypes = {
@@ -64,6 +66,8 @@ export function Canvas() {
   const restored = useRef(false);
   const domNode = useFlowStore((s) => s.domNode);
   const [panMode, setPanMode] = useState(false);
+  const spacePan = useSpacePan();
+  const panning = panMode || spacePan;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number }>();
   const closeMenu = useCallback(() => {
     setContextMenu(undefined);
@@ -291,15 +295,18 @@ export function Canvas() {
       const type = (el as HTMLInputElement).type;
       return type !== "checkbox" && type !== "radio" && type !== "button" && type !== "file";
     };
-    /** 按钮、链接：空格本来就是「按下去」，别再抢去做播放开关 */
-    const clickable = (target: EventTarget | null) => {
-      const el = target as HTMLElement | null;
-      return el?.tagName === "BUTTON" || el?.tagName === "A";
-    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (canvasKeyboardBlocked(event.target)) return;
       const store = useTopologyStore.getState();
       const meta = event.metaKey || event.ctrlKey;
+      if (meta && !event.altKey && event.key.toLowerCase() === "g") {
+        if (inForm(event.target)) return;
+        event.preventDefault();
+        if (event.repeat) return;
+        if (event.shiftKey) ungroupSelection();
+        else groupSelection();
+        return;
+      }
       if (meta && event.key.toLowerCase() === "d" && !inForm(event.target)) {
         event.preventDefault();
         const s = store.selection;
@@ -337,15 +344,6 @@ export function Canvas() {
         );
         return;
       }
-      // CP3 播放快捷键：焦点落在按钮或输入框上时让开
-      if (event.key === " " || event.key === "Spacebar") {
-        if (inForm(event.target) || clickable(event.target)) return;
-        const trace = useTraceStore.getState();
-        if (!trace.timeline || trace.stale) return;
-        event.preventDefault();
-        trace.togglePlay();
-        return;
-      }
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         if (inForm(event.target)) return;
         const trace = useTraceStore.getState();
@@ -378,7 +376,7 @@ export function Canvas() {
 
   return (
     <main
-      className="canvas"
+      className={`canvas${spacePan ? " canvas-space-pan" : ""}`}
       style={canvasAppearanceStyle(topology.appearance)}
       ref={wrapper}
       onDrop={onDrop}
@@ -402,20 +400,24 @@ export function Canvas() {
         onEdgeClick={(_, edge) => useTopologyStore.getState().select({ kind: "link", id: edge.id })}
         onPaneClick={() => {
           closeMenu();
+          if (spacePan) return;
           useTopologyStore.getState().select({ kind: "none" });
         }}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onMoveEnd={(_, viewport) => useTopologyStore.getState().setViewport(viewport)}
         deleteKeyCode={null}
-        selectionKeyCode="Shift"
+        selectionKeyCode={spacePan ? null : "Shift"}
         multiSelectionKeyCode={["Shift", "Meta", "Control"]}
-        selectionOnDrag={!panMode}
+        selectionOnDrag={!panning}
+        nodesDraggable={!spacePan}
+        nodesConnectable={!spacePan}
+        elementsSelectable={!spacePan}
         selectionMode={SelectionMode.Partial}
         panActivationKeyCode={null}
         snapToGrid
         snapGrid={[GRID, GRID]}
-        panOnDrag={panMode ? [0, 1] : [1]}
+        panOnDrag={panning ? [0, 1] : [1]}
         minZoom={0.2}
         maxZoom={2}
       >
@@ -441,13 +443,14 @@ export function Canvas() {
           <IconButton
             icon={Scan}
             label="框选设备"
-            aria-pressed={!panMode}
+            aria-pressed={!panning}
             onClick={() => setPanMode(false)}
           />
           <IconButton
             icon={Hand}
             label="平移画布"
-            aria-pressed={panMode}
+            title="平移画布 (按住空格临时切换)"
+            aria-pressed={panning}
             onClick={() => setPanMode(true)}
           />
         </fieldset>

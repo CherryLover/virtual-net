@@ -5,6 +5,7 @@ import { hasSeenGuide, markGuideSeen } from "../onboarding/seen";
 import { DeviceBar } from "../panels/DeviceBar";
 import { SidePanel } from "../panels/SidePanel";
 import { PacketInspector } from "../panels/trace/PacketInspector";
+import { usePrivacyStore } from "../privacy/display";
 import { useAutoSave, useStorageStatus } from "../storage";
 import { useLayoutStore } from "../store/layout";
 import { Toolbar } from "../toolbar/Toolbar";
@@ -16,6 +17,7 @@ export function AppShell() {
   const [guideOpen, setGuideOpen] = useState(false);
   const libraryOpen = useLayoutStore((s) => s.libraryOpen);
   const inspectorOpen = useLayoutStore((s) => s.inspectorOpen);
+  const hidden = usePrivacyStore((s) => s.hidden);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 759px)");
     const adapt = () => useLayoutStore.getState().adaptToCompact();
@@ -45,13 +47,13 @@ export function AppShell() {
 
   return (
     <div
-      className={`app-shell${libraryOpen ? " library-open" : ""}${inspectorOpen ? " inspector-open" : ""}`}
+      className={`app-shell${libraryOpen ? " library-open" : ""}${inspectorOpen && !hidden ? " inspector-open" : ""}`}
     >
       <Toolbar onHelp={() => setGuideOpen(true)} />
       <DeviceBar />
       <Canvas />
-      <SidePanel />
-      <PacketInspector />
+      {!hidden && <SidePanel />}
+      {!hidden && <PacketInspector />}
       {guideOpen ? <GuideDialog onClose={() => setGuideOpen(false)} /> : null}
     </div>
   );

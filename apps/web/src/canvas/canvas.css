@@ -522,3 +522,18 @@
   background: var(--accent);
   color: #fff;
 }
+.canvas-space-pan .react-flow__pane {
+  cursor: grab;
+}
+.canvas-space-pan .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.canvas-space-pan .react-flow__node,
+.canvas-space-pan .react-flow__edge,
+.canvas-space-pan .react-flow__nodesselection,
+.canvas-space-pan .topology-group-name,
+.canvas-space-pan .topology-group-edge,
+.canvas-space-pan .port-label,
+.canvas-space-pan .device-edge-label {
+  pointer-events: none;
+}
