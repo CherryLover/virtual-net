@@ -15,4 +15,4 @@
 - `device-search.test.ts`：名称、设备及动态地址、组名、隐私匹配、无结果等。
 - `DeviceSearchDialog.test.ts`：输入、Enter、Escape、模式切换、桌面定位和手机侧栏恢复次序。
 - `scripts/workbench-refinements-smoke.mjs`：真实浏览器验证屏幕外设备定位、隐私状态下查找/对齐/成组、刷新保持隐藏、整组删除及恢复、390/320px 手机定位与布局。
-- 复用 5180 服务；本轮仅本地修改和验证，未提交、推送或部署。
+- 复用 5180 服务完成本地验证；2026-09-17 已提交推送并发布到 https://vnet.flyooo.uk ，线上实测桌面和手机查找定位通过。

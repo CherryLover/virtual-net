@@ -2,7 +2,7 @@
 
 ## 工作台交互打磨（2026-09-10）
 
-依据：[已有设备查找](checkpoints/UX-device-search.md)、[隐私显示](checkpoints/UX-privacy.md)、[成组与删除](checkpoints/UX-groups.md)。本轮 460 项测试（224 引擎、236 网页）、296 文件代码检查、含类型检查的构建通过，保留原有构建体积提示。尚未提交或部署。
+依据：[已有设备查找](checkpoints/UX-device-search.md)、[隐私显示](checkpoints/UX-privacy.md)、[成组与删除](checkpoints/UX-groups.md)。本轮 460 项测试（224 引擎、236 网页）、296 文件代码检查、含类型检查的构建通过，保留原有构建体积提示。2026-09-17 已提交（e415691）并发布线上，线上实测查找定位、隐藏 IP 刷新保持、取消成组与整组删除撤销通过。
 
 - `scripts/workbench-refinements-smoke.mjs`：取消成组保留设备与选择；Delete/按钮删除整组及连线并一次恢复；按名称/IP/分组查找并定位屏幕外设备；无结果及 Escape；隐私模式下对齐和组管理；原始 IP 不命中搜索、代称可查；隐藏/显示状态刷新保持；390/320px 顶栏、弹窗和定位不遮挡。截图 `/tmp/virtual-net-refinements/`。
 - `scripts/shortcuts-privacy-smoke.mjs`：原有空格平移、选择恢复、快捷键、提示文字和真实分享图片下载通过；隐私模式的新预期是保留安全面板，不再整个卸载侧栏。
