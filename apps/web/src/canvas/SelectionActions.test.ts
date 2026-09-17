@@ -58,7 +58,7 @@ it("splits multiple selected groups atomically without deleting devices or links
   const before = useTopologyStore.getState().topology;
   const history = useTopologyStore.getState().past.length;
   await render();
-  await click("拆分成组");
+  await click("取消成组");
   expect(useTopologyStore.getState().topology.groups).toHaveLength(0);
   expect(useTopologyStore.getState().topology.devices).toEqual(before.devices);
   expect(useTopologyStore.getState().topology.links).toEqual(before.links);

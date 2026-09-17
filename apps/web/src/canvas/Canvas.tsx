@@ -16,6 +16,7 @@ import type { DeviceType } from "../engine";
 import { DEVICE_TYPES } from "../engine";
 import { useTopologyStore, useTraceStore } from "../store";
 import { IconButton } from "../ui/IconButton";
+import { DeletionNotice } from "./DeletionNotice";
 import type { DeviceEdgeType } from "./DeviceEdge";
 import { DeviceEdge } from "./DeviceEdge";
 import { GroupLayer } from "./GroupLayer";
@@ -30,7 +31,7 @@ import { SwitchNode } from "./nodes/SwitchNode";
 import { nodeSubtitle } from "./nodes/subtitle";
 import type { DeviceNodeType } from "./nodes/types";
 import { SelectionActions } from "./SelectionActions";
-import { groupSelection, ungroupSelection } from "./selectionCommands";
+import { deleteSelection, groupSelection, ungroupSelection } from "./selectionCommands";
 import { PlaybackBar } from "./trace/PlaybackBar";
 import { TraceLayer } from "./trace/TraceLayer";
 import { segmentIndexAt, traceView } from "./trace/traceView";
@@ -354,20 +355,8 @@ export function Canvas() {
       }
       if (event.key === "Delete" || event.key === "Backspace") {
         if (inForm(event.target)) return;
-        const selection = store.selection;
-        if (selection.kind === "devices") {
-          event.preventDefault();
-          store.removeElements(selection.ids, []);
-        } else if (selection.kind === "device") {
-          event.preventDefault();
-          store.removeElements([selection.id], []);
-        } else if (selection.kind === "link") {
-          event.preventDefault();
-          store.removeLink(selection.id);
-        } else if (selection.kind === "group") {
-          event.preventDefault();
-          store.ungroup(selection.id);
-        }
+        if (event.repeat) return;
+        if (deleteSelection()) event.preventDefault();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -457,6 +446,7 @@ export function Canvas() {
         <SelectionActions />
       </div>
       {contextMenu && <SelectionActions menu={contextMenu} onClose={closeMenu} />}
+      <DeletionNotice />
       {copyNotice && (
         <div role="status" className="copy-notice">
           <span>{copyNotice}</span>

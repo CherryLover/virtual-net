@@ -376,3 +376,9 @@ select:focus-visible {
   max-width: 420px;
   line-height: 1.7;
 }
+@media (max-width: 359px) {
+  .toolbar .icon-button,
+  .toolbar .file-menu summary {
+    width: 28px;
+  }
+}

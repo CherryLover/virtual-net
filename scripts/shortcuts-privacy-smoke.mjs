@@ -151,7 +151,16 @@ try {
   const realGraph = (await state()).graph;
   await page.getByRole("button", { name: "隐藏 IP", exact: true }).click();
   await page.getByRole("button", { name: "显示 IP", exact: true }).waitFor();
-  assert.equal(await page.locator(".side-panel").count(), 0, "configuration is not rendered");
+  assert.equal(await page.locator(".side-panel").count(), 1, "safe operations remain available");
+  assert.equal(
+    await page
+      .locator(
+        '.side-panel input[type="text"], .side-panel input:not([type]), .side-panel textarea',
+      )
+      .count(),
+    0,
+    "raw configuration is not rendered",
+  );
   assert.equal(
     await page.getByRole("button", { name: "选择起点验证", exact: true }).isDisabled(),
     true,

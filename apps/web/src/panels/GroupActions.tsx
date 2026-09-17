@@ -1,9 +1,11 @@
 import { Copy, Group, Ungroup } from "lucide-react";
+import { useDisplayText } from "../privacy/display";
 import { useTopologyStore } from "../store";
 import { IconButton } from "../ui/IconButton";
 import { Select } from "../ui/Select";
 
 export function GroupActions({ ids }: { ids: string[] }) {
+  const display = useDisplayText();
   const groups = useTopologyStore((s) => s.topology.groups);
   const containing = groups?.find((g) => ids.every((id) => g.deviceIds.includes(id)));
   return (
@@ -33,7 +35,7 @@ export function GroupActions({ ids }: { ids: string[] }) {
         <option value="">{groups?.length ? "加入分组" : "暂无分组"}</option>
         {groups?.map((g) => (
           <option key={g.id} value={g.id}>
-            {g.name}
+            {display(g.name)}
           </option>
         ))}
       </Select>

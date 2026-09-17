@@ -1,5 +1,14 @@
 # 测试表
 
+## 工作台交互打磨（2026-09-10）
+
+依据：[已有设备查找](checkpoints/UX-device-search.md)、[隐私显示](checkpoints/UX-privacy.md)、[成组与删除](checkpoints/UX-groups.md)。本轮 460 项测试（224 引擎、236 网页）、296 文件代码检查、含类型检查的构建通过，保留原有构建体积提示。尚未提交或部署。
+
+- `scripts/workbench-refinements-smoke.mjs`：取消成组保留设备与选择；Delete/按钮删除整组及连线并一次恢复；按名称/IP/分组查找并定位屏幕外设备；无结果及 Escape；隐私模式下对齐和组管理；原始 IP 不命中搜索、代称可查；隐藏/显示状态刷新保持；390/320px 顶栏、弹窗和定位不遮挡。截图 `/tmp/virtual-net-refinements/`。
+- `scripts/shortcuts-privacy-smoke.mjs`：原有空格平移、选择恢复、快捷键、提示文字和真实分享图片下载通过；隐私模式的新预期是保留安全面板，不再整个卸载侧栏。
+- `scripts/selection-smoke.mjs`：原有框选、右键菜单、取消成组、撤销重做、按钮平移及手机工具栏通过。
+- 单元与组件测试额外覆盖禁止存储时开关可用、切换隐私时清空查询与敏感输入、手机定位过程中侧栏的自动打开、后续操作和替换图使旧删除撤销失效。
+
 ## 空格平移、成组快捷键与隐私显示（2026-09-09）
 
 详见 [成组快捷键](checkpoints/UX-groups.md) 与 [IP 隐私显示](checkpoints/UX-privacy.md)。全量 432 项测试（224 引擎、208 网页）与构建通过；`scripts/shortcuts-privacy-smoke.mjs` 和原有 `scripts/selection-smoke.mjs` 在 Chrome 实测通过。

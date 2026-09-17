@@ -537,3 +537,25 @@
 .canvas-space-pan .device-edge-label {
   pointer-events: none;
 }
+.deletion-notice {
+  position: absolute;
+  bottom: 110px;
+  left: 16px;
+  right: 16px;
+  z-index: 8;
+  max-width: 460px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.deletion-notice span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

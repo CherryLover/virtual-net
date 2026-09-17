@@ -1,9 +1,9 @@
-import { Copy, Group, Ungroup } from "lucide-react";
+import { Copy, Group, Trash2, Ungroup } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTopologyStore } from "../store";
 import { IconButton } from "../ui/IconButton";
-import { groupSelection, ungroupSelection } from "./selectionCommands";
+import { deleteSelection, groupSelection, ungroupSelection } from "./selectionCommands";
 import "./selection-actions.css";
 
 export function SelectionActions({
@@ -58,7 +58,7 @@ export function SelectionActions({
     },
     {
       icon: Ungroup,
-      label: "拆分成组",
+      label: "取消成组",
       disabled: selectedGroups.length === 0,
       action: ungroupSelection,
       shortcut: "Meta+Shift+g Control+Shift+g",
@@ -69,6 +69,12 @@ export function SelectionActions({
       label: "复制所选设备",
       disabled: !ids.length,
       action: () => useTopologyStore.getState().copyDevices(ids),
+    },
+    {
+      icon: Trash2,
+      label: selection.kind === "group" ? "删除组内设备" : "删除所选设备",
+      disabled: !ids.length,
+      action: deleteSelection,
     },
   ];
   if (!menu)

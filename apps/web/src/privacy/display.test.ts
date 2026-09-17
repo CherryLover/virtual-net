@@ -1,9 +1,42 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { sampleTopology } from "../engine";
 import { useTopologyStore } from "../store";
-import { createAddressRedactor, usePrivacyStore } from "./display";
+import { createAddressRedactor, createPrivacyStore, usePrivacyStore } from "./display";
 
 describe("address privacy", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("restores hidden state on reload and remembers explicitly showing addresses", () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    });
+    const first = createPrivacyStore();
+    expect(first.getState().hidden).toBe(false);
+    first.getState().toggle();
+    const reloaded = createPrivacyStore();
+    expect(reloaded.getState().hidden).toBe(true);
+    reloaded.getState().toggle();
+    expect(createPrivacyStore().getState().hidden).toBe(false);
+  });
+
+  it("continues toggling when browser storage throws", () => {
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    });
+    const store = createPrivacyStore();
+    expect(store.getState().hidden).toBe(false);
+    store.getState().toggle();
+    expect(store.getState().hidden).toBe(true);
+    store.getState().toggle();
+    expect(store.getState().hidden).toBe(false);
+  });
   it("uses consistent aliases for public, private, embedded and CIDR addresses", () => {
     const display = createAddressRedactor();
     expect(display("192.168.1.1 -> 8.8.8.8")).toBe("地址 1 -> 地址 2");

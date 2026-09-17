@@ -14,6 +14,7 @@ import {
   PanelRight,
   Play,
   Redo2,
+  Search,
   Share2,
   Undo2,
   Upload,
@@ -24,6 +25,7 @@ import { emptyTopology, sampleTopology } from "../engine";
 import { servicesTopology } from "../engine/serviceSample";
 import { ExportDialog } from "../export/ExportDialog";
 import { ImportDialog } from "../import/ImportDialog";
+import { DeviceSearchDialog } from "../panels/DeviceSearchDialog";
 import { SelectionDialog } from "../panels/SelectionDialog";
 import { useDisplayText, usePrivacyStore } from "../privacy/display";
 import { exportTopology, useStorageStatus } from "../storage";
@@ -51,6 +53,7 @@ export function Toolbar({ onHelp }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [selectionOpen, setSelectionOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [exportMode, setExportMode] = useState<"export" | "share" | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [draft, setDraft] = useState(name);
@@ -174,6 +177,7 @@ export function Toolbar({ onHelp }: Props) {
           <IconButton icon={Undo2} label="撤销" disabled={!canUndo} onClick={undo} />
           <IconButton icon={Redo2} label="重做" disabled={!canRedo} onClick={redo} />
         </div>
+        <IconButton icon={Search} label="查找画布设备" onClick={() => setSearchOpen(true)} />
         <IconButton
           icon={Play}
           label="选择起点验证"
@@ -237,14 +241,14 @@ export function Toolbar({ onHelp }: Props) {
       <IconButton icon={HelpCircle} label="帮助" onClick={onHelp} />
       <IconButton
         icon={PanelRight}
-        disabled={hidden}
         label={layout.inspectorOpen ? "收起操作面板" : "展开操作面板"}
-        aria-expanded={layout.inspectorOpen && !hidden}
+        aria-expanded={layout.inspectorOpen}
         onClick={layout.toggleInspector}
       />
       {dialogOpen && !hidden ? <ProbeDialog onClose={() => setDialogOpen(false)} /> : null}
       {appearanceOpen ? <AppearanceDialog onClose={() => setAppearanceOpen(false)} /> : null}
       {selectionOpen ? <SelectionDialog onClose={() => setSelectionOpen(false)} /> : null}
+      {searchOpen ? <DeviceSearchDialog onClose={() => setSearchOpen(false)} /> : null}
       {importOpen && !hidden ? <ImportDialog onClose={() => setImportOpen(false)} /> : null}
       {exportMode ? <ExportDialog mode={exportMode} onClose={() => setExportMode(null)} /> : null}
     </header>

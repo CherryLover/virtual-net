@@ -19,10 +19,31 @@ export function createAddressRedactor() {
 // Presentation only: the network, simulation and saved project retain their real addresses.
 const redact = createAddressRedactor();
 const identity = (text: string) => text;
-export const usePrivacyStore = create<{ hidden: boolean; toggle: () => void }>((set) => ({
-  hidden: false,
-  toggle: () => set((state) => ({ hidden: !state.hidden })),
-}));
+const PRIVACY_KEY = "virtual-net:privacy-hidden";
+
+export function createPrivacyStore() {
+  let hidden = false;
+  try {
+    hidden = sessionStorage.getItem(PRIVACY_KEY) === "true";
+  } catch {
+    // Storage can be unavailable in private browsing or outside a browser.
+  }
+  return create<{ hidden: boolean; toggle: () => void }>((set) => ({
+    hidden,
+    toggle: () =>
+      set((state) => {
+        const hidden = !state.hidden;
+        try {
+          sessionStorage.setItem(PRIVACY_KEY, String(hidden));
+        } catch {
+          // Keep the current session usable even when persistence is blocked.
+        }
+        return { hidden };
+      }),
+  }));
+}
+
+export const usePrivacyStore = createPrivacyStore();
 
 export function useDisplayText() {
   return usePrivacyStore((state) => (state.hidden ? redact : identity));

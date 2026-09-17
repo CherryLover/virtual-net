@@ -58,7 +58,7 @@ try {
   assert.equal(await page.getByRole("combobox", { name: "加入分组" }).isEnabled(), true);
   await page.locator('[data-device-name="电脑2"]').click({ modifiers: ["Shift"] });
   await page.locator('[data-device-name="电脑1"]').click({ button: "right" });
-  const contextItem = page.getByRole("menuitem", { name: "拆分成组", exact: true });
+  const contextItem = page.getByRole("menuitem", { name: "取消成组", exact: true });
   assert.equal((await style(contextItem)).height, 36);
   assert.equal((await style(contextItem)).fontSize, "13px");
   await page.screenshot({ path: `${output}/desktop-context.png` });

@@ -1,15 +1,19 @@
 import { ClipboardCheck, X } from "lucide-react";
 import { useEffect } from "react";
+import { useDisplayText, usePrivacyStore } from "../privacy/display";
 import { useTopologyStore } from "../store";
 import { useLayoutStore } from "../store/layout";
 import { IconButton } from "../ui/IconButton";
 import { DevicePanel } from "./DevicePanel";
 import { GroupPanel } from "./GroupPanel";
+import { PrivateDevicePanel } from "./PrivateDevicePanel";
 import { ResultsPanel } from "./ResultsPanel";
 import { SelectionPanel } from "./SelectionPanel";
 import "./panels.css";
 
 export function SidePanel() {
+  const hidden = usePrivacyStore((s) => s.hidden);
+  const display = useDisplayText();
   const selection = useTopologyStore((s) => s.selection);
   const devices = useTopologyStore((s) => s.topology.devices);
   const runtime = useTopologyStore((s) => s.runtime);
@@ -34,6 +38,7 @@ export function SidePanel() {
           <IconButton
             icon={ClipboardCheck}
             label="查看全部验证结果"
+            disabled={hidden}
             onClick={() => useTopologyStore.getState().select({ kind: "none" })}
           />
           <IconButton icon={X} label="关闭操作面板" onClick={close} />
@@ -44,6 +49,8 @@ export function SidePanel() {
           <GroupPanel key={group.id} group={group} />
         ) : selection.kind === "devices" ? (
           <SelectionPanel ids={selection.ids} />
+        ) : device && hidden ? (
+          <PrivateDevicePanel key={device.id} device={device} />
         ) : device ? (
           <DevicePanel
             key={device.id}
@@ -69,7 +76,8 @@ export function SidePanel() {
                         .select({ kind: "device", id: end.deviceId }, null, end.portId)
                     }
                   >
-                    {node?.name} · {node?.ports.find((p) => p.id === end.portId)?.name}
+                    {display(node?.name ?? "")} ·{" "}
+                    {display(node?.ports.find((p) => p.id === end.portId)?.name ?? "")}
                   </button>
                 );
               })}
@@ -83,6 +91,11 @@ export function SidePanel() {
                 删除连线
               </button>
             </div>
+          </div>
+        ) : hidden ? (
+          <div className="panel-section">
+            <h3 className="panel-title">隐私模式</h3>
+            <p className="device-meta">验证详情已隐藏</p>
           </div>
         ) : (
           <ResultsPanel />

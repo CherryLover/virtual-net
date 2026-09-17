@@ -44,7 +44,7 @@ try {
   await page
     .getByRole("button", { name: "选择分组 新分组", exact: true })
     .click({ button: "right" });
-  await menu().getByRole("menuitem", { name: "拆分成组", exact: true }).click();
+  await menu().getByRole("menuitem", { name: "取消成组", exact: true }).click();
   assert.equal((await state()).graph.groups.length, 0);
   assert.deepEqual((await state()).graph.devices, original.devices);
   assert.deepEqual((await state()).graph.links, original.links);

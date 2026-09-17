@@ -47,12 +47,12 @@ export function AppShell() {
 
   return (
     <div
-      className={`app-shell${libraryOpen ? " library-open" : ""}${inspectorOpen && !hidden ? " inspector-open" : ""}`}
+      className={`app-shell${libraryOpen ? " library-open" : ""}${inspectorOpen ? " inspector-open" : ""}`}
     >
       <Toolbar onHelp={() => setGuideOpen(true)} />
       <DeviceBar />
       <Canvas />
-      {!hidden && <SidePanel />}
+      <SidePanel />
       {!hidden && <PacketInspector />}
       {guideOpen ? <GuideDialog onClose={() => setGuideOpen(false)} /> : null}
     </div>
